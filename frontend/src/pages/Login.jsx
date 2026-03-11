@@ -2,29 +2,51 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const location = useLocation();
   
-  // FIX: Component load hote hi check kar lenge ki SignUp page kholna hai ya nahi
   const [isLogin, setIsLogin] = useState(!location.state?.isSignUp);
   
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  
   useEffect(() => {
     if (location.state?.isSignUp) {
-      // FIX: ESLint bypass comment kyunki hume router state ko local state se sync karna zaroori hai
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLogin(false);
     }
   }, [location.state]);
 
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!email || !username || !password) {
+        toast.error("Please fill all fields first.");
+        return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/auth/send-otp`, { email });
+      setOtpSent(true);
+      toast.success("OTP sent to your email!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isLogin ? '/api/users/login' : '/api/users/register';
-    const payload = isLogin ? { email, password } : { username, email, password };
+    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+    const payload = isLogin ? { email, password } : { username, email, password, otp };
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -45,44 +67,142 @@ const Login = () => {
     }
   };
 
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        // FIX: Removed unused userInfo assignment
+        await axios.get(
+          'https://www.googleapis.com/oauth2/v3/userinfo',
+          { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+        );
+        
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await axios.post(`${apiUrl}/api/auth/google`, {
+          access_token: tokenResponse.access_token
+        });
+
+        toast.success("Google Login Successful! 🎉");
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user)); 
+        window.location.href = '/'; 
+
+      } catch (err) {
+        console.error("Google login error:", err);
+        toast.error("Failed to authenticate with Google Server");
+      }
+    },
+    // FIX: Removed unused 'error' variable
+    onError: () => toast.error("Google Login Failed")
+  });
+
+
   return (
-    <div className="flex flex-col items-center justify-center mt-16 transition-colors">
+    <div className="flex flex-col items-center justify-center mt-16 transition-colors mb-16">
       <div className="animate-scale-in bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-8 md:p-10 rounded-2xl w-full max-w-md shadow-xl text-center transition-colors">
         <div className="text-5xl mb-4">{isLogin ? '👋' : '✨'}</div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{isLogin ? 'Welcome Back' : 'Join Vartalap'}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-          {isLogin ? 'Login to continue your conversation' : 'Create an account and dive in'}
+          {isLogin ? 'Login to continue your conversation' : (otpSent ? 'Enter the security code to verify your email' : 'Create an account and dive in')}
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {!isLogin && (
-            <input
-              type="text"
-              placeholder="Username"
-              className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+        {/* Google Login Button */}
+        {(!otpSent || isLogin) && (
+          <div className="mb-6">
+            <button 
+              onClick={() => loginWithGoogle()}
+              className="w-full flex items-center justify-center gap-3 bg-white dark:bg-[#272729] border border-gray-300 dark:border-[#343536] text-gray-700 dark:text-white p-3.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#343536] transition-all shadow-sm font-medium"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                <path d="M1 1h22v22H1z" fill="none"/>
+              </svg>
+              Continue with Google
+            </button>
+            
+            <div className="relative flex py-5 items-center">
+              <div className="grow border-t border-gray-200 dark:border-[#343536]"></div>
+              <span className="shrink-0 mx-4 text-gray-400 text-sm">Or</span>
+              <div className="grow border-t border-gray-200 dark:border-[#343536]"></div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={isLogin || otpSent ? handleSubmit : handleSendOtp} className="flex flex-col gap-3">
+          
+          {(!otpSent || isLogin) && (
+            <>
+              {!isLogin && (
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
+                  onChange={(e) => setUsername(e.target.value)}
+                  value={username}
+                  required
+                />
+              )}
+              <input
+                type="email"
+                placeholder="Email"
+                className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
+                onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                required
+              />
+            </>
           )}
-          <input
-            type="email"
-            placeholder="Email"
-            className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+          {!isLogin && otpSent && (
+            <div className="animate-fade-in flex flex-col gap-3">
+               <div className="text-gray-600 dark:text-gray-300 text-sm mb-2 text-left bg-orange-50 dark:bg-orange-500/10 p-3 rounded-xl border border-orange-100 dark:border-orange-500/20">
+                 We've sent a 6-digit code to <strong>{email}</strong>
+               </div>
+               <input
+                 type="text"
+                 placeholder="Enter 6-digit OTP"
+                 maxLength={6}
+                 className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-center tracking-widest text-xl font-bold"
+                 onChange={(e) => setOtp(e.target.value)}
+                 value={otp}
+                 required
+               />
+               <button 
+                type="button" 
+                onClick={() => setOtpSent(false)} 
+                className="text-sm text-gray-500 hover:text-orange-500"
+               >
+                 Go back to edit details
+               </button>
+            </div>
+          )}
+
           <button
             type="submit"
-            className="btn-press mt-2 bg-linear-to-r from-orange-500 to-orange-600 text-white font-bold p-3.5 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-base tracking-wide"
+            disabled={sendingOtp}
+            className={`btn-press mt-2 text-white font-bold p-3.5 rounded-xl transition-all shadow-lg text-base tracking-wide flex justify-center items-center gap-2 ${
+              sendingOtp 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+            }`}
           >
-            {isLogin ? 'Log In' : 'Create Account'}
+            {isLogin 
+              ? 'Log In' 
+              : (otpSent 
+                  ? 'Verify & Create Account' 
+                  : (sendingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Send OTP')
+                )
+            }
           </button>
         </form>
 
@@ -90,7 +210,10 @@ const Login = () => {
           <p className="text-gray-500 dark:text-gray-400 text-sm">
             {isLogin ? "New to Vartalap? " : "Already a member? "}
             <span
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                  setIsLogin(!isLogin);
+                  setOtpSent(false); 
+              }}
               className="text-orange-500 font-bold cursor-pointer hover:underline hover:text-orange-600 transition-colors"
             >
               {isLogin ? 'Sign Up' : 'Log In'}

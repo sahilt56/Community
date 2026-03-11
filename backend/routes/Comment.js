@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Comment = require('../models/Comment');
 const verifyToken = require('../middleware/verifyToken');
+const contentFilter = require('../middleware/contentFilter');
 
 // 1. ADD A NEW COMMENT
-router.post('/add', verifyToken, async (req, res) => {
+router.post('/add', verifyToken, contentFilter, async (req, res) => {
   try {
     const { content, postId, parentCommentId } = req.body;
 
@@ -38,7 +39,7 @@ router.post('/add', verifyToken, async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -52,7 +53,7 @@ router.get('/post/:postId', async (req, res) => {
       
     res.status(200).json(comments);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 

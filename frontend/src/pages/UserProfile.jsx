@@ -72,7 +72,7 @@ const UserProfile = () => {
   // VOTING LOGIC for the feed
   const handleUpvote = async (postId) => {
     if (!token) {
-      alert("Vote karne ke liye pehle Log In karein! 🛑");
+      toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
     try {
@@ -88,7 +88,7 @@ const UserProfile = () => {
 
   const handleDownvote = async (postId) => {
     if (!token) {
-      alert("Vote karne ke liye pehle Log In karein! 🛑");
+      toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
     try {
@@ -117,7 +117,7 @@ const UserProfile = () => {
           Authorization: `Bearer ${token}`
         }
       });
-      alert(`${type === 'profilePic' ? 'Profile Picture' : 'Banner'} Updated! 📸`);
+      toast.success(`${type === 'profilePic' ? 'Profile Picture' : 'Banner'} Updated! 📸`);
       
       // Update local storage so Navbar & RightSidebar see the new pic immediately
       const storedUser = JSON.parse(localStorage.getItem('user'));
@@ -130,7 +130,7 @@ const UserProfile = () => {
       
       fetchUserProfile();
     } catch (err) {
-      alert(err.response?.data?.message || "Upload failed");
+      toast.error(err.response?.data?.message || "Upload failed");
     }
   };
 
@@ -253,6 +253,52 @@ const UserProfile = () => {
     }
   };
 
+  const handleDeleteAccount = () => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-red-600">⚠ Account Permanently Delete Kar Dein?</p>
+        <p className="text-xs text-gray-500">Aapka saara data (posts, comments, profile) hamesha ke liye mit jayega. Yeh action undo nahi ho sakta.</p>
+        <div className="flex gap-2 justify-end">
+          <button 
+            onClick={() => { toast.dismiss(t.id); executeAccountDeletion(); }} 
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
+          >
+            Yes, Delete Permanently
+          </button>
+          <button 
+            onClick={() => toast.dismiss(t.id)} 
+            className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '350px' } });
+  };
+
+  const executeAccountDeletion = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.delete(`${apiUrl}/api/users/${profileData.profile._id}/delete`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success(res.data.message, { duration: 5000 });
+      
+      // Cleanup and Redirect
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+
+    } catch (err) {
+      console.error("Deletion error:", err);
+      toast.error(err.response?.data?.message || "Failed to delete account. Please try again later.");
+    }
+  };
+
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
     // Overview usually mixes recent posts and maybe comments, but for simplicity, default to Posts array
@@ -287,7 +333,7 @@ const UserProfile = () => {
   };
 
   const handleHide = async (postId) => {
-    if (!token) return alert("Log in to hide posts!");
+    if (!token) return toast.error("Log in to hide posts!");
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const res = await axios.put(`${apiUrl}/api/posts/${postId}/hide`, {}, {
@@ -307,6 +353,40 @@ const UserProfile = () => {
       }
     } catch (err) {
       console.error("Hide error:", err);
+    }
+  };
+
+  const handleReport = async (postId) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-orange-600">🚩 Report This Post</p>
+        <p className="text-xs text-gray-500">Select a reason:</p>
+        <div className="flex flex-col gap-1">
+          {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
+            <button
+              key={reason}
+              onClick={() => { toast.dismiss(t.id); submitReport(postId, reason); }}
+              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+            >
+              {reason.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+  };
+
+  const submitReport = async (postId, reason) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/reports`, 
+        { targetType: 'post', targetId: postId, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Report submitted! Our team will review it. 🛡️');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit report.');
     }
   };
 
@@ -400,7 +480,7 @@ const UserProfile = () => {
               {/* Note: Chat is currently a functional stub / WIP */}
               {!isOwner && (
                 <button 
-                  onClick={() => alert("Chat feature is coming soon! 💬")}
+                  onClick={() => toast("Chat feature is coming soon! 💬", { icon: '💬' })}
                   className="flex-1 md:flex-none justify-center bg-transparent border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white font-bold px-6 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-sm"
                 >
                   Chat
@@ -511,6 +591,17 @@ const UserProfile = () => {
                               {currentUser && post.hiddenBy?.includes(currentUser.id) ? 'Unhide' : 'Hide'}
                             </span>
                           </div>
+
+                          {/* Report Action */}
+                          {currentUser && (
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); handleReport(post._id); setOpenDropdownId(null); }}
+                              className="flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-4 py-3 cursor-pointer transition-all"
+                            >
+                              <span className="text-gray-400">🚩</span>
+                              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Report</span>
+                            </div>
+                          )}
 
                           {/* Delete Option */}
                           {currentUser && profileData.profile.username === currentUser.username && (
@@ -658,6 +749,19 @@ const UserProfile = () => {
               This user is a member of the Vartalap community. Join today to see more from them!
             </p>
           </div>
+
+          {/* Delete Account Button (Owner Only) */}
+          {isOwner && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#343536] transition-colors">
+               <button 
+                onClick={handleDeleteAccount}
+                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-500 p-3 rounded-xl border border-red-100 dark:border-red-500/20 text-xs font-bold transition-all"
+               >
+                 <span>🗑️</span> Delete Account Permanently
+               </button>
+               <p className="text-[10px] text-gray-400 mt-2 text-center">Warning: This action cannot be undone.</p>
+            </div>
+          )}
         </div>
 
       </div>

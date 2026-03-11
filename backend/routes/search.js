@@ -11,7 +11,8 @@ router.get('/', async (req, res) => {
       return res.json({ communities: [], users: [] });
     }
 
-    const regex = new RegExp(q.trim(), 'i'); // Case-insensitive search
+    const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
 
     // Search communities by name
     const communities = await Community.find({ name: regex })
@@ -39,7 +40,8 @@ router.get('/', async (req, res) => {
 
     res.json({ communities, users, posts });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Search error:', err);
+    res.status(500).json({ error: 'Search failed. Please try again.' });
   }
 });
 

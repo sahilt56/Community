@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // FIX: Hooks import kiye gaye hain
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 // Helper: Check if a file/preview is a video (MIME type + extension fallback)
 const isVideoFile = (fileOrPreview) => {
@@ -50,12 +51,12 @@ const CreatePost = ({ onPostCreated }) => {
 
     // Max 13 images + Max 3 videos
     if (imageCount > 13) {
-      alert("Ek post mein max 13 images hi allow hain! 📸🛑");
+      toast.error("Ek post mein max 13 images hi allow hain! 📸🛑");
       setFileInputKey(prev => prev + 1); // FIX: Incremented state instead of Date.now()
       return;
     }
     if (videoCount > 3) {
-      alert("Ek post mein max 3 videos hi allow hain! 🎬🛑");
+      toast.error("Ek post mein max 3 videos hi allow hain! 🎬🛑");
       setFileInputKey(prev => prev + 1);
       return;
     }
@@ -63,7 +64,7 @@ const CreatePost = ({ onPostCreated }) => {
     // Video size check: Max 5MB per video
     const oversizedVideo = selectedFiles.find(f => isVideoFile(f) && f.size > 5 * 1024 * 1024);
     if (oversizedVideo) {
-      alert(`Video "${oversizedVideo.name}" ka size ${(oversizedVideo.size / (1024 * 1024)).toFixed(1)}MB hai. Max 5MB allowed! 🎬🛑`);
+      toast.error(`Video "${oversizedVideo.name}" ka size ${(oversizedVideo.size / (1024 * 1024)).toFixed(1)}MB hai. Max 5MB allowed! 🎬🛑`);
       setFileInputKey(prev => prev + 1);
       return;
     }
@@ -94,12 +95,12 @@ const CreatePost = ({ onPostCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCommunity) {
-      alert("Please select a community first!");
+      toast.error("Please select a community first!");
       return;
     }
 
     if (postType === 'link' && !link.trim()) {
-      alert("Please enter a valid URL for the link post!");
+      toast.error("Please enter a valid URL for the link post!");
       return;
     }
 
@@ -136,11 +137,11 @@ const CreatePost = ({ onPostCreated }) => {
       setPreviews([]);
       setLink('');
       setFileInputKey(prev => prev + 1); // FIX: Incremented state instead of Date.now()
-      alert(`Post Created (${postType})! 🚀✨`);
+      toast.success(`Post Created (${postType})! 🚀✨`);
       onPostCreated(); 
     } catch (err) {
       console.error("Post creation error:", err);
-      alert(err.response?.data?.message || "Error creating post");
+      toast.error(err.response?.data?.message || "Error creating post");
     }
   };
 

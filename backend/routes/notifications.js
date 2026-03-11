@@ -14,7 +14,7 @@ router.get('/', verifyToken, async (req, res) => {
     
     res.json(notifications);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -27,7 +27,7 @@ router.get('/unread-count', verifyToken, async (req, res) => {
     });
     res.json({ count });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -41,7 +41,7 @@ router.put('/:id/read', verifyToken, async (req, res) => {
     );
     res.json(notification);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -54,7 +54,7 @@ router.put('/mark-all-read', verifyToken, async (req, res) => {
     );
     res.json({ message: "All notifications marked as read" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 

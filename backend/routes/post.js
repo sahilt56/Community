@@ -5,7 +5,8 @@ const Post = require('../models/Post');
 const Notification = require('../models/Notification');
 const verifyToken = require('../middleware/verifyToken');
 const auth = require('../middleware/verifyToken');
-const upload = require('../middleware/upload'); // Multer middleware import kiya
+const upload = require('../middleware/upload');
+const contentFilter = require('../middleware/contentFilter');
 
 
 router.get('/', async (req, res) => {
@@ -136,7 +137,7 @@ router.get('/community/:communityId', async (req, res) => {
 });
 
 // CREATE A NEW POST
-router.post('/create', verifyToken, upload.array('media', 16), async (req, res) => {
+router.post('/create', verifyToken, upload.array('media', 16), contentFilter, async (req, res) => {
   try {
     const { title, content, communityId, postType, link } = req.body;
     const media = [];
@@ -180,7 +181,8 @@ router.post('/create', verifyToken, upload.array('media', 16), async (req, res) 
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Post creation error:', err);
+    res.status(500).json({ error: 'Failed to create post.' });
   }
 });
 // UPVOTE A POST
@@ -228,7 +230,8 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
     res.status(200).json({ message: "Post upvoted successfully", post });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Upvote error:', err);
+    res.status(500).json({ error: 'Voting failed.' });
   }
 });
 
@@ -275,7 +278,8 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
     res.status(200).json({ message: "Post downvoted successfully", post });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Downvote error:', err);
+    res.status(500).json({ error: 'Voting failed.' });
   }
 });
 // GET ALL POSTS (For Homepage Feed)
@@ -301,7 +305,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 // Add a comment to a post
-router.post('/:id/comment', auth, async (req, res) => {
+router.post('/:id/comment', auth, contentFilter, async (req, res) => {
   try {
     // Note: Yahan hum maan rahe hain ki req.user mein logged-in user ki details hain 
     // (jo tumhare auth middleware se aati hai).
@@ -364,7 +368,7 @@ router.post('/:id/comment', auth, async (req, res) => {
   }
 });
 // EDIT A POST (Only text content/title for now)
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, contentFilter, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate('community');
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -386,7 +390,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     await post.save();
     res.json({ message: "Post updated successfully! ✨", post });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Post edit error:', err);
+    res.status(500).json({ error: 'Failed to update post.' });
   }
 });
 
@@ -418,7 +423,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     res.json({ message: "Post deleted successfully! 🗑️" });
   } catch (err) {
     console.error("Delete error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to delete post.' });
   }
 });
 
@@ -467,7 +472,7 @@ router.put('/:postId/comment/:commentId/upvote', verifyToken, async (req, res) =
 
     res.json(post);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -510,12 +515,12 @@ router.put('/:postId/comment/:commentId/downvote', verifyToken, async (req, res)
     
     res.json(post);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
 // EDIT A COMMENT
-router.put('/:postId/comment/:commentId', verifyToken, async (req, res) => {
+router.put('/:postId/comment/:commentId', verifyToken, contentFilter, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -536,7 +541,7 @@ router.put('/:postId/comment/:commentId', verifyToken, async (req, res) => {
 
     res.json({ message: "Comment updated! ✨", post });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -570,7 +575,7 @@ router.delete('/:postId/comment/:commentId', verifyToken, async (req, res) => {
     await post.save();
     res.json({ message: "Comment deleted! 🗑️", post });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -601,7 +606,7 @@ router.put('/:id/save', verifyToken, async (req, res) => {
     await Promise.all([user.save(), post.save()]);
     res.status(200).json({ message: isSaved ? "Post saved" : "Post unsaved", isSaved });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -630,7 +635,7 @@ router.put('/:id/hide', verifyToken, async (req, res) => {
     await Promise.all([user.save(), post.save()]);
     res.status(200).json({ message: isHidden ? "Post hidden" : "Post unhidden", isHidden });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 

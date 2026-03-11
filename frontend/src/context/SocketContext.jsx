@@ -11,7 +11,10 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-        const newSocket = io(socketUrl);
+        const token = localStorage.getItem('token');
+        const newSocket = io(socketUrl, {
+            auth: { token: token || undefined }
+        });
         
         // FIX: The linter warns about synchronous setState in useEffect, 
         // but for setting up a Socket on mount, this is the correct pattern.

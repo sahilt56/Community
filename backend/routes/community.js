@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Community = require('../models/Community');
 const verifyToken = require('../middleware/verifyToken'); 
-const upload = require('../middleware/upload'); // Needed for image uploads
+const upload = require('../middleware/upload');
+const contentFilter = require('../middleware/contentFilter');
 
 // CREATE A NEW COMMUNITY
-router.post('/create', verifyToken, async (req, res) => {
+router.post('/create', verifyToken, contentFilter, async (req, res) => {
   try {
     const { name, description, minKarma = 0, minAgeDays = 0 } = req.body;
 
@@ -34,7 +35,7 @@ router.post('/create', verifyToken, async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -92,7 +93,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // UPDATE COMMUNITY
-router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'bannerPic', maxCount: 1 }]), async (req, res) => {
+router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxCount: 1 }, { name: 'bannerPic', maxCount: 1 }]), contentFilter, async (req, res) => {
   try {
     const community = await Community.findById(req.params.id);
     if (!community) return res.status(404).json({ message: "Community not found" });
@@ -156,7 +157,7 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
 
   } catch (err) {
     console.error("Community update error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -185,7 +186,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     res.json({ message: "Community deleted successfully! 🗑️" });
   } catch (err) {
     console.error("Community delete error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 
@@ -234,7 +235,7 @@ router.post('/:id/join', verifyToken, async (req, res) => {
 
     res.status(200).json({ message: "Successfully joined the community!", community });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
 

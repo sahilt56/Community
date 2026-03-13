@@ -58,11 +58,15 @@ const Explore = () => {
               className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-5 flex items-center gap-4 transition-all group shadow-sm animate-fade-up`}
               style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}
             >
-              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shrink-0 flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white dark:border-[#1a1a1b] shadow-md">
-                {c.profilePic ? (
-                  <img src={c.profilePic.startsWith('http') ? c.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${c.profilePic}`} alt={c.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-lg">v/</span>
+              <div className="w-14 h-14 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shrink-0 flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white dark:border-[#1a1a1b] shadow-md relative">
+                v/
+                {c.profilePic && (
+                  <img 
+                    src={c.profilePic.startsWith('http') ? c.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${c.profilePic}`} 
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                 )}
               </div>
               <div className="flex-1 min-w-0">

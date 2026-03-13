@@ -1,20 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import SkeletonLoader from './SkeletonLoader';
 
 const LeftSidebar = () => {
   const token = localStorage.getItem('token');
   const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
       const fetchCommunities = async () => {
+        setLoading(true);
         try {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
           const res = await axios.get(`${apiUrl}/api/communities`);
           setCommunities(res.data);
         } catch (err) {
           console.error("Error fetching communities for sidebar", err);
+        } finally {
+          setLoading(false);
         }
       };
       fetchCommunities();
@@ -60,7 +65,9 @@ const LeftSidebar = () => {
         {token ? (
           <div className="p-3 pl-4 border-b border-gray-200 dark:border-[#343536]">
             <h2 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-2">Your Communities</h2>
-            {communities.length === 0 ? (
+            {loading ? (
+              <div className="px-2 py-1"><SkeletonLoader /></div>
+            ) : communities.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-xs px-2 py-1 italic">Join communities to see them here.</p>
             ) : (
               <div className="mt-1 flex flex-col gap-0.5">

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
+import logo from '../assets/logo.png';
 
 const Login = () => {
   const location = useLocation();
@@ -32,7 +33,19 @@ const Login = () => {
   // Real-time username check
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      if (username.length >= 3 && (!isLogin || showPrompt)) {
+      if (username.length >= 1 && (!isLogin || showPrompt)) {
+        // Pre-check for strict alphanumeric/underscore pattern
+        if (!/^[a-zA-Z0-9_]{1,20}$/.test(username)) {
+          setUsernameStatus({ available: false, message: "3-20 chars (alphanumeric/underscore only)" });
+          return;
+        }
+
+        // Only start checking database after 3 chars
+        if (username.length < 3) {
+           setUsernameStatus({ available: false, message: "Minimum 3 characters required" });
+           return;
+        }
+
         setIsCheckingUsername(true);
         try {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -180,7 +193,11 @@ const Login = () => {
           </div>
         ) : (
           <>
-            <div className="text-5xl mb-4">{isLogin ? '👋' : '✨'}</div>
+            <div className="flex justify-center mb-6">
+              <div className="p-1 rounded-full border-2 border-orange-500/20 shadow-lg">
+                <img src={logo} alt="Vartalap Logo" className="w-24 h-24 object-cover rounded-full animate-float" />
+              </div>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{isLogin ? 'Welcome Back' : 'Join Vartalap'}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
               {isLogin ? 'Login to continue your conversation' : (otpSent ? 'Enter the security code to verify your email' : 'Create an account and dive in')}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
 
 const CommunityPage = () => {
@@ -282,7 +283,7 @@ const CommunityPage = () => {
     }
   };
 
-  if (!community) return <div className="text-gray-900 dark:text-white text-center mt-10">Loading Community... 🚀</div>;
+  if (!community) return <div className="mt-10"><SkeletonLoader /></div>;
 
   const isMember = currentUser && community.members?.some(m => 
     (typeof m === 'object' ? m._id === currentUser.id : m === currentUser.id)
@@ -302,10 +303,10 @@ const CommunityPage = () => {
   return (
     <div className="mt-6">
       {/* Community BANNER & DETAILS */}
-      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm mb-6 relative overflow-hidden transition-colors">
+      <div className="bg-gray-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm mb-6 relative overflow-hidden transition-colors">
         {/* Banner Image */}
         {community.bannerPic ? (
-          <div className="h-32 md:h-48 w-full">
+          <div className="h-32 md:h-48 w-full border-b border-gray-200 dark:border-[#343536]">
             <img 
               src={community.bannerPic.startsWith('http') ? community.bannerPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.bannerPic}`} 
               alt="Banner" 
@@ -313,18 +314,22 @@ const CommunityPage = () => {
             />
           </div>
         ) : (
-          <div className="h-20 bg-blue-600"></div>
+          <div className="h-20 bg-blue-600 border-b border-gray-200 dark:border-[#343536]"></div>
         )}
 
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div className="flex gap-4 items-start">
               {/* Profile Icon */}
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-200 dark:bg-[#272729] border-4 border-white dark:border-[#1a1a1b] -mt-12 md:-mt-16 overflow-hidden shrink-0 flex items-center justify-center text-gray-900 dark:text-white text-3xl font-bold">
-                {community.profilePic ? (
-                  <img src={community.profilePic.startsWith('http') ? community.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.profilePic}`} alt="Icon" className="w-full h-full object-cover" />
-                ) : (
-                  <span>v/</span>
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-blue-600 border-4 border-white dark:border-[#1a1a1b] -mt-12 md:-mt-16 overflow-hidden shrink-0 flex items-center justify-center text-white text-3xl font-bold relative">
+                v/
+                {community.profilePic && (
+                  <img 
+                    src={community.profilePic.startsWith('http') ? community.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.profilePic}`} 
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                 )}
               </div>
               <div className="-mt-2">

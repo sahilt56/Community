@@ -399,12 +399,12 @@ const UserProfile = () => {
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
+    <div className="dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
       {/* 1. TOP HEADER SECTION */}
-      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md overflow-hidden shadow-md transition-colors">
+      <div className="bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md overflow-hidden shadow-md transition-colors">
         {/* Banner */}
         <div 
-          className="h-40 md:h-64 bg-gray-100 dark:bg-[#272729] relative group overflow-hidden transition-colors"
+          className="h-40 md:h-64 bg-gray-100 dark:bg-[#272729] relative group overflow-hidden transition-colors border-b border-gray-200 dark:border-[#343536]"
         >
           {profileData.profile.bannerPic ? (
             <img 
@@ -440,10 +440,14 @@ const UserProfile = () => {
           {/* Overlapping Avatar */}
           <div className="-mt-12 md:-mt-16 w-24 h-24 md:w-32 md:h-32 relative shrink-0 z-20">
             <div className="w-full h-full bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full border-4 border-white dark:border-[#1a1a1b] flex items-center justify-center text-4xl font-bold text-white shadow-xl group overflow-hidden relative transition-colors">
-              {profileData.profile.profilePic ? (
-                <img src={getImageUrl(profileData.profile.profilePic)} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-              ) : (
-                profileData.profile.username.charAt(0).toUpperCase()
+              {profileData.profile.username.charAt(0).toUpperCase()}
+              {profileData.profile.profilePic && (
+                <img 
+                  src={getImageUrl(profileData.profile.profilePic)} 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-cover" 
+                  onError={(e) => { e.target.style.display = 'none'; }} 
+                />
               )}
               
               {isOwner && (
@@ -526,8 +530,16 @@ const UserProfile = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {(activeTab === 'Created' ? profileData.createdCommunities : profileData.joinedCommunities)?.map(c => (
                 <Link key={c._id} to={`/v/${c.name}`} className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md hover:border-gray-400 dark:hover:border-gray-500 transition-all flex flex-col items-center text-center gap-3">
-                  <div className={`w-16 h-16 ${activeTab === 'Created' ? 'bg-orange-600' : 'bg-blue-600'} rounded-full flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-md`}>
-                    {c.profilePic ? <img src={getImageUrl(c.profilePic)} alt={c.name} className="w-full h-full object-cover" /> : 'v/'}
+                  <div className={`w-16 h-16 ${activeTab === 'Created' ? 'bg-orange-600' : 'bg-blue-600'} rounded-full flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-md relative`}>
+                    v/
+                    {c.profilePic && (
+                      <img 
+                        src={getImageUrl(c.profilePic)} 
+                        alt="" 
+                        className="absolute inset-0 w-full h-full object-cover" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    )}
                   </div>
                   <div>
                     <h4 className="text-gray-900 dark:text-white font-bold leading-tight">v/{c.name}</h4>
@@ -692,10 +704,14 @@ const UserProfile = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 relative shrink-0">
                   <div className="w-full h-full bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg overflow-hidden relative">
-                    {profileData.profile.profilePic ? (
-                      <img src={getImageUrl(profileData.profile.profilePic)} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      profileData.profile.username.charAt(0).toUpperCase()
+                    {profileData.profile.username.charAt(0).toUpperCase()}
+                    {profileData.profile.profilePic && (
+                      <img 
+                        src={getImageUrl(profileData.profile.profilePic)} 
+                        alt="" 
+                        className="absolute inset-0 w-full h-full object-cover" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
                     )}
                   </div>
                   <OnlineIndicator userId={profileData.profile._id} size="w-4 h-4" border="border-2 border-white dark:border-[#1a1a1b]" />

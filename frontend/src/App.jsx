@@ -18,7 +18,7 @@ function App() {
   return (
     <ThemeProvider>
       <SocketProvider>
-        <div className="h-screen flex flex-col bg-gray-50 dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
+        <div className="h-screen flex flex-col bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
         <Toaster 
           position="bottom-center"
           toastOptions={{

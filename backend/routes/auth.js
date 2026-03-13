@@ -16,6 +16,12 @@ const axios = require('axios'); // Add axios at the top if not present, though w
 router.get('/check-username/:username', async (req, res) => {
   try {
     const { username } = req.params;
+    
+    // Strict alphanumeric/underscore check
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      return res.status(200).json({ available: false, message: "Use 3-20 chars (letters, numbers, and underscores only)" });
+    }
+
     const user = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
     if (user) {
       return res.status(200).json({ available: false, message: "Username already taken" });
@@ -63,6 +69,11 @@ router.post('/google', async (req, res) => {
         });
       }
 
+      // Strict alphanumeric/underscore check
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(providedUsername)) {
+        return res.status(400).json({ error: "Username must be 3-20 characters (alphanumeric/underscore only)!" });
+      }
+
       // Check if chosen username is unique
       const usernameExists = await User.findOne({ username: { $regex: new RegExp(`^${providedUsername}$`, 'i') } });
       if (usernameExists) {
@@ -100,8 +111,11 @@ router.post('/send-otp', async (req, res) => {
   try {
     const { email, username } = req.body;
 
-    // 1. Check if username exists (if provided)
+    // 1. Check username exists (if provided)
     if (username) {
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        return res.status(400).json({ message: "Username must be 3-20 characters (alphanumeric/underscore only)!" });
+      }
       const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
       if (existingUserByUsername) {
         return res.status(400).json({ message: "Username already taken!" });
@@ -171,6 +185,10 @@ router.post('/register', async (req, res) => {
 
     if (!otp) {
         return res.status(400).json({ message: "OTP is required for registration!" });
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      return res.status(400).json({ message: "Username must be 3-20 characters (alphanumeric/underscore only)!" });
     }
 
     // 1. Check uniqueness again for extra safety

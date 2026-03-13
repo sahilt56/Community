@@ -2,7 +2,18 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
+  username: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    validate: {
+      validator: function(v) {
+        // Only allow letters, numbers, and underscores, between 3-20 characters
+        return /^[a-zA-Z0-9_]{3,20}$/.test(v);
+      },
+      message: props => `${props.value} is not a valid username. Use 3-20 characters (letters, numbers, and underscores only)!`
+    }
+  },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   anubhav: { type: Number, default: 0 }, // Reddit ka upvote/downvote score

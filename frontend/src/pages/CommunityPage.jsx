@@ -34,7 +34,7 @@ const CommunityPage = () => {
     name: '',
     description: '',
     topic: '',
-    minKarma: 0,
+    minAnubhav: 0,
     minAgeDays: 0,
     rules: []
   });
@@ -216,7 +216,7 @@ const CommunityPage = () => {
       name: community.name,
       description: community.description,
       topic: community.topic || 'General',
-      minKarma: community.minKarma || 0,
+      minAnubhav: community.minAnubhav || 0,
       minAgeDays: community.minAgeDays || 0,
       rules: community.rules || []
     });
@@ -233,7 +233,7 @@ const CommunityPage = () => {
       formData.append('name', editForm.name);
       formData.append('description', editForm.description);
       formData.append('topic', editForm.topic);
-      formData.append('minKarma', editForm.minKarma);
+      formData.append('minAnubhav', editForm.minAnubhav);
       formData.append('minAgeDays', editForm.minAgeDays);
       if (profileFile) formData.append('profilePic', profileFile);
       if (bannerFile) formData.append('bannerPic', bannerFile);
@@ -260,7 +260,7 @@ const CommunityPage = () => {
   const handleDeleteCommunity = () => {
     toast((t) => (
       <div>
-        <p className="mb-2">Are you extremely sure you want to PERMANENTLY delete r/{community.name}? 🛑</p>
+        <p className="mb-2">Are you extremely sure you want to PERMANENTLY delete v/{community.name}? 🛑</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeDeleteCommunity(); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Delete</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -324,11 +324,11 @@ const CommunityPage = () => {
                 {community.profilePic ? (
                   <img src={community.profilePic.startsWith('http') ? community.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.profilePic}`} alt="Icon" className="w-full h-full object-cover" />
                 ) : (
-                  <span>r/</span>
+                  <span>v/</span>
                 )}
               </div>
               <div className="-mt-2">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">r/{community.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">v/{community.name}</h1>
                 <p className="text-gray-700 dark:text-gray-300 text-sm mb-2 max-w-2xl">{community.description}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-bold">
                   <span>Topic: <span className="text-gray-900 dark:text-white font-normal">{community.topic || 'General'}</span></span>
@@ -400,8 +400,8 @@ const CommunityPage = () => {
                         <input type="text" value={editForm.topic} onChange={e => setEditForm({...editForm, topic: e.target.value})} className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-orange-500" placeholder="e.g. Technology, Gaming, News" required />
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Minimum Karma to Join</label>
-                        <input type="number" value={editForm.minKarma} onChange={e => setEditForm({...editForm, minKarma: e.target.value})} className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-orange-500" />
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Minimum Anubhav to Join</label>
+                        <input type="number" value={editForm.minAnubhav} onChange={e => setEditForm({...editForm, minAnubhav: e.target.value})} className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-orange-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Minimum Account Age (Days)</label>
@@ -417,12 +417,28 @@ const CommunityPage = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Community Icon / Profile Pic</label>
-                        <input type="file" accept="image/*" onChange={e => setProfileFile(e.target.files[0])} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-600/10 file:text-blue-600 dark:file:text-blue-500 hover:file:bg-blue-100 dark:hover:file:bg-blue-600/20 cursor-pointer" />
+                        <input type="file" accept="image/*" onChange={e => {
+                          const file = e.target.files[0];
+                          if (file && file.size > 5 * 1024 * 1024) {
+                            toast.error("Unable to upload, please choose a file less than 5MB");
+                            e.target.value = null;
+                            return;
+                          }
+                          setProfileFile(file);
+                        }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-600/10 file:text-blue-600 dark:file:text-blue-500 hover:file:bg-blue-100 dark:hover:file:bg-blue-600/20 cursor-pointer" />
                         <p className="text-[10px] text-gray-500 mt-1">Leave empty to keep current picture.</p>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Banner Image</label>
-                        <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 dark:file:bg-orange-600/10 file:text-orange-600 dark:file:text-orange-500 hover:file:bg-orange-100 dark:hover:file:bg-orange-600/20 cursor-pointer" />
+                        <input type="file" accept="image/*" onChange={e => {
+                          const file = e.target.files[0];
+                          if (file && file.size > 5 * 1024 * 1024) {
+                            toast.error("Unable to upload, please choose a file less than 5MB");
+                            e.target.value = null;
+                            return;
+                          }
+                          setBannerFile(file);
+                        }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 dark:file:bg-orange-600/10 file:text-orange-600 dark:file:text-orange-500 hover:file:bg-orange-100 dark:hover:file:bg-orange-600/20 cursor-pointer" />
                       </div>
                     </div>
                   </div>
@@ -679,7 +695,7 @@ const CommunityPage = () => {
         <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4">
           <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md overflow-hidden shadow-sm transition-colors">
             <div className="bg-gray-100 dark:bg-[#343536] p-3">
-              <h3 className="text-xs font-bold text-gray-600 dark:text-white uppercase tracking-wider">r/{community.name} Rules</h3>
+              <h3 className="text-xs font-bold text-gray-600 dark:text-white uppercase tracking-wider">v/{community.name} Rules</h3>
             </div>
             <div className="p-1">
               {community.rules && community.rules.length > 0 ? (

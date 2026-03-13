@@ -21,7 +21,7 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
     cloudinary: cloudinary,
     params: {
       folder: 'reddit_clone',
-      allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi'],
+      allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi','webp'],
       resource_type: "auto", // Automatically detect if it's an image or video
       public_id: (req, file) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

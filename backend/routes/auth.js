@@ -12,24 +12,37 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const axios = require('axios'); // Add axios at the top if not present, though we use it below
 
+// CHECK USERNAME AVAILABILITY
+router.get('/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+    if (user) {
+      return res.status(200).json({ available: false, message: "Username already taken" });
+    }
+    res.status(200).json({ available: true, message: "Username is available" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // GOOGLE LOGIN / REGISTER ROUTE
 router.post('/google', async (req, res) => {
   try {
-    const { access_token } = req.body;
+    const { access_token, username: providedUsername } = req.body;
 
     if (!access_token) {
       return res.status(400).json({ error: "Access token is required" });
     }
 
     // 1. Verify the Access Token by fetching user info from Google
-    // This is safer than trusting frontend results
     const googleResponse = await axios.get(
       `https://www.googleapis.com/oauth2/v3/userinfo`,
       { headers: { Authorization: `Bearer ${access_token}` } }
     );
     
     const payload = googleResponse.data;
-    const { email, name, picture } = payload;
+    const { email, picture } = payload;
 
     if (!email) {
       return res.status(400).json({ error: "Invalid token: Email not found" });
@@ -39,22 +52,27 @@ router.post('/google', async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // 3. If user doesn't exist, create a new one
-      const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-      
-      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-      let username = baseUsername;
-      let usernameExists = await User.findOne({ username });
-      let counter = 1;
-
-      while (usernameExists) {
-        username = `${baseUsername}${counter}`;
-        usernameExists = await User.findOne({ username });
-        counter++;
+      // 3. New User Flow
+      if (!providedUsername) {
+        // Stop and ask for username
+        return res.status(200).json({ 
+          status: "NEED_USERNAME", 
+          email, 
+          picture,
+          message: "Please choose a username to continue."
+        });
       }
 
+      // Check if chosen username is unique
+      const usernameExists = await User.findOne({ username: { $regex: new RegExp(`^${providedUsername}$`, 'i') } });
+      if (usernameExists) {
+        return res.status(400).json({ error: "Username already taken! Please choose another one." });
+      }
+
+      const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      
       const newUser = new User({ 
-        username, 
+        username: providedUsername, 
         email, 
         password: generatedPassword,
         profilePic: picture 
@@ -80,27 +98,35 @@ router.post('/google', async (req, res) => {
 // SEND OTP ROUTE
 router.post('/send-otp', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, username } = req.body;
 
-    // 1. Check if email already exists
+    // 1. Check if username exists (if provided)
+    if (username) {
+      const existingUserByUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: "Username already taken!" });
+      }
+    }
+
+    // 2. Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User with this email already exists!" });
     }
 
-    // 2. Generate exactly 6-digit OTP
+    // 3. Generate exactly 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 3. Clear existing OTPs for this email to prevent spam/confusion
+    // 4. Clear existing OTPs for this email
     await Otp.deleteMany({ email });
 
-    // 4. Hash OTP before saving (🔒 Security: don't store plaintext OTP)
+    // 5. Hash OTP before saving
     const salt = await bcrypt.genSalt(10);
     const hashedOtp = await bcrypt.hash(otp, salt);
     const newOtp = new Otp({ email, otp: hashedOtp });
     await newOtp.save();
 
-    // 5. Send email to user (we won't await this so the API responds faster, handling errors locally)
+    // 6. Send email to user
     const message = `Welcome to Vartalap! Your one-time password (OTP) is: ${otp}. It will expire in 5 minutes.`;
     const htmlMessage = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -120,7 +146,6 @@ router.post('/send-otp', async (req, res) => {
       </div>
     `;
 
-    // Only attempt to send if SMTP credentials are provided, else fallback to console logging for local testing without creds.
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       sendEmail({
         email,
@@ -129,7 +154,6 @@ router.post('/send-otp', async (req, res) => {
         html: htmlMessage
       }).catch(err => console.error("Error sending OTP email:", err));
     } else {
-        console.warn("⚠️ SMTP credentials not found in environment variables. Logging OTP to console for testing.");
         console.log(`[TESTING] OTP for ${email} is: ${otp}`);
     }
 
@@ -149,13 +173,20 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ message: "OTP is required for registration!" });
     }
 
-    // 1. Check karo ki email pehle se exist toh nahi karti
-    const existingUser = await User.findOne({ email });
+    // 1. Check uniqueness again for extra safety
+    const existingUser = await User.findOne({ 
+      $or: [
+        { email },
+        { username: { $regex: new RegExp(`^${username}$`, 'i') } }
+      ]
+    });
+    
     if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists!" });
+      const field = existingUser.email === email ? "Email" : "Username";
+      return res.status(400).json({ message: `${field} already exists!` });
     }
 
-    // 2. Verify OTP (🔒 Security: compare hash, don't query plaintext)
+    // 2. Verify OTP
     const otpRecord = await Otp.findOne({ email });
     if (!otpRecord) {
         return res.status(400).json({ message: "Invalid or expired OTP!" });
@@ -165,17 +196,16 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ message: "Invalid or expired OTP!" });
     }
 
-    // 3. Naya user create karo
+    // 3. Create user
     const newUser = new User({ username, email, password });
-    const savedUser = await newUser.save(); // Yahan password apne aap hash ho jayega (User.js ke logic se)
+    const savedUser = await newUser.save();
 
     // 4. Clear OTP
     await Otp.deleteMany({ email });
 
-    // 5. Login Token (JWT) generate karo
+    // 5. Login Token
     const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    // 6. Success response bhejo
     res.status(201).json({ 
       message: "User registered successfully!",
       token, 

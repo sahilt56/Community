@@ -6,7 +6,7 @@ const CommunitySchema = new mongoose.Schema({
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // subscribers ko members bolenge
   moderators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // extra mods
-  minKarma: { type: Number, default: 0 },
+  minAnubhav: { type: Number, default: 0 },
   minAgeDays: { type: Number, default: 0 },
   profilePic: { type: String, default: "" },
   bannerPic: { type: String, default: "" },

@@ -39,7 +39,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/post/:id" element={<PostPage />} />
               <Route path="/create-community" element={<CreateCommunity />} />
-              <Route path="/r/:id" element={<CommunityPage />} />
+              <Route path="/v/:id" element={<CommunityPage />} />
               <Route path="/u/:username" element={<UserProfile />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/explore" element={<Explore />} />

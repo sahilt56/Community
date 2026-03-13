@@ -79,12 +79,12 @@ router.get('/:username', async (req, res) => {
         .populate('community', 'name').sort({ createdAt: -1 });
     }
 
-    // Calculate total Karma (exclude self-votes)
-    let totalKarma = 0;
+    // Calculate total Anubhav (exclude self-votes)
+    let totalAnubhav = 0;
     userPosts.forEach(post => {
       const otherUpvotes = post.upvotes?.filter(id => id.toString() !== user._id.toString()).length || 0;
       const otherDownvotes = post.downvotes?.filter(id => id.toString() !== user._id.toString()).length || 0;
-      totalKarma += (otherUpvotes - otherDownvotes);
+      totalAnubhav += (otherUpvotes - otherDownvotes);
     });
 
     // 5. Send all data
@@ -96,7 +96,7 @@ router.get('/:username', async (req, res) => {
       hiddenPosts,
       upvotedPosts,
       downvotedPosts,
-      totalKarma: totalKarma,
+      totalAnubhav: totalAnubhav,
       joinedCommunities,
       createdCommunities
     });
@@ -114,6 +114,7 @@ router.put('/:username/update', verifyToken, upload.fields([
   try {
     const fs = require('fs');
     const path = require('path');
+    const { deleteFromCloudinary } = require('../utils/cloudinary');
 
     const user = await User.findOne({ username: req.params.username });
     if (!user) return res.status(404).json({ message: "User not found!" });
@@ -123,21 +124,28 @@ router.put('/:username/update', verifyToken, upload.fields([
       return res.status(403).json({ message: "You can only update your own profile!" });
     }
 
-    // Helper: Delete old local file from uploads folder
-    const deleteOldFile = (oldUrl) => {
-      if (!oldUrl || oldUrl.startsWith('http')) return; // Skip cloudinary URLs
-      const filename = oldUrl.split('/').pop();
-      const filePath = path.join(__dirname, '../uploads', filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`🗑️ Old file deleted: ${filename}`);
+    // Helper: Delete old file (Local or Cloudinary)
+    const deleteOldFile = async (oldUrl) => {
+      if (!oldUrl) return;
+      
+      if (oldUrl.startsWith('http')) {
+        // Cloudinary deletion
+        await deleteFromCloudinary(oldUrl);
+      } else {
+        // Local Disk storage cleanup
+        const filename = oldUrl.split('/').pop();
+        const filePath = path.join(__dirname, '../uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Old local file deleted: ${filename}`);
+        }
       }
     };
 
     // Handle profile image upload
     if (req.files['profilePic']) {
       // Delete old profile pic before saving new one
-      deleteOldFile(user.profilePic);
+      await deleteOldFile(user.profilePic);
       const file = req.files['profilePic'][0];
       user.profilePic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
     }
@@ -145,7 +153,7 @@ router.put('/:username/update', verifyToken, upload.fields([
     // Handle banner image upload
     if (req.files['bannerPic']) {
       // Delete old banner pic before saving new one
-      deleteOldFile(user.bannerPic);
+      await deleteOldFile(user.bannerPic);
       const file = req.files['bannerPic'][0];
       user.bannerPic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
     }
@@ -165,6 +173,7 @@ router.put('/:username/update', verifyToken, upload.fields([
     });
 
   } catch (err) {
+    console.error("User update error:", err);
     res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
@@ -174,6 +183,7 @@ router.delete('/:username/remove-image', verifyToken, async (req, res) => {
   try {
     const fs = require('fs');
     const path = require('path');
+    const { deleteFromCloudinary } = require('../utils/cloudinary');
 
     const { type } = req.body; // 'profilePic' or 'bannerPic'
     if (!['profilePic', 'bannerPic'].includes(type)) {
@@ -187,13 +197,18 @@ router.delete('/:username/remove-image', verifyToken, async (req, res) => {
       return res.status(403).json({ message: "You can only update your own profile!" });
     }
 
-    // Delete file from disk if local
+    // Delete file (Local or Cloudinary)
     const oldUrl = user[type];
-    if (oldUrl && !oldUrl.startsWith('http')) {
-      const filename = oldUrl.split('/').pop();
-      const filePath = path.join(__dirname, '../uploads', filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+    if (oldUrl) {
+      if (oldUrl.startsWith('http')) {
+        await deleteFromCloudinary(oldUrl);
+      } else {
+        const filename = oldUrl.split('/').pop();
+        const filePath = path.join(__dirname, '../uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Old local file deleted: ${filename}`);
+        }
       }
     }
 
@@ -208,6 +223,7 @@ router.delete('/:username/remove-image', verifyToken, async (req, res) => {
     });
 
   } catch (err) {
+    console.error("User image removal error:", err);
     res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });

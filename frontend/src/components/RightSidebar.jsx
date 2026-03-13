@@ -102,8 +102,8 @@ const [currentTime] = useState(() => Date.now());
 
             <div className="flex justify-center gap-8 w-full mt-4 mb-4 border-t border-b border-gray-100 dark:border-[#343536] py-3">
               <div className="flex flex-col items-center">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{profileStats?.totalKarma || 0}</span>
-                <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Karma</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{profileStats?.totalAnubhav || 0}</span>
+                <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Anubhav</span>
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">{profileStats?.posts?.length || 0}</span>
@@ -147,14 +147,14 @@ const [currentTime] = useState(() => Date.now());
             <div key={c._id} className={`flex items-center justify-between animate-fade-up`} style={{ animationDelay: `${index * 50}ms` }}>
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <span className="text-xs font-bold text-gray-400 w-4 text-center">{index + 1}</span>
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shrink-0 flex items-center justify-center text-xs text-white font-bold shadow-sm">r/</div>
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shrink-0 flex items-center justify-center text-xs text-white font-bold shadow-sm">v/</div>
                 <div className="flex flex-col truncate">
-                  <Link to={`/r/${c._id}`} className="text-sm font-bold text-gray-900 dark:text-white hover:underline truncate">r/{c.name}</Link>
+                  <Link to={`/v/${c._id}`} className="text-sm font-bold text-gray-900 dark:text-white hover:underline truncate">v/{c.name}</Link>
                   <span className="text-xs text-gray-400">{c.members?.length || 1} members</span>
                 </div>
               </div>
               <Link
-                to={`/r/${c._id}`}
+                to={`/v/${c._id}`}
                 className="btn-press bg-gray-100 dark:bg-[#272729] text-gray-700 dark:text-gray-200 font-bold px-3 py-1.5 rounded-full text-xs hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400 transition-all shrink-0"
               >
                 View

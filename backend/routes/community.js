@@ -9,7 +9,7 @@ const contentFilter = require('../middleware/contentFilter');
 // CREATE A NEW COMMUNITY
 router.post('/create', verifyToken, contentFilter, async (req, res) => {
   try {
-    const { name, description, minKarma = 0, minAgeDays = 0 } = req.body;
+    const { name, description, minAnubhav = 0, minAgeDays = 0 } = req.body;
 
     // Check karo ki is naam ki community pehle se toh nahi hai
     const existingCommunity = await Community.findOne({ name });
@@ -23,7 +23,7 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
       description,
       creator: req.user.id, 
       members: [req.user.id],
-      minKarma,
+      minAnubhav,
       minAgeDays
     });
 
@@ -106,7 +106,7 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
       return res.status(403).json({ message: "Only the creator or moderators can edit this community! 🛑" });
     }
 
-    const { name, description, topic, minKarma, minAgeDays } = req.body;
+    const { name, description, topic, minAnubhav, minAgeDays } = req.body;
 
     // Optional: if name changes, check if it's already taken by another community
     if (name && name !== community.name) {
@@ -119,7 +119,7 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
 
     if (description) community.description = description;
     if (topic) community.topic = topic;
-    if (minKarma !== undefined) community.minKarma = Number(minKarma);
+    if (minAnubhav !== undefined) community.minAnubhav = Number(minAnubhav);
     if (minAgeDays !== undefined) community.minAgeDays = Number(minAgeDays);
 
     // Update Rules if provided (expected as a JSON string from frontend FormData)
@@ -133,11 +133,30 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
 
     // Handle uploaded files
     if (req.files) {
+      const { deleteFromCloudinary } = require('../utils/cloudinary');
+      const fs = require('fs');
+      const path = require('path');
+
+      const deleteOldFile = async (oldUrl) => {
+        if (!oldUrl) return;
+        if (oldUrl.startsWith('http')) {
+          await deleteFromCloudinary(oldUrl);
+        } else {
+          const filename = oldUrl.split('/').pop();
+          const filePath = path.join(__dirname, '../uploads', filename);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      };
+
       if (req.files['profilePic'] && req.files['profilePic'][0]) {
+        await deleteOldFile(community.profilePic);
         const file = req.files['profilePic'][0];
         community.profilePic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
       }
       if (req.files['bannerPic'] && req.files['bannerPic'][0]) {
+        await deleteOldFile(community.bannerPic);
         const file = req.files['bannerPic'][0];
         community.bannerPic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
       }
@@ -161,6 +180,51 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
   }
 });
 
+// DELETE COMMUNITY IMAGE
+router.delete('/:id/remove-image', verifyToken, async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+
+    // Ensure only the creator or a moderator can edit
+    const isCreator = community.creator.toString() === req.user.id;
+    const isMod = community.moderators?.some(modId => modId.toString() === req.user.id);
+
+    if (!isCreator && !isMod) {
+      return res.status(403).json({ message: "Only the creator or moderators can remove images! 🛑" });
+    }
+
+    const { type } = req.body; // 'profilePic' or 'bannerPic'
+    if (!['profilePic', 'bannerPic'].includes(type)) {
+      return res.status(400).json({ message: "Invalid type! Use 'profilePic' or 'bannerPic'" });
+    }
+
+    const oldUrl = community[type];
+    if (oldUrl) {
+      const { deleteFromCloudinary } = require('../utils/cloudinary');
+      const fs = require('fs');
+      const path = require('path');
+
+      if (oldUrl.startsWith('http')) {
+        await deleteFromCloudinary(oldUrl);
+      } else {
+        const filename = oldUrl.split('/').pop();
+        const filePath = path.join(__dirname, '../uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    }
+
+    community[type] = "";
+    await community.save();
+
+    res.status(200).json({ message: `${type === 'profilePic' ? 'Profile Picture' : 'Banner'} removed!`, community });
+  } catch (err) {
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
+  }
+});
+
 // DELETE COMMUNITY
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
@@ -171,6 +235,27 @@ router.delete('/:id', verifyToken, async (req, res) => {
     if (community.creator.toString() !== req.user.id) {
       return res.status(403).json({ message: "Only the creator can delete this community! 🛑" });
     }
+
+    // Delete images from Cloudinary/Local before deleting community
+    const { deleteFromCloudinary } = require('../utils/cloudinary');
+    const fs = require('fs');
+    const path = require('path');
+
+    const deleteOldFile = async (oldUrl) => {
+      if (!oldUrl) return;
+      if (oldUrl.startsWith('http')) {
+        await deleteFromCloudinary(oldUrl);
+      } else {
+        const filename = oldUrl.split('/').pop();
+        const filePath = path.join(__dirname, '../uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    };
+
+    await deleteOldFile(community.profilePic);
+    await deleteOldFile(community.bannerPic);
 
     // Determine target ID before deletion for event broadcasting
     const targetId = community._id;
@@ -208,13 +293,13 @@ router.post('/:id/join', verifyToken, async (req, res) => {
     const Post = require('../models/Post');
     const user = await User.findById(userId);
 
-    // Calculate Karma (logic from user.js, excluding self-votes)
+    // Calculate Anubhav (logic from user.js, excluding self-votes)
     const userPosts = await Post.find({ author: userId, isDeleted: { $ne: true } });
-    let totalKarma = 0;
+    let totalAnubhav = 0;
     userPosts.forEach(post => {
       const otherUpvotes = post.upvotes?.filter(id => id.toString() !== userId.toString()).length || 0;
       const otherDownvotes = post.downvotes?.filter(id => id.toString() !== userId.toString()).length || 0;
-      totalKarma += (otherUpvotes - otherDownvotes);
+      totalAnubhav += (otherUpvotes - otherDownvotes);
     });
 
     // Calculate Account Age (in days)
@@ -222,8 +307,8 @@ router.post('/:id/join', verifyToken, async (req, res) => {
     const accountAgeDays = Math.floor((Date.now() - user.createdAt.getTime()) / msPerDay);
 
     // Validate Constraints
-    if (community.minKarma > 0 && totalKarma < community.minKarma) {
-      return res.status(403).json({ message: `Need at least ${community.minKarma} karma to join. You have ${totalKarma}.` });
+    if (community.minAnubhav > 0 && totalAnubhav < community.minAnubhav) {
+      return res.status(403).json({ message: `Need at least ${community.minAnubhav} Anubhav to join. You have ${totalAnubhav}.` });
     }
     if (community.minAgeDays > 0 && accountAgeDays < community.minAgeDays) {
       return res.status(403).json({ message: `Account must be at least ${community.minAgeDays} days old to join. Yours is ${accountAgeDays}.` });

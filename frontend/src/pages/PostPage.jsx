@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const PostPage = () => {
   const { id } = useParams();
@@ -193,7 +194,7 @@ const PostPage = () => {
     });
   };
 
-  if (!post) return <div className="text-gray-900 dark:text-white text-center mt-10">Loading Post... 🚀</div>;
+  if (!post) return <div className="mt-10"><SkeletonLoader /></div>;
 
   const netVotes = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
   const hasUpvoted = post.upvotes?.includes(currentUser?.id);

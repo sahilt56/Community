@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'; // FIX: Removed unused useNa
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import OnlineIndicator from '../components/OnlineIndicator';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -106,8 +107,15 @@ const UserProfile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Check file size (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error("Unable to upload, please choose a file less than 5MB");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append(type, file);
+    formData.append(type, file); // Yahan 'profilePic' ya 'bannerPic' dynamic ja raha hai
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -117,9 +125,9 @@ const UserProfile = () => {
           Authorization: `Bearer ${token}`
         }
       });
+      // FIX: alert ki jagah toast use karein
       toast.success(`${type === 'profilePic' ? 'Profile Picture' : 'Banner'} Updated! 📸`);
       
-      // Update local storage so Navbar & RightSidebar see the new pic immediately
       const storedUser = JSON.parse(localStorage.getItem('user'));
       if (storedUser && res.data.user) {
         storedUser.profilePic = res.data.user.profilePic || storedUser.profilePic;
@@ -185,7 +193,7 @@ const UserProfile = () => {
 
   const isOwner = currentUser && currentUser.username === username;
 
-  if (!profileData) return <div className="text-white text-center mt-10">Loading User Profile... 🚀</div>;
+  if (!profileData) return <div className="mt-10"><SkeletonLoader /></div>;
 
   // Calculate Account Age
   let accountAgeText = "Joined recently";
@@ -517,12 +525,12 @@ const UserProfile = () => {
           {(activeTab === 'Created' || activeTab === 'Joined') ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {(activeTab === 'Created' ? profileData.createdCommunities : profileData.joinedCommunities)?.map(c => (
-                <Link key={c._id} to={`/r/${c.name}`} className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md hover:border-gray-400 dark:hover:border-gray-500 transition-all flex flex-col items-center text-center gap-3">
+                <Link key={c._id} to={`/v/${c.name}`} className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md hover:border-gray-400 dark:hover:border-gray-500 transition-all flex flex-col items-center text-center gap-3">
                   <div className={`w-16 h-16 ${activeTab === 'Created' ? 'bg-orange-600' : 'bg-blue-600'} rounded-full flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-md`}>
-                    {c.profilePic ? <img src={getImageUrl(c.profilePic)} alt={c.name} className="w-full h-full object-cover" /> : 'r/'}
+                    {c.profilePic ? <img src={getImageUrl(c.profilePic)} alt={c.name} className="w-full h-full object-cover" /> : 'v/'}
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-bold leading-tight">r/{c.name}</h4>
+                    <h4 className="text-gray-900 dark:text-white font-bold leading-tight">v/{c.name}</h4>
                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.description || "No description provided."}</p>
                   </div>
                 </Link>
@@ -732,8 +740,8 @@ const UserProfile = () => {
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-[#343536] transition-colors">
                 <div className="flex flex-col">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{profileData.totalKarma || 0}</span>
-                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Karma</span>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{profileData.totalAnubhav || 0}</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Anubhav</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-lg font-bold text-gray-900 dark:text-white">{posts.length}</span>

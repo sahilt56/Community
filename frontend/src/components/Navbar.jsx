@@ -27,15 +27,15 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
           {searchResults.communities.map(community => (
             <Link 
               key={community._id}
-              to={`/r/${community.name}`}
+              to={`/v/${community.name}`}
               onClick={() => { setShowResults(false); setSearchTerm(''); }}
               className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
             >
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                r/
+                v/
               </div>
               <div className="flex flex-col">
-                <span className="text-gray-900 dark:text-white text-sm font-medium">r/{community.name}</span>
+                <span className="text-gray-900 dark:text-white text-sm font-medium">v/{community.name}</span>
                 <span className="text-[10px] text-gray-500 dark:text-gray-400">{community.members?.length || 0} members</span>
               </div>
             </Link>
@@ -80,7 +80,7 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
             >
               <span className="text-gray-900 dark:text-white text-sm font-medium line-clamp-1">{post.title}</span>
               <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                in r/{post.community?.name || 'general'} • by u/{post.author?.username || 'user'}
+                in v/{post.community?.name || 'general'} • by u/{post.author?.username || 'user'}
               </span>
             </Link>
           ))}
@@ -251,7 +251,8 @@ const Navbar = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setMenuOpen(false);
-    navigate('/login');
+    // Force a full page reload to clear all component states
+    window.location.href = '/login';
   };
 
   const getAvatarUrl = (pic) => {
@@ -305,7 +306,7 @@ const Navbar = () => {
           </svg>
         </div>
         <span className="text-gray-900 dark:text-white font-bold text-lg tracking-tight hidden md:block">
-          Community App
+          Vartalap
         </span>
       </Link>
 

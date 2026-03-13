@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const CreateCommunity = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [minKarma, setMinKarma] = useState(0);
+  const [minAnubhav, setMinAnubhav] = useState(0);
   const [minAgeDays, setMinAgeDays] = useState(0);
   const navigate = useNavigate();
 
@@ -20,12 +20,12 @@ const CreateCommunity = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const res = await axios.post(`${apiUrl}/api/communities/create`, 
-        { name: formattedName, description, minKarma: Number(minKarma), minAgeDays: Number(minAgeDays) },
+        { name: formattedName, description, minAnubhav: Number(minAnubhav), minAgeDays: Number(minAgeDays) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Community Created! 🎉");
       // Navigate to the newly created community page
-      navigate(`/r/${res.data.community._id}`);
+      navigate(`/v/${res.data.community._id}`);
     } catch (err) {
       console.error("Community creation error:", err);
       toast.error(err.response?.data?.message || "Error creating community");
@@ -43,7 +43,7 @@ const CreateCommunity = () => {
           <div>
             <label className="text-gray-700 dark:text-gray-300 font-bold block mb-1.5 text-sm">Community Name</label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">r/</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">v/</span>
               <input
                 type="text"
                 value={name}
@@ -66,12 +66,12 @@ const CreateCommunity = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-gray-700 dark:text-gray-300 font-bold block mb-1.5 text-sm">Min Karma to Join</label>
+              <label className="text-gray-700 dark:text-gray-300 font-bold block mb-1.5 text-sm">Min Anubhav to Join</label>
               <input
                 type="number"
                 min="0"
-                value={minKarma}
-                onChange={(e) => setMinKarma(e.target.value)}
+                value={minAnubhav}
+                onChange={(e) => setMinAnubhav(e.target.value)}
                 className="focus-ring w-full bg-gray-50 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-200 dark:border-[#343536] p-3 rounded-xl outline-none transition-all text-sm"
               />
             </div>

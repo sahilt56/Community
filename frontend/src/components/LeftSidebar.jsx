@@ -67,13 +67,13 @@ const LeftSidebar = () => {
                 {communities.slice(0, 10).map((community, i) => (
                   <Link
                     key={community._id}
-                    to={`/r/${community.name}`}
+                    to={`/v/${community.name}`}
                     className={`sidebar-link flex items-center gap-3 px-2 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg transition-all animate-fade-up stagger-${Math.min(i + 1, 6)}`}
                   >
                     <div className="w-6 h-6 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-[9px] shrink-0 shadow-sm">
-                      r/
+                      v/
                     </div>
-                    <span className="font-medium truncate text-sm">r/{community.name}</span>
+                    <span className="font-medium truncate text-sm">v/{community.name}</span>
                   </Link>
                 ))}
               </div>
@@ -99,7 +99,7 @@ const LeftSidebar = () => {
 
         {/* Footer */}
         <div className="p-4">
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center leading-relaxed">Vartalap Clone inc © 2026.<br />All rights reserved.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center leading-relaxed">Vartalap INC © 2026.<br />All rights reserved.</p>
         </div>
         </div>
       </div>

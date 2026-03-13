@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  karma: { type: Number, default: 0 }, // Reddit ka upvote/downvote score
+  anubhav: { type: Number, default: 0 }, // Reddit ka upvote/downvote score
   profilePic: { type: String, default: '' },
   bannerPic: { type: String, default: '' },
   description: { type: String, default: '' },

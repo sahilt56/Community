@@ -183,7 +183,7 @@ const CreatePost = ({ onPostCreated }) => {
             >
               {communities.length === 0 && <option value="" disabled>Select Community</option>}
               {communities.map(c => (
-                <option key={c._id} value={c._id}>r/{c.name}</option>
+                <option key={c._id} value={c._id}>v/{c.name}</option>
               ))}
             </select>
             <input 

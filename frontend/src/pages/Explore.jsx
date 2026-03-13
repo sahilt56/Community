@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const Explore = () => {
   const [communities, setCommunities] = useState([]);
@@ -47,17 +48,13 @@ const Explore = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className={`skeleton-shimmer rounded-xl h-28 animate-fade-up stagger-${i + 1}`} />
-          ))}
-        </div>
+        <SkeletonLoader />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredCommunities.map((c, i) => (
             <Link
               key={c._id}
-              to={`/r/${c._id}`}
+              to={`/v/${c._id}`}
               className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-5 flex items-center gap-4 transition-all group shadow-sm animate-fade-up`}
               style={{ animationDelay: `${Math.min(i, 5) * 60}ms` }}
             >
@@ -65,11 +62,11 @@ const Explore = () => {
                 {c.profilePic ? (
                   <img src={c.profilePic.startsWith('http') ? c.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${c.profilePic}`} alt={c.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg">r/</span>
+                  <span className="text-lg">v/</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-gray-900 dark:text-white font-bold group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors truncate">r/{c.name}</h2>
+                <h2 className="text-gray-900 dark:text-white font-bold group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors truncate">v/{c.name}</h2>
                 <p className="text-gray-500 text-xs line-clamp-2 mt-0.5">{c.description}</p>
                 <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                   <span>👥 {c.members?.length || 1} Members</span>

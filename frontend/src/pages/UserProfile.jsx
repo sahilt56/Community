@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom'; // FIX: Removed unused useNavigate
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import OnlineIndicator from '../components/OnlineIndicator';
 import SkeletonLoader from '../components/SkeletonLoader';
+import PostMenu from '../components/PostMenu';
+import { SocketContext } from '../context/SocketContext';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -13,11 +15,12 @@ const UserProfile = () => {
   const [allTabsData, setAllTabsData] = useState({}); // Stores all fetched arrays
   const [activeTab, setActiveTab] = useState('Overview');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null); // Track which post's dropdown is open
+  const [activeMenuId, setActiveMenuId] = useState(null); // Track which post's dropdown is open
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [description, setDescription] = useState('');
   const currentUser = JSON.parse(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
+  const { socket } = useContext(SocketContext);
 
   const fetchUserProfile = async () => {
     try {
@@ -63,12 +66,26 @@ const UserProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
-  // Close dropdown when clicking outside
+  // Real-time Anubhav & Post Updates
   useEffect(() => {
-    const handleClickOutside = () => setOpenDropdownId(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+    if (!socket) return;
+
+    const handleInteraction = (updatedPostId) => {
+      // Agar koi post update hoti hai jo humare kisi bhi tab mein hai
+      const isRelevant = Object.values(allTabsData).flat().some(p => p._id === updatedPostId);
+      
+      // Toh hum profile dobara fetch karenge taaki Anubhav update ho jaye
+      if (isRelevant) {
+         fetchUserProfile();
+      }
+    };
+
+    socket.on('post_interaction', handleInteraction);
+    
+    return () => {
+      socket.off('post_interaction', handleInteraction);
+    };
+  }, [socket, allTabsData]); // Dependency ensures we check against latest data
 
   // VOTING LOGIC for the feed
   const handleUpvote = async (postId) => {
@@ -76,12 +93,37 @@ const UserProfile = () => {
       toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
+    // Toggle-off supported by backend logic
+    const post = posts.find(p => p._id === postId);
+    if (!post) return;
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchUserProfile();
+      // Merge only the votes to preserve populated author/community
+      
+      // 1. Calculate Karma Change for Instant UI Update (if visible user owns the post)
+      if (post.author?._id === profileData.profile._id || post.author === profileData.profile._id) {
+        const oldNet = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
+        const newNet = (res.data.post.upvotes?.length || 0) - (res.data.post.downvotes?.length || 0);
+        const diff = newNet - oldNet;
+        
+        setProfileData(prev => ({ ...prev, totalAnubhav: (prev.totalAnubhav || 0) + diff }));
+      }
+
+      // 2. Update Posts State
+      setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
+      setAllTabsData(prev => {
+        const newData = { ...prev };
+        Object.keys(newData).forEach(tab => {
+          if (Array.isArray(newData[tab])) {
+            newData[tab] = newData[tab].map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p);
+          }
+        });
+        return newData;
+      });
     } catch (err) {
       console.error("Voting error:", err);
     }
@@ -92,12 +134,36 @@ const UserProfile = () => {
       toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
+    // Toggle-off supported by backend logic
+    const post = posts.find(p => p._id === postId);
+    if (!post) return;
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchUserProfile();
+      // Merge only the votes to preserve populated author/community
+
+      // 1. Calculate Karma Change
+      if (post.author?._id === profileData.profile._id || post.author === profileData.profile._id) {
+        const oldNet = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
+        const newNet = (res.data.post.upvotes?.length || 0) - (res.data.post.downvotes?.length || 0);
+        const diff = newNet - oldNet;
+        
+        setProfileData(prev => ({ ...prev, totalAnubhav: (prev.totalAnubhav || 0) + diff }));
+      }
+
+      setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
+      setAllTabsData(prev => {
+        const newData = { ...prev };
+        Object.keys(newData).forEach(tab => {
+          if (Array.isArray(newData[tab])) {
+            newData[tab] = newData[tab].map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p);
+          }
+        });
+        return newData;
+      });
     } catch (err) {
       console.error("Voting error:", err);
     }
@@ -226,10 +292,18 @@ const UserProfile = () => {
       });
       setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
       // Also update in allTabsData to prevent it reappearing on tab switch
-      setAllTabsData(prev => ({
-        ...prev,
-        [activeTab]: prev[activeTab].filter(p => p._id !== postId)
-      }));
+      setAllTabsData(prev => {
+        const newData = { ...prev };
+        // Update the current active tab array if it exists
+        if (newData[activeTab]) {
+          newData[activeTab] = newData[activeTab].filter(p => p._id !== postId);
+        }
+        // If we are in Overview, also update Posts array as it's the source
+        if (activeTab === 'Overview' && newData.Posts) {
+          newData.Posts = newData.Posts.filter(p => p._id !== postId);
+        }
+        return newData;
+      });
       toast.success("Post Deleted! 🗑️");
     } catch (err) {
       console.error("Delete error:", err);
@@ -561,81 +635,30 @@ const UserProfile = () => {
             posts.map((post) => {
               const upvotes = post.upvotes?.length || 0;
               const downvotes = post.downvotes?.length || 0;
-              const netVotes = upvotes - downvotes;
-              const hasUpvoted = currentUser && post.upvotes?.includes(currentUser.id);
-              const hasDownvoted = currentUser && post.downvotes?.includes(currentUser.id);
+              const curUserId = currentUser?.id || currentUser?._id;
+              const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
+              const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
 
               return (
-                <div key={post._id} className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer">
+                <div key={post._id} className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}>
                   <p className="text-xs text-gray-500 mb-2">
                     Posted in <span className="text-gray-900 dark:text-white font-bold hover:underline">c/{post.community?.name || 'general'}</span>
                   </p>
-                  <div className="flex justify-between items-start mb-1">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                      <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
-                    </h2>
-                    
-                    {/* Three Dot Menu Toggle */}
-                    <div className="relative shrink-0 ml-2">
-                       <button 
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           setOpenDropdownId(openDropdownId === post._id ? null : post._id);
-                         }}
-                         className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-all"
-                       >
-                         ⋮
-                       </button>
+                    <div className="flex justify-between items-start mb-1">
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                        <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
+                      </h2>
                       
-                      {/* Mobile Dropdown Menu (Mounted right under the button) */}
-                      {openDropdownId === post._id && (
-                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-2xl py-2 z-50 flex flex-col min-w-37.5 transition-colors">
-                          {/* Save Action */}
-                          <div 
-                            onClick={(e) => { e.stopPropagation(); handleSave(post._id); setOpenDropdownId(null); }}
-                            className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-3 cursor-pointer transition-all"
-                          >
-                            <span className={currentUser && post.savedBy?.includes(currentUser.id) ? 'text-green-500' : 'text-gray-400'}>💾</span> 
-                            <span className={`text-sm font-bold ${currentUser && post.savedBy?.includes(currentUser.id) ? 'text-green-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                              {currentUser && post.savedBy?.includes(currentUser.id) ? 'Saved' : 'Save'}
-                            </span>
-                          </div>
-
-                          {/* Hide Action */}
-                          <div 
-                            onClick={(e) => { e.stopPropagation(); handleHide(post._id); setOpenDropdownId(null); }}
-                            className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-3 cursor-pointer transition-all"
-                          >
-                            <span className={currentUser && post.hiddenBy?.includes(currentUser.id) ? 'text-red-400' : 'text-gray-400'}>🚫</span> 
-                            <span className={`text-sm font-bold ${currentUser && post.hiddenBy?.includes(currentUser.id) ? 'text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                              {currentUser && post.hiddenBy?.includes(currentUser.id) ? 'Unhide' : 'Hide'}
-                            </span>
-                          </div>
-
-                          {/* Report Action */}
-                          {currentUser && (
-                            <div 
-                              onClick={(e) => { e.stopPropagation(); handleReport(post._id); setOpenDropdownId(null); }}
-                              className="flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-4 py-3 cursor-pointer transition-all"
-                            >
-                              <span className="text-gray-400">🚩</span>
-                              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Report</span>
-                            </div>
-                          )}
-
-                          {/* Delete Option */}
-                          {currentUser && profileData.profile.username === currentUser.username && (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDelete(post._id); setOpenDropdownId(null); }}
-                              className="flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-3 transition-all border-t border-gray-200 dark:border-[#343536] mt-1 text-red-500 w-full text-left"
-                            >
-                              <span>🗑️</span> <span className="text-sm font-bold">Delete Post</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <PostMenu 
+                        post={post}
+                        currentUser={currentUser}
+                        onSave={handleSave}
+                        onHide={handleHide}
+                        onReport={handleReport}
+                        onDelete={handleDelete}
+                        onOpenChange={(isOpen) => setActiveMenuId(isOpen ? post._id : (prev => prev === post._id ? null : prev))}
+                      />
                     </div>
-                  </div>
                   
                   {post.media && post.media.length > 0 && (
                     <div className={`grid gap-2 mb-4 ${post.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -663,25 +686,27 @@ const UserProfile = () => {
                   {/* Action Bar */}
                   <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm flex-wrap">
                     {/* Voting UI */}
-                    <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors">
+                    <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors border border-transparent dark:border-[#343536]">
                       <div 
                         onClick={() => handleUpvote(post._id)}
-                        className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
+                        className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
                           hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                         }`}
                       >
-                          <span>⬆️</span>
+                          <span className="text-base">⬆️</span>
+                          <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                       </div>
-                      <span className={`px-2 ${
-                        hasUpvoted ? 'text-orange-500' : hasDownvoted ? 'text-blue-500' : 'text-gray-900 dark:text-white'
-                      }`}>{netVotes}</span>
+                      
+                      <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+
                       <div 
                         onClick={() => handleDownvote(post._id)}
-                        className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
+                        className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
                           hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                         }`}
                       >
-                          <span>⬇️</span>
+                          <span className="text-base">⬇️</span>
+                          <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
                       </div>
                     </div>
                     <Link to={`/post/${post._id}`} className="flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-[#272729] px-3 py-1.5 rounded transition-all">

@@ -82,8 +82,8 @@ router.get('/:username', async (req, res) => {
     // Calculate total Anubhav (exclude self-votes)
     let totalAnubhav = 0;
     userPosts.forEach(post => {
-      const otherUpvotes = post.upvotes?.filter(id => id.toString() !== user._id.toString()).length || 0;
-      const otherDownvotes = post.downvotes?.filter(id => id.toString() !== user._id.toString()).length || 0;
+      const otherUpvotes = post.upvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
+      const otherDownvotes = post.downvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
       totalAnubhav += (otherUpvotes - otherDownvotes);
     });
 

@@ -12,6 +12,20 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'targetType, targetId, and reason are required.' });
     }
 
+    // Restriction: Cannot report your own content
+    if (targetType === 'post') {
+      const Post = require('../models/Post');
+      const post = await Post.findById(targetId);
+      if (post && post.author.toString() === req.user.id) {
+        return res.status(400).json({ message: "You cannot report your own post! 🛑" });
+      }
+    } else if (targetType === 'community') {
+      const Community = require('../models/Community');
+      const community = await Community.findById(targetId);
+      if (community && community.creator.toString() === req.user.id) {
+        return res.status(400).json({ message: "You cannot report your own community! 🛑" });
+      }
+    }
     // Check if this user already reported this content
     const existingReport = await Report.findOne({ 
       reporter: req.user.id, 

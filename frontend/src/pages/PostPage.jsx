@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
+import PostMenu from '../components/PostMenu';
+import { SocketContext } from '../context/SocketContext';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 
 const PostPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const { socket } = useContext(SocketContext);
   
-  // Token wapas le aaye API call ke liye
-  const token = localStorage.getItem('token');
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   const fetchSinglePost = async () => {
@@ -24,16 +27,32 @@ const PostPage = () => {
       console.error("Error fetching post", err);
     }
   };
-
   useEffect(() => {
     fetchSinglePost();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Real-time updates: Listen for likes/comments/edits
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePostUpdate = (updatedPostId) => {
+      if (updatedPostId === id) {
+        fetchSinglePost(); // Reload data silently without refreshing page
+      }
+    };
+
+    socket.on('post_interaction', handlePostUpdate);
+
+    return () => {
+      socket.off('post_interaction', handlePostUpdate);
+    };
+  }, [socket, id]);
+
   // Comment bhejne ka function (Top level ya in-line reply dono ke liye)
   const handleCommentSubmit = async (parentId = null, text = commentText) => {
     if (!text.trim()) return;
-    if (!token) {
+    if (!currentUser) {
       toast.error("Comment karne ke liye login karein!");
       return;
     }
@@ -43,7 +62,7 @@ const PostPage = () => {
       await axios.post(
         `${apiUrl}/api/posts/${id}/comment`, 
         { text: text, parentId: parentId }, // Send parentId to backend
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       if (!parentId) {
         setCommentText(''); // Sirf main dabba khali karo agar root comment hai
@@ -89,44 +108,46 @@ const PostPage = () => {
 
   // VOTING LOGIC
   const handleUpvote = async () => {
-    if (!token) {
-      toast.error("Vote karne ke liye pehle Log In karein!");
+    if (!currentUser) {
+      toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
+    // Toggle-off supported by backend logic
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/upvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchSinglePost();
+      const res = await axios.put(`${apiUrl}/api/posts/${id}/upvote`, {}, { withCredentials: true });
+      // Targeted update to preserve populated data and avoid duplication
+      setPost(prev => ({ ...prev, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes }));
     } catch (err) {
       console.error("Voting error:", err);
     }
   };
 
   const handleDownvote = async () => {
-    if (!token) {
-      toast.error("Vote karne ke liye pehle Log In karein!");
+    if (!currentUser) {
+      toast.error("Vote karne ke liye pehle Log In karein! 🛑");
       return;
     }
+    // Toggle-off supported by backend logic
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/downvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchSinglePost();
+      const res = await axios.put(`${apiUrl}/api/posts/${id}/downvote`, {}, { withCredentials: true });
+      // Targeted update to preserve populated data and avoid duplication
+      setPost(prev => ({ ...prev, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes }));
     } catch (err) {
       console.error("Voting error:", err);
     }
   };
 
   const handleCommentEdit = async (commentId, newText) => {
-    if (!token) return;
+    if (!currentUser) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/posts/${id}/comment/${commentId}`, 
         { text: newText }, 
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       toast.success("Comment updated! ✨");
       fetchSinglePost();
@@ -137,12 +158,10 @@ const PostPage = () => {
   };
 
   const handleCommentDelete = async (commentId) => {
-    if (!token) return;
+    if (!currentUser) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${id}/comment/${commentId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${apiUrl}/api/posts/${id}/comment/${commentId}`, { withCredentials: true });
       toast.success("Comment deleted! 🗑️");
       fetchSinglePost();
     } catch (err) {
@@ -152,15 +171,13 @@ const PostPage = () => {
   };
 
   const handleCommentVote = async (commentId, type) => {
-    if (!token) {
+    if (!currentUser) {
       toast.error("Vote karne ke liye pehle Log In karein!");
       return;
     }
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/comment/${commentId}/${type}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(`${apiUrl}/api/posts/${id}/comment/${commentId}/${type}`, {}, { withCredentials: true });
       fetchSinglePost();
     } catch (err) {
       console.error("Comment voting error:", err);
@@ -168,20 +185,65 @@ const PostPage = () => {
   };
 
   const handleSave = async () => {
-    if (!token) {
+    if (!currentUser) {
       toast.error("Save karne ke liye login karein!");
       return;
     }
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${id}/save`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.put(`${apiUrl}/api/posts/${id}/save`, {}, { withCredentials: true });
       toast.success(res.data.message);
       fetchSinglePost();
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Error saving post");
+    }
+  };
+
+  const handleHide = async () => {
+    if (!currentUser) return toast.error("Log in to hide posts!");
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.put(`${apiUrl}/api/posts/${id}/hide`, {}, { withCredentials: true });
+      toast.success("Post Hidden! 🚫");
+      navigate('/');
+    } catch (err) {
+      console.error("Hide error:", err);
+    }
+  };
+
+  const handleReport = () => {
+    if (!currentUser) return toast.error("Log in to report posts!");
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-orange-600">🚩 Report This Post</p>
+        <p className="text-xs text-gray-500">Select a reason:</p>
+        <div className="flex flex-col gap-1">
+          {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
+            <button
+              key={reason}
+              onClick={() => { toast.dismiss(t.id); submitReport(reason); }}
+              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+            >
+              {reason.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+  };
+
+  const submitReport = async (reason) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/reports`, 
+        { targetType: 'post', targetId: id, reason },
+      { withCredentials: true }
+      );
+      toast.success('Report submitted! Our team will review it. 🛡️');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit report.');
     }
   };
 
@@ -197,8 +259,9 @@ const PostPage = () => {
   if (!post) return <div className="mt-10"><SkeletonLoader /></div>;
 
   const netVotes = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
-  const hasUpvoted = post.upvotes?.includes(currentUser?.id);
-  const hasDownvoted = post.downvotes?.includes(currentUser?.id);
+  const curUserId = currentUser?.id || currentUser?._id;
+  const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
+  const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
 
   const isAuthor = currentUser && post.author?._id === currentUser.id;
   const isCreator = currentUser && post.community?.creator === currentUser.id;
@@ -233,9 +296,7 @@ const PostPage = () => {
   const executeDeletePost = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${post._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${apiUrl}/api/posts/${post._id}`, { withCredentials: true });
       toast.success("Post deleted! 💨");
       navigate('/');
     } catch (err) {
@@ -249,10 +310,21 @@ const PostPage = () => {
         ← Back to Feed
       </button>
 
-      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-6 rounded-md shadow-sm transition-colors">
-        <p className="text-xs text-gray-500 mb-2">
-          Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white">u/{post.author?.username || 'user'}</Link>
-        </p>
+      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-6 rounded-md shadow-sm transition-colors overflow-visible relative">
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-xs text-gray-500 mb-2">
+            Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white">u/{post.author?.username || 'user'}</Link>
+          </p>
+          <PostMenu 
+            post={post}
+            currentUser={currentUser}
+            onSave={() => handleSave()}
+            onHide={() => handleHide()}
+            onReport={() => handleReport()}
+            onDelete={() => handleDeletePost()}
+            onOpenChange={() => {}} // Not needed for single post overflow but good for consistency
+          />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{post.title}</h1>
         {post.postType === 'link' && post.link && (
           <div className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] p-4 rounded-md mb-4 flex items-center justify-between group hover:border-gray-400 dark:hover:border-gray-500 transition-all">
@@ -293,39 +365,39 @@ const PostPage = () => {
           </div>
         )}
         <div className="text-gray-800 dark:text-gray-300 text-base leading-relaxed whitespace-pre-wrap mb-4">
-          {/* Markdown renderer could go here, for now using whitespace-pre-wrap */}
-           {post.content}
+          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+            {post.content || ''}
+          </ReactMarkdown>
         </div>
 
         {/* Post Actions */}
         <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
            
-           <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors">
-             {/* ⬆️ Upvote Button */}
-             <div 
-               onClick={handleUpvote}
-               className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
-                 hasUpvoted ? 'text-orange-500 bg-orange-500/10 hover:bg-orange-500/20' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
-               }`}
-             >
-                <span>⬆️</span>
-             </div>
-             
-             {/* Vote Count */}
-             <span className={`px-1 sm:px-2 ${
-               hasUpvoted ? 'text-orange-500' : hasDownvoted ? 'text-blue-500' : 'text-gray-900 dark:text-white'
-             }`}>{netVotes}</span>
+            <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors border border-transparent dark:border-[#343536]">
+              {/* ⬆️ Upvote Button */}
+              <div 
+                onClick={() => handleUpvote()}
+                className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                  hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
+                }`}
+              >
+                 <span className="text-base">⬆️</span>
+                 <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
+              </div>
+              
+              <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
-             {/* ⬇️ Downvote Button */}
-             <div 
-               onClick={handleDownvote}
-               className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
-                 hasDownvoted ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
-               }`}
-             >
-                <span>⬇️</span>
-             </div>
-           </div>
+              {/* ⬇️ Downvote Button */}
+              <div 
+                onClick={() => handleDownvote()}
+                className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                  hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
+                }`}
+              >
+                 <span className="text-base">⬇️</span>
+                 <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
+              </div>
+            </div>
 
            {/* Comments Count Indicator */}
            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full transition-colors">

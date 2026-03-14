@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 
 // Environment variables load karna
 dotenv.config();
@@ -25,6 +26,9 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
+
+// 📝 Logging: Track all incoming HTTP requests to detect anomalies or attacks
+app.use(morgan('combined')); // 'combined' format IP address, Date, URL, Status aur User-Agent print karta hai
 
 // Middleware
 app.use(express.json({ limit: '1mb' })); // 🔒 Security: Limit body size to prevent OOM attacks
@@ -68,20 +72,33 @@ const onlineUsers = new Map(); // userId -> socketId
 
 // 🔒 Security: Verify JWT token before allowing Socket.IO connections
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
+  // Extract token from HttpOnly cookie
+  const cookieHeader = socket.handshake.headers.cookie;
+  let token = null;
+  
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+    token = cookies.token;
+  }
+
+  // Fallback to auth payload if token is passed manually (e.g. mobile apps / Postman)
   if (!token) {
-    // Allow unauthenticated connections for public features, but don't let them join rooms
-    socket.userId = null;
-    return next();
+    token = socket.handshake.auth?.token;
+  }
+
+  if (!token) {
+    return next(new Error("Authentication error: No token provided"));
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.id;
     next();
   } catch (err) {
-    // Still allow connection but mark as unauthenticated
-    socket.userId = null;
-    next();
+    return next(new Error("Authentication error: Invalid or expired token"));
   }
 });
 
@@ -115,6 +132,17 @@ io.on('connection', (socket) => {
 // Uploaded images ko public (static) banane ke liye
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// 🔒 Security: Anti-CSRF Middleware
+app.use((req, res, next) => {
+  // Sirf data change karne wali requests (POST, PUT, DELETE, PATCH) par check lagao
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    if (req.headers['x-csrf-protection'] !== '1') {
+      return res.status(403).json({ message: "Forbidden: Possible CSRF Attack blocked! 🛡️" });
+    }
+  }
+  next();
+});
+
 // Routes import karna
 const authRoute = require('./routes/auth');
 const communityRoute = require('./routes/community');
@@ -139,6 +167,26 @@ app.use('/api/reports', reportRoute);
 // Basic Route
 app.get('/', (req, res) => {
     res.send('Reddit Clone API is running!');
+});
+
+// 🚨 404 Not Found Middleware (Catch-all for invalid routes)
+app.use((req, res, next) => {
+  const error = new Error(`Route Not Found - ${req.originalUrl}`);
+  res.status(404);
+  next(error);
+});
+
+// 🛠️ Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  // Agar status code pehle se set nahi hai (e.g., 200), toh use 500 (Internal Server Error) set karein
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+
+  res.json({
+    message: err.message,
+    // 🔒 Security: Production mein stack trace hide karna zaroori hai taaki hackers ko backend structure ka pata na chale
+    stack: process.env.NODE_ENV === 'production' ? '🥞 Stack trace hidden' : err.stack,
+  });
 });
 
 // MongoDB Connection (Yeh block sabse important hai database ke liye)

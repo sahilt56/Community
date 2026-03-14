@@ -1,18 +1,18 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  // 1. Request ke header se token nikalna
-  const authHeader = req.headers.authorization;
+  // 1. Cookie se token nikalna, ya fallback ke roop me header se
+  let token = req.cookies?.token;
 
-  if (authHeader) {
-    // Handling case where token might be just the token string or "Bearer <token>"
-    let token;
-    if (authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1]; 
+  if (!token && req.headers.authorization) {
+    if (req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1]; 
     } else {
-      token = authHeader; // Assume the whole string is the token
+      token = req.headers.authorization;
     }
+  }
 
+  if (token) {
     // 2. Token ko apni secret key se verify karna
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {

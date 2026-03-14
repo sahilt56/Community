@@ -6,11 +6,37 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
 
 // Initialize Google Auth Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const axios = require('axios'); // Add axios at the top if not present, though we use it below
+
+// Helper function to generate tokens
+const generateTokens = (userId) => {
+  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const refreshToken = jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+  return { accessToken, refreshToken };
+};
+
+// Helper function to set HttpOnly cookies
+const setTokenCookies = (res, accessToken, refreshToken) => {
+  res.cookie('token', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000 // 15 minutes
+  });
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+  }
+};
 
 // CHECK USERNAME AVAILABILITY
 router.get('/check-username/:username', async (req, res) => {
@@ -80,7 +106,7 @@ router.post('/google', async (req, res) => {
         return res.status(400).json({ error: "Username already taken! Please choose another one." });
       }
 
-      const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      const generatedPassword = crypto.randomBytes(16).toString('hex'); // Secure Random Password
       
       const newUser = new User({ 
         username: providedUsername, 
@@ -91,12 +117,12 @@ router.post('/google', async (req, res) => {
       user = await newUser.save();
     }
 
-    // 4. Generate Login Token (JWT)
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // 4. Generate Short-lived Access Token & Refresh Token
+    const { accessToken, refreshToken } = generateTokens(user._id);
+    setTokenCookies(res, accessToken, refreshToken);
 
     res.status(200).json({
       message: "Google Login successful!",
-      token,
       user: { id: user._id, username: user.username, profilePic: user.profilePic || null }
     });
 
@@ -110,6 +136,11 @@ router.post('/google', async (req, res) => {
 router.post('/send-otp', async (req, res) => {
   try {
     const { email, username } = req.body;
+
+    // 🛡️ Security: Enforce data type to prevent NoSQL Injection
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: "A valid email is required!" });
+    }
 
     // 1. Check username exists (if provided)
     if (username) {
@@ -129,7 +160,7 @@ router.post('/send-otp', async (req, res) => {
     }
 
     // 3. Generate exactly 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString(); // Cryptographically secure OTP
 
     // 4. Clear existing OTPs for this email
     await Otp.deleteMany({ email });
@@ -183,6 +214,14 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, otp } = req.body;
 
+    // 🛡️ Security: Prevent NoSQL Injection & check password strength
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ message: "Invalid input format!" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long!" });
+    }
+
     if (!otp) {
         return res.status(400).json({ message: "OTP is required for registration!" });
     }
@@ -209,6 +248,14 @@ router.post('/register', async (req, res) => {
     if (!otpRecord) {
         return res.status(400).json({ message: "Invalid or expired OTP!" });
     }
+
+    // Explicitly check if OTP is older than 5 minutes (300,000 milliseconds)
+    const otpAge = Date.now() - new Date(otpRecord.createdAt || Date.now()).getTime();
+    if (otpAge > 5 * 60 * 1000) {
+        await Otp.deleteMany({ email });
+        return res.status(400).json({ message: "OTP has expired!" });
+    }
+
     const isOtpValid = await bcrypt.compare(otp, otpRecord.otp);
     if (!isOtpValid) {
         return res.status(400).json({ message: "Invalid or expired OTP!" });
@@ -221,12 +268,12 @@ router.post('/register', async (req, res) => {
     // 4. Clear OTP
     await Otp.deleteMany({ email });
 
-    // 5. Login Token
-    const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // 5. Generate Tokens
+    const { accessToken, refreshToken } = generateTokens(savedUser._id);
+    setTokenCookies(res, accessToken, refreshToken);
 
     res.status(201).json({ 
       message: "User registered successfully!",
-      token, 
       user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null } 
     });
 
@@ -241,6 +288,11 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // 🛡️ Security: Prevent NoSQL Injection
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ message: "Invalid input format!" });
+    }
+
     // 1. Check karo ki user database mein hai ya nahi
     const user = await User.findOne({ email });
     if (!user) {
@@ -253,13 +305,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: "Wrong password!" });
     }
 
-    // 3. Naya Token generate karo login session ke liye
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // 3. Generate Short-lived Access Token & Refresh Token
+    const { accessToken, refreshToken } = generateTokens(user._id);
+    setTokenCookies(res, accessToken, refreshToken);
 
     // 4. Success response
     res.status(200).json({
       message: "Login successful!",
-      token,
       user: { id: user._id, username: user.username, profilePic: user.profilePic || null }
     });
 
@@ -267,6 +319,32 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed. Please try again.' });
   }
+});
+
+// REFRESH TOKEN ROUTE
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) return res.status(401).json({ message: "Refresh Token is required!" });
+
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, (err, user) => {
+      if (err) return res.status(403).json({ message: "Invalid or expired Refresh Token! Please log in again." });
+
+      // Issue a new short-lived access token
+      const newAccessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+      setTokenCookies(res, newAccessToken, null); // Keep old refresh token
+      res.status(200).json({ message: "Token refreshed successfully" });
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error during token refresh." });
+  }
+});
+
+// LOGOUT ROUTE
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.clearCookie('refreshToken');
+  res.status(200).json({ message: "Logged out successfully!" });
 });
 
 module.exports = router;

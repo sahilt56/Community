@@ -297,8 +297,8 @@ router.post('/:id/join', verifyToken, async (req, res) => {
     const userPosts = await Post.find({ author: userId, isDeleted: { $ne: true } });
     let totalAnubhav = 0;
     userPosts.forEach(post => {
-      const otherUpvotes = post.upvotes?.filter(id => id.toString() !== userId.toString()).length || 0;
-      const otherDownvotes = post.downvotes?.filter(id => id.toString() !== userId.toString()).length || 0;
+      const otherUpvotes = post.upvotes?.filter(id => id && id.toString() !== userId.toString()).length || 0;
+      const otherDownvotes = post.downvotes?.filter(id => id && id.toString() !== userId.toString()).length || 0;
       totalAnubhav += (otherUpvotes - otherDownvotes);
     });
 

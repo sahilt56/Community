@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useSocket } from '../hooks/useSocket';
+import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import OnlineIndicator from './OnlineIndicator';
 import logo from '../assets/logo.png';
@@ -121,7 +121,7 @@ const Navbar = () => {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { isDarkMode, toggleTheme } = useTheme();
-  const { socket } = useSocket() || {};
+  const { socket } = useContext(SocketContext) || {};
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;

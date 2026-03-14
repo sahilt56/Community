@@ -15,4 +15,9 @@ const CommentSchema = new mongoose.Schema({
   
 }, { timestamps: true });
 
+// 🚀 Performance Optimizations: Indexes for Large Scale
+CommentSchema.index({ post: 1, createdAt: -1 }); // Fast loading of comments for a specific post (sorted by newest)
+CommentSchema.index({ parentComment: 1 }); // Fast lookup for child replies
+CommentSchema.index({ author: 1 }); // Fast loading of a user's comment history
+
 module.exports = mongoose.model('Comment', CommentSchema);

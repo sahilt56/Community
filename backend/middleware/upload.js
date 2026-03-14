@@ -43,8 +43,8 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
       cb(null, 'uploads/'); 
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+      cb(null, uniqueSuffix + path.extname(file.originalname)); // Use only the extension from originalname
     }
   });
   console.log("Using Local Disk Storage 💻");
@@ -52,10 +52,15 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
 
 // File filter taaki images aur videos dono allow hon
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+  // 🛡️ Security: Sirf Mimetype nahi, Extension bhi verify karein (Prevent MIME Spoofing)
+  const allowedExts = /jpeg|jpg|png|gif|webp|mp4|mov|avi/i;
+  const isExtValid = allowedExts.test(path.extname(file.originalname).toLowerCase());
+  const isMimeValid = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
+
+  if (isExtValid && isMimeValid) {
     cb(null, true);
   } else {
-    cb(new Error('Only images and videos are allowed!', false));
+    cb(new Error('Invalid file type! Only valid images and videos are allowed.', false));
   }
 };
 

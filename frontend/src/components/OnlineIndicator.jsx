@@ -1,8 +1,9 @@
-import React from 'react';
-import { useSocket } from '../hooks/useSocket';
+import React, { useContext } from 'react';
+import { SocketContext } from '../context/SocketContext';
 
 const OnlineIndicator = ({ userId, size = 'w-3 h-3', border = 'border-2 border-white dark:border-[#1a1a1b]' }) => {
-    const { onlineUsers } = useSocket() || { onlineUsers: new Set() };
+    const context = useContext(SocketContext);
+    const onlineUsers = context?.onlineUsers || new Set();
     const isOnline = onlineUsers.has(userId);
 
     return (

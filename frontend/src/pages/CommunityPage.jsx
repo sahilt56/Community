@@ -4,12 +4,15 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
+import PostMenu from '../components/PostMenu';
+import CommunityMenu from '../components/CommunityMenu';
 
 const CommunityPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [activeMenuId, setActiveMenuId] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -93,12 +96,17 @@ const CommunityPage = () => {
       toast.error("Vote karne ke liye pehle Log In karein!");
       return;
     }
+    // Toggle-off supported by backend logic
+    const post = posts.find(p => p._id === postId);
+    if (!post) return;
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchCommunityPosts();
+      // Merge only the votes to preserve populated author/community
+      setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
       console.error("Voting error:", err);
     }
@@ -109,12 +117,17 @@ const CommunityPage = () => {
       toast.error("Vote karne ke liye pehle Log In karein!");
       return;
     }
+    // Toggle-off supported by backend logic
+    const post = posts.find(p => p._id === postId);
+    if (!post) return;
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchCommunityPosts();
+      // Merge only the votes to preserve populated author/community
+      setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
       console.error("Voting error:", err);
     }
@@ -283,6 +296,136 @@ const CommunityPage = () => {
     }
   };
 
+  const handleReportCommunity = () => {
+    if (!token) return toast.error("Log in to report communities!");
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-orange-600">🚩 Report This Community</p>
+        <p className="text-xs text-gray-500">Select a reason:</p>
+        <div className="flex flex-col gap-1">
+          {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation', 'illegal_content'].map(reason => (
+            <button
+              key={reason}
+              onClick={() => { toast.dismiss(t.id); submitCommunityReport(reason); }}
+              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+            >
+              {reason.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+  };
+
+  const submitCommunityReport = async (reason) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/reports`, 
+        { targetType: 'community', targetId: community._id, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Community report submitted! 🛡️');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit report.');
+    }
+  };
+
+  const handleSavePost = async (postId) => {
+    if (!token) return toast.error("Log in to save posts!");
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/save`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPosts(prev => prev.map(p => 
+        p._id === postId 
+          ? { ...p, savedBy: res.data.isSaved ? [...(p.savedBy || []), currentUser.id] : (p.savedBy || []).filter(id => id !== currentUser.id) }
+          : p
+      ));
+      toast.success(res.data.isSaved ? "Saved! 💾" : "Removed from Saved!");
+    } catch (err) {
+      console.error("Save error:", err);
+    }
+  };
+
+  const handleHidePost = async (postId) => {
+    if (!token) return toast.error("Log in to hide posts!");
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.put(`${apiUrl}/api/posts/${postId}/hide`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.isHidden) {
+        setPosts(prev => prev.filter(p => p._id !== postId));
+        toast.success("Post Hidden! 🚫");
+      }
+    } catch (err) {
+      console.error("Hide error:", err);
+    }
+  };
+
+  const handleReportPost = (postId) => {
+    if (!token) return toast.error("Log in to report posts!");
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-orange-600">🚩 Report This Post</p>
+        <p className="text-xs text-gray-500">Select a reason:</p>
+        <div className="flex flex-col gap-1">
+          {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
+            <button
+              key={reason}
+              onClick={() => { toast.dismiss(t.id); submitPostReport(postId, reason); }}
+              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+            >
+              {reason.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+  };
+
+  const submitPostReport = async (postId, reason) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/reports`, 
+        { targetType: 'post', targetId: postId, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Report submitted! Our team will review it. 🛡️');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit report.');
+    }
+  };
+
+  const handleDeletePost = (postId) => {
+    toast((t) => (
+      <div>
+        <p className="mb-2">Post delete karni hai? 🗑️</p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => { toast.dismiss(t.id); executeDeletePost(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
+          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+        </div>
+      </div>
+    ), { duration: Infinity });
+  };
+
+  const executeDeletePost = async (postId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPosts(prev => prev.filter(p => p._id !== postId));
+      toast.success("Post Deleted! 🗑️");
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("Failed to delete post.");
+    }
+  };
+
   if (!community) return <div className="mt-10"><SkeletonLoader /></div>;
 
   const isMember = currentUser && community.members?.some(m => 
@@ -303,7 +446,7 @@ const CommunityPage = () => {
   return (
     <div className="mt-6">
       {/* Community BANNER & DETAILS */}
-      <div className="bg-gray-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm mb-6 relative overflow-hidden transition-colors">
+      <div className="bg-gray-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm mb-6 relative transition-colors">
         {/* Banner Image */}
         {community.bannerPic ? (
           <div className="h-32 md:h-48 w-full border-b border-gray-200 dark:border-[#343536]">
@@ -343,37 +486,57 @@ const CommunityPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full md:w-auto">
-              {currentUser && !isCreator && !isMod && (
-                <button 
-                  onClick={isMember ? handleLeave : handleJoin}
-                  className={`w-full md:w-32 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md ${
-                    isMember 
-                      ? 'bg-transparent border border-gray-900 dark:border-white text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10' 
-                      : 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
-                  }`}
-                >
-                  {isMember ? 'Joined' : 'Join'}
-                </button>
-              )}
-              {canEdit && (
-                <div className="flex gap-2">
+            <div className="flex flex-col gap-2 w-full md:w-auto items-end">
+              <div className="flex gap-2 w-full md:w-auto">
+                {currentUser && !isCreator && !isMod && (
                   <button 
-                    onClick={handleEditClick}
-                    className="w-full md:w-auto px-6 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-gray-200 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] hover:bg-gray-300 dark:hover:bg-[#343536]"
+                    onClick={isMember ? handleLeave : handleJoin}
+                    className={`w-full md:w-32 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md ${
+                      isMember 
+                        ? 'bg-transparent border border-gray-900 dark:border-white text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10' 
+                        : 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                    }`}
                   >
-                    Edit
+                    {isMember ? 'Joined' : 'Join'}
                   </button>
-                  {isCreator && (
+                )}
+                {canEdit && (
+                  <div className="flex gap-2 shrink-0">
                     <button 
-                      onClick={handleDeleteCommunity}
-                      className="w-full md:w-auto px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-red-600/10 text-red-500 border border-red-500 hover:bg-red-500 hover:text-white"
+                      onClick={handleEditClick}
+                      className="hidden md:block px-6 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-gray-200 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] hover:bg-gray-300 dark:hover:bg-[#343536]"
                     >
-                      Delete
+                      Edit
                     </button>
-                  )}
-                </div>
-              )}
+                    {isCreator && (
+                      <button 
+                        onClick={handleDeleteCommunity}
+                        className="hidden lg:block px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-red-600/10 text-red-500 border border-red-500 hover:bg-red-500 hover:text-white"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Community Three Dot Menu (Hiding for Creator per request) */}
+                {currentUser && community && (
+                  (() => {
+                    const creatorId = typeof community.creator === 'object' ? community.creator._id : community.creator;
+                    const curId = currentUser.id || currentUser._id;
+                    return creatorId !== curId;
+                  })()
+                ) && (
+                  <CommunityMenu 
+                    onReport={handleReportCommunity}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteCommunity}
+                    canEdit={canEdit}
+                    isCreator={isCreator}
+                    onOpenChange={(isOpen) => setActiveMenuId(isOpen ? 'community' : (prev => prev === 'community' ? null : prev))}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -597,8 +760,9 @@ const CommunityPage = () => {
                 const upvotes = post.upvotes?.length || 0;
                 const downvotes = post.downvotes?.length || 0;
                 const netVotes = upvotes - downvotes;
-                const hasUpvoted = currentUser && post.upvotes?.includes(currentUser.id);
-                const hasDownvoted = currentUser && post.downvotes?.includes(currentUser.id);
+                const curUserId = currentUser?.id || currentUser?._id;
+                const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
+                const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
                 
                 const isLast = (posts.length === index + 1);
 
@@ -606,14 +770,25 @@ const CommunityPage = () => {
                   <div 
                     key={`${post._id}-${index}`} 
                     ref={isLast ? lastPostElementRef : null}
-                    className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm transition-colors"
+                    className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm transition-colors overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
                   >
                     <p className="text-xs text-gray-500 mb-2">
                       Posted by u/{post.author?.username || 'user'}
                     </p>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                      <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
-                    </h2>
+                    <div className="flex justify-between items-start mb-1">
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                        <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
+                      </h2>
+                      <PostMenu 
+                        post={post}
+                        currentUser={currentUser}
+                        onSave={handleSavePost}
+                        onHide={handleHidePost}
+                        onReport={handleReportPost}
+                        onDelete={handleDeletePost}
+                        onOpenChange={(isOpen) => setActiveMenuId(isOpen ? post._id : (prev => prev === post._id ? null : prev))}
+                      />
+                    </div>
                     {post.media && post.media.length > 0 && (
                       <div className={`grid gap-2 mb-4 ${post.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {post.media.map((item, idx) => (
@@ -640,25 +815,27 @@ const CommunityPage = () => {
                     {/* Post Actions */}
                     <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
                       {/* Voting UI */}
-                      <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors">
+                      <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors border border-transparent dark:border-[#343536]">
                         <div 
                           onClick={() => handleUpvote(post._id)}
-                          className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
-                            hasUpvoted ? 'text-orange-500 bg-orange-500/10 hover:bg-orange-500/20' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
+                          className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                            hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                           }`}
                         >
-                            <span>⬆️</span>
+                            <span className="text-base">⬆️</span>
+                            <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                         </div>
-                        <span className={`px-1 sm:px-2 ${
-                          hasUpvoted ? 'text-orange-500' : hasDownvoted ? 'text-blue-500' : 'text-gray-700 dark:text-white'
-                        }`}>{netVotes}</span>
+                        
+                        <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+
                         <div 
                           onClick={() => handleDownvote(post._id)}
-                          className={`flex items-center justify-center p-2 cursor-pointer transition-all ${
-                            hasDownvoted ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
+                          className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                            hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                           }`}
                         >
-                            <span>⬇️</span>
+                            <span className="text-base">⬇️</span>
+                            <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
                         </div>
                       </div>
 

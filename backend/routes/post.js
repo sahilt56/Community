@@ -4,7 +4,6 @@ const router = express.Router();
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
 const verifyToken = require('../middleware/verifyToken');
-const auth = require('../middleware/verifyToken');
 const upload = require('../middleware/upload');
 const contentFilter = require('../middleware/contentFilter');
 
@@ -13,14 +12,81 @@ router.get('/', async (req, res) => {
   try {
     const { sort = 'hot', page = 1, limit = 10 } = req.query; 
 
-    // 1. Fetch posts from DB (without DB-level sorting initially so we can calculate Hot/Top)
-    let posts = await Post.find({ isDeleted: { $ne: true } })
-      .populate('author', 'username')
-      .populate('community', 'name');
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10)); // Prevent DoS: Cap at 50
+    const startIndex = (pageNum - 1) * limitNum;
 
-    // 2. Apply Sorting Logic in Memory
+    let posts = [];
+    let totalDocs = 0;
+
     if (sort === 'new') {
-      posts.sort((a, b) => b.createdAt - a.createdAt);
+      // OPTIMIZED: Database level sorting and pagination
+      // This is much faster and cleaner for memory
+      totalDocs = await Post.countDocuments({ isDeleted: { $ne: true } });
+      posts = await Post.find({ isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .skip(startIndex)
+        .limit(limitNum)
+        .populate('author', 'username')
+        .populate('community', 'name');
+    } else {
+      // OPTIMIZED: Database level sorting for 'top' and 'hot' using Aggregation Pipeline
+      const matchQuery = { isDeleted: { $ne: true } };
+      totalDocs = await Post.countDocuments(matchQuery);
+
+      const pipeline = [
+        { $match: matchQuery },
+        {
+          $addFields: {
+            netVotes: {
+              $subtract: [
+                { $size: { $ifNull: ["$upvotes", []] } },
+                { $size: { $ifNull: ["$downvotes", []] } }
+              ]
+            }
+          }
+        }
+      ];
+
+      if (sort === 'top') {
+        pipeline.push({ $sort: { netVotes: -1, createdAt: -1 } });
+      } else {
+        // Default: 'hot'
+        pipeline.push(
+          {
+            $addFields: {
+              ageInHours: { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 3600000] }
+            }
+          },
+          {
+            $addFields: {
+              magnitude: { $abs: "$netVotes" },
+              s: { $cond: [ { $gt: ["$netVotes", 0] }, 1, { $cond: [ { $lt: ["$netVotes", 0] }, -1, 0 ] } ] },
+              ageFactor: { $pow: [{ $add: ["$ageInHours", 2] }, 1.5] }
+            }
+          },
+          {
+            $addFields: { hotScore: { $multiply: [{ $divide: ["$magnitude", "$ageFactor"] }, "$s"] } }
+          },
+          { $sort: { hotScore: -1, createdAt: -1 } }
+        );
+      }
+
+      pipeline.push({ $skip: startIndex }, { $limit: limitNum });
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
+    }
+
+    /* REMOVED OLD BLOCK
+    // 1. Fetch posts from DB...
+    // 2. Apply Sorting Logic in Memory...
+    if (sort === 'new') { ... } else if (sort === 'top') { ... }
+    */
+/*
     } else if (sort === 'top') {
       posts.sort((a, b) => {
         const netA = (a.upvotes?.length || 0) - (a.downvotes?.length || 0);
@@ -36,20 +102,16 @@ router.get('/', async (req, res) => {
         return scoreB - scoreA; // Descending
       });
     }
-    // Apply Pagination
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
-    const startIndex = (pageNum - 1) * limitNum;
-    const endIndex = startIndex + limitNum;
-
-    const paginatedPosts = posts.slice(startIndex, endIndex);
-    const hasMore = endIndex < posts.length;
+*/
+    
+    // For 'new' sort, we use optimized query. For others, we use slice results.
+    const hasMore = startIndex + limitNum < totalDocs;
 
     res.json({
-      posts: paginatedPosts,
+      posts: posts,
       hasMore,
       page: pageNum,
-      totalPages: Math.ceil(posts.length / limitNum)
+      totalPages: Math.ceil(totalDocs / limitNum)
     });
   } catch (err) {
     console.error(err);
@@ -83,6 +145,10 @@ router.get('/community/:communityId', async (req, res) => {
   try {
     const { communityId } = req.params;
     const { sort = 'hot', page = 1, limit = 10 } = req.query;
+    
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10)); // Prevent DoS
+    const startIndex = (pageNum - 1) * limitNum;
     let targetId = communityId;
 
     // If communityId is NOT a valid ObjectId, assume it's a name and find the actual ID
@@ -93,42 +159,77 @@ router.get('/community/:communityId', async (req, res) => {
       targetId = community._id;
     }
 
-    let posts = await Post.find({ community: targetId, isDeleted: { $ne: true } })
-      .populate('author', 'username')
-      .populate('community', 'name');
+    let posts = [];
+    let totalDocs = 0;
 
-    // Apply Sorting Logic
     if (sort === 'new') {
-      posts.sort((a, b) => b.createdAt - a.createdAt);
-    } else if (sort === 'top') {
-      posts.sort((a, b) => {
-        const netA = (a.upvotes?.length || 0) - (a.downvotes?.length || 0);
-        const netB = (b.upvotes?.length || 0) - (b.downvotes?.length || 0);
-        return netB - netA;
-      });
+      // OPTIMIZED: Database level sorting for 'new'
+      totalDocs = await Post.countDocuments({ community: targetId, isDeleted: { $ne: true } });
+      posts = await Post.find({ community: targetId, isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .skip(startIndex)
+        .limit(limitNum)
+        .populate('author', 'username')
+        .populate('community', 'name');
     } else {
-      // Default: 'hot'
-      posts.sort((a, b) => {
-        const scoreA = calculateHotScore(a);
-        const scoreB = calculateHotScore(b);
-        return scoreB - scoreA;
-      });
+      // OPTIMIZED: Database level sorting for 'top' and 'hot' using Aggregation Pipeline
+      const matchQuery = { community: targetId, isDeleted: { $ne: true } };
+      totalDocs = await Post.countDocuments(matchQuery);
+
+      const pipeline = [
+        { $match: matchQuery },
+        {
+          $addFields: {
+            netVotes: {
+              $subtract: [
+                { $size: { $ifNull: ["$upvotes", []] } },
+                { $size: { $ifNull: ["$downvotes", []] } }
+              ]
+            }
+          }
+        }
+      ];
+
+      if (sort === 'top') {
+        pipeline.push({ $sort: { netVotes: -1, createdAt: -1 } });
+      } else {
+        // Default: 'hot'
+        pipeline.push(
+          {
+            $addFields: {
+              ageInHours: { $divide: [{ $subtract: [new Date(), "$createdAt"] }, 3600000] }
+            }
+          },
+          {
+            $addFields: {
+              magnitude: { $abs: "$netVotes" },
+              s: { $cond: [ { $gt: ["$netVotes", 0] }, 1, { $cond: [ { $lt: ["$netVotes", 0] }, -1, 0 ] } ] },
+              ageFactor: { $pow: [{ $add: ["$ageInHours", 2] }, 1.5] }
+            }
+          },
+          {
+            $addFields: { hotScore: { $multiply: [{ $divide: ["$magnitude", "$ageFactor"] }, "$s"] } }
+          },
+          { $sort: { hotScore: -1, createdAt: -1 } }
+        );
+      }
+
+      pipeline.push({ $skip: startIndex }, { $limit: limitNum });
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
     }
 
-    // Apply Pagination
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 10;
-    const startIndex = (pageNum - 1) * limitNum;
-    const endIndex = startIndex + limitNum;
-
-    const paginatedPosts = posts.slice(startIndex, endIndex);
-    const hasMore = endIndex < posts.length;
+    const hasMore = startIndex + limitNum < totalDocs;
 
     res.json({
-      posts: paginatedPosts,
+      posts: posts,
       hasMore,
       page: pageNum,
-      totalPages: Math.ceil(posts.length / limitNum)
+      totalPages: Math.ceil(totalDocs / limitNum)
     });
   } catch (err) {
     console.error(err);
@@ -188,45 +289,57 @@ router.post('/create', verifyToken, upload.array('media', 16), contentFilter, as
 // UPVOTE A POST
 router.put('/:id/upvote', verifyToken, async (req, res) => {
   try {
-    // 1. URL se post ki ID nikal kar database mein dhundo
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
-
     const userId = req.user.id;
+    const postCheck = await Post.findById(req.params.id);
+    if (!postCheck) return res.status(404).json({ message: "Post not found" });
 
-    // 2. Agar user ne pehle downvote kiya tha, toh usko hatao
-    if (post.downvotes.includes(userId)) {
-      post.downvotes.pull(userId);
+    const hasUpvoted = postCheck.upvotes.includes(userId);
+    let update = {};
+
+    if (hasUpvoted) {
+      // Toggle off: Remove from upvotes
+      update = { $pull: { upvotes: userId } };
+    } else {
+      // Toggle on: Add to upvotes, Remove from downvotes
+      update = { 
+        $addToSet: { upvotes: userId },
+        $pull: { downvotes: userId }
+      };
     }
 
-    // 3. Agar pehle se upvote kiya hai, toh upvote hatao (Toggle Off)
-    if (post.upvotes.includes(userId)) {
-      post.upvotes.pull(userId);
-      await post.save();
-      return res.status(200).json({ message: "Upvote removed", post });
-    } 
-    
-    // 4. Agar upvote nahi kiya tha, toh upvote add karo (Toggle On)
-    post.upvotes.push(userId);
-    await post.save();
-    
-    // Create Notification (if not author)
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true }
+    );
+
+    // Create Notification (if not already upvoted by this user before)
+    // Note: Since we use findByIdAndUpdate, we check if user was already in upvotes list
+    // But for simplicity and to avoid race conditions, we'll just check if the author is different
     if (post.author.toString() !== userId) {
-      const newNotif = await Notification.create({
+      // Check if notification already exists to avoid spamming
+      const existingNotif = await Notification.findOne({
         recipient: post.author,
         sender: userId,
         type: 'vote',
-        post: post._id,
-        content: 'upvoted your post'
+        post: post._id
       });
-      // Emit to specific user
-      if (req.io) {
-        req.io.to(post.author.toString()).emit('new_notification', newNotif);
+
+      if (!existingNotif) {
+        const newNotif = await Notification.create({
+          recipient: post.author,
+          sender: userId,
+          type: 'vote',
+          post: post._id,
+          content: 'upvoted your post'
+        });
+        await newNotif.populate('sender', 'username profilePic');
+        await newNotif.populate('post', 'title');
+        if (req.io) req.io.to(post.author.toString()).emit('new_notification', newNotif);
       }
     }
     
     if (req.io) req.io.emit('post_interaction', post._id);
-
     res.status(200).json({ message: "Post upvoted successfully", post });
 
   } catch (err) {
@@ -238,43 +351,54 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
 // DOWNVOTE A POST
 router.put('/:id/downvote', verifyToken, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
-
     const userId = req.user.id;
+    const postCheck = await Post.findById(req.params.id);
+    if (!postCheck) return res.status(404).json({ message: "Post not found" });
 
-    // Agar pehle upvote kiya tha, toh usko hatao
-    if (post.upvotes.includes(userId)) {
-      post.upvotes.pull(userId);
+    const hasDownvoted = postCheck.downvotes.includes(userId);
+    let update = {};
+
+    if (hasDownvoted) {
+      // Toggle off: Remove from downvotes
+      update = { $pull: { downvotes: userId } };
+    } else {
+      // Toggle on: Add to downvotes, Remove from upvotes
+      update = { 
+        $addToSet: { downvotes: userId },
+        $pull: { upvotes: userId }
+      };
     }
 
-    // Agar pehle se downvote kiya hai, toh downvote hatao
-    if (post.downvotes.includes(userId)) {
-      post.downvotes.pull(userId);
-      await post.save();
-      return res.status(200).json({ message: "Downvote removed", post });
-    } 
-    
-    // Warna downvote add karo
-    post.downvotes.push(userId);
-    await post.save();
-    
-    // Create Notification (if not author)
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      update,
+      { new: true }
+    );
+
     if (post.author.toString() !== userId) {
-      const newNotif = await Notification.create({
+      const existingNotif = await Notification.findOne({
         recipient: post.author,
         sender: userId,
         type: 'vote',
         post: post._id,
         content: 'downvoted your post'
       });
-      if (req.io) {
-        req.io.to(post.author.toString()).emit('new_notification', newNotif);
+
+      if (!existingNotif) {
+        const newNotif = await Notification.create({
+          recipient: post.author,
+          sender: userId,
+          type: 'vote',
+          post: post._id,
+          content: 'downvoted your post'
+        });
+        await newNotif.populate('sender', 'username profilePic');
+        await newNotif.populate('post', 'title');
+        if (req.io) req.io.to(post.author.toString()).emit('new_notification', newNotif);
       }
     }
     
     if (req.io) req.io.emit('post_interaction', post._id);
-
     res.status(200).json({ message: "Post downvoted successfully", post });
 
   } catch (err) {
@@ -289,13 +413,19 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
 // GET SINGLE POST
 router.get('/:id', async (req, res) => {
   try {
+    // 1. Invalid ID format check (Prevents Server 500 CastError crash)
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid Post ID format!" });
+    }
+
     const post = await Post.findById(req.params.id)
       .populate('author', 'username')
       .populate('community', 'name')
       // Ye waali nayi line add karni hai taaki comments ke andar ka username bhi aaye 👇
       .populate('comments.user', 'username'); 
 
-    if (!post) {
+    // 2. Soft-deleted post check (Security Leak Fix)
+    if (!post || post.isDeleted) {
       return res.status(404).json({ message: "Post nahi mili bhai!" });
     }
     res.json(post);
@@ -305,7 +435,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 // Add a comment to a post
-router.post('/:id/comment', auth, contentFilter, async (req, res) => {
+router.post('/:id/comment', verifyToken, contentFilter, async (req, res) => {
   try {
     // Note: Yahan hum maan rahe hain ki req.user mein logged-in user ki details hain 
     // (jo tumhare auth middleware se aati hai).
@@ -313,6 +443,11 @@ router.post('/:id/comment', auth, contentFilter, async (req, res) => {
     
     if (!post) {
       return res.status(404).json({ message: "Post nahi mili!" });
+    }
+
+    if (req.body.parentId) {
+      const parentComment = post.comments.id(req.body.parentId);
+      if (!parentComment) return res.status(400).json({ message: "Parent comment does not exist." });
     }
 
     const newComment = {
@@ -340,6 +475,8 @@ router.post('/:id/comment', auth, contentFilter, async (req, res) => {
         commentId: savedComment._id,
         content: 'commented on your post'
       });
+      await newRootNotif.populate('sender', 'username profilePic');
+      await newRootNotif.populate('post', 'title');
       if (req.io) req.io.to(post.author.toString()).emit('new_notification', newRootNotif);
     }
 
@@ -355,6 +492,8 @@ router.post('/:id/comment', auth, contentFilter, async (req, res) => {
           commentId: savedComment._id,
           content: 'replied to your comment'
         });
+        await newReplyNotif.populate('sender', 'username profilePic');
+        await newReplyNotif.populate('post', 'title');
         if (req.io) req.io.to(parentComment.user.toString()).emit('new_notification', newReplyNotif);
       }
     }
@@ -373,13 +512,11 @@ router.put('/:id', verifyToken, contentFilter, async (req, res) => {
     const post = await Post.findById(req.params.id).populate('community');
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    // Check ownership or Mod status
+    // Check ownership
     const isAuthor = post.author.toString() === req.user.id;
-    const isCreator = post.community && post.community.creator.toString() === req.user.id;
-    const isMod = post.community && post.community.moderators?.some(modId => modId.toString() === req.user.id);
 
-    if (!isAuthor && !isCreator && !isMod) {
-      return res.status(403).json({ message: "You don't have permission to edit this post! 🛑" });
+    if (!isAuthor) {
+      return res.status(403).json({ message: "Only the author can edit this post! 🛑" });
     }
 
     const { title, content, link } = req.body;
@@ -467,6 +604,8 @@ router.put('/:postId/comment/:commentId/upvote', verifyToken, async (req, res) =
           commentId: comment._id,
           content: 'upvoted your comment'
         });
+        // Note: Not capturing return value in a var to populate, but if you need RT update for comments too:
+        // const notif = await Notification.create({...}); await notif.populate(...); req.io.emit(...)
       }
     }
 
@@ -511,6 +650,7 @@ router.put('/:postId/comment/:commentId/downvote', verifyToken, async (req, res)
         commentId: comment._id,
         content: 'downvoted your comment'
       });
+       // Logic same as above - ensure you populate if emitting
     }
     
     res.json(post);

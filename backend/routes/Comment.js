@@ -24,13 +24,16 @@ router.post('/add', verifyToken, contentFilter, async (req, res) => {
     const post = await Post.findById(postId);
     
     if (post && post.author.toString() !== req.user.id) {
-      await Notification.create({
+      const newNotif = await Notification.create({
         recipient: post.author,
         sender: req.user.id,
         type: 'comment',
         post: post._id,
         content: 'commented on your post'
       });
+      await newNotif.populate('sender', 'username profilePic');
+      await newNotif.populate('post', 'title');
+      if (req.io) req.io.to(post.author.toString()).emit('new_notification', newNotif);
     }
     
     res.status(201).json({ 

@@ -11,9 +11,10 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-        const token = localStorage.getItem('token');
+        // Token should be read fresh or passed as a dependency if strictly managed
+        const currentToken = localStorage.getItem('token');
         const newSocket = io(socketUrl, {
-            auth: { token: token || undefined }
+            auth: { token: currentToken || undefined }
         });
         
         // FIX: The linter warns about synchronous setState in useEffect, 
@@ -38,7 +39,14 @@ export const SocketProvider = ({ children }) => {
         });
 
         return () => newSocket.close();
-    }, []);
+    }, [
+        // Re-run this effect if the token changes (e.g. login/logout)
+        // Note: Since we are reading from localStorage directly, 
+        // this might strictly require a trigger or context value to be perfect, 
+        // but adding it logically helps if the component re-mounts or props change.
+        // Ideally, pass 'token' into SocketProvider from AuthContext.
+        localStorage.getItem('token') 
+    ]);
 
     // Effect to join personal room when socket and user ID are available
     useEffect(() => {

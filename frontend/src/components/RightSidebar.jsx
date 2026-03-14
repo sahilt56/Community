@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import OnlineIndicator from './OnlineIndicator';
 import SkeletonLoader from './SkeletonLoader';
+import { SocketContext } from '../context/SocketContext';
 
 const RightSidebar = () => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -15,6 +16,7 @@ const RightSidebar = () => {
   const [profileStats, setProfileStats] = useState(null);
   const [loadingPopular, setLoadingPopular] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const { socket } = useContext(SocketContext);
 
   // FIX: Storing the current time in state to keep the component render strictly pure
 const [currentTime] = useState(() => Date.now());
@@ -35,6 +37,21 @@ const [currentTime] = useState(() => Date.now());
     return () => window.removeEventListener('storage', sync);
   }, []);
 
+  // Helper function to fetch profile stats (Refactored for reuse)
+  const fetchProfile = async (isBackground = false) => {
+    if (!user?.username) return;
+    if (!isBackground) setLoadingProfile(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.get(`${apiUrl}/api/users/${user.username}`);
+      setProfileStats(res.data);
+    } catch (err) {
+      console.error("Error fetching right sidebar profile", err);
+    } finally {
+      if (!isBackground) setLoadingProfile(false);
+    }
+  };
+
   useEffect(() => {
     const fetchPopular = async () => {
       setLoadingPopular(true);
@@ -50,21 +67,23 @@ const [currentTime] = useState(() => Date.now());
     };
     fetchPopular();
     if (token && user) {
-      const fetchProfile = async () => {
-        setLoadingProfile(true);
-        try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-          const res = await axios.get(`${apiUrl}/api/users/${user.username}`);
-          setProfileStats(res.data);
-        } catch (err) {
-          console.error("Error fetching right sidebar profile", err);
-        } finally {
-          setLoadingProfile(false);
-        }
-      };
       fetchProfile();
     }
   }, [token, user]);
+
+  // Real-time Anubhav Updates
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleInteraction = () => {
+      // Jab bhi koi interaction ho (like/comment), profile refresh karo
+      // taaki Anubhav score update ho jaye bina loading spinner dikhaye
+      fetchProfile(true); 
+    };
+
+    socket.on('post_interaction', handleInteraction);
+    return () => socket.off('post_interaction', handleInteraction);
+  }, [socket, user]);
 
   let accountAgeText = "Ready to dive in?";
   const joinedDate = profileStats?.profile?.createdAt || user?.createdAt;

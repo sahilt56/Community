@@ -1,7 +1,51 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @config "../tailwind.config.js";
 
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none !important;
+  min-height: 100%;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
 
+/* TipTap Code Styles */
+.ProseMirror code {
+  background-color: rgba(97, 97, 97, 0.1);
+  color: #ea580c;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.dark .ProseMirror code {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fb923c;
+}
+.ProseMirror pre {
+  background: #1f2937;
+  color: #f8f8f2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.ProseMirror pre code {
+  color: inherit;
+  padding: 0;
+  background: none;
+  font-size: 0.875rem;
+}
+.dark .ProseMirror pre {
+  background: #111827;
+}
 
 /* ===================== Modern Animation System ===================== */
 
@@ -150,4 +194,43 @@ body {
 .dark .glass-nav {
   background: rgba(26, 26, 27, 0.72) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* TipTap Resizable Media Styles */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror .image-resizer {
+  display: inline-flex;
+  position: relative;
+}
+
+.ProseMirror .image-resizer img {
+  margin: 0;
+}
+
+.ProseMirror .image-resizer .resize-trigger {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background-color: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ProseMirror .image-resizer:hover .resize-trigger,
+.ProseMirror .image-resizer.ProseMirror-selectednode .resize-trigger {
+  opacity: 1;
+}
+
+.ProseMirror .image-resizer.ProseMirror-selectednode img {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }

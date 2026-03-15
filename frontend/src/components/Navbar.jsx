@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import OnlineIndicator from './OnlineIndicator';
+import { Search, Menu, X, Sun, Moon, LogOut, User as UserIcon, Users, Pencil, Bell, ChevronDown, AlignLeft } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTerm, getAvatarUrl }) => {
@@ -122,14 +123,29 @@ const Navbar = () => {
 
   const { isDarkMode, toggleTheme } = useTheme();
   const { socket } = useContext(SocketContext) || {};
+  const [currentTime] = useState(() => Date.now());
+
+  let accountAgeText = "";
+  if (user?.createdAt) {
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const diff = Math.max(0, currentTime - new Date(user.createdAt).getTime()); // Time Sync drift ko -1 jaane se rokne ke liye
+    const days = Math.floor(diff / msPerDay);
+    if (days === 0) accountAgeText = "Joined today";
+    else if (days === 1) accountAgeText = "Joined 1 day ago";
+    else if (days < 30) accountAgeText = `Joined ${days} days ago`;
+    else if (days < 365) {
+      const months = Math.floor(days / 30);
+      accountAgeText = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
+    } else {
+      const years = Math.floor(days / 365);
+      accountAgeText = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
+    }
+  }
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/notifications`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/notifications');
       setNotifications(res.data);
       const unread = res.data.filter(n => !n.read).length;
       setUnreadCount(unread);
@@ -162,10 +178,7 @@ const Navbar = () => {
     setUnreadCount(prev => Math.max(0, prev - 1));
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.put(`/api/notifications/${id}/read`, {});
     } catch (err) {
       console.error(err);
       fetchNotifications();
@@ -177,10 +190,7 @@ const Navbar = () => {
     setUnreadCount(0);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/notifications/mark-all-read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.put(`/api/notifications/mark-all-read`, {});
     } catch (err) {
       console.error(err);
       fetchNotifications();
@@ -202,8 +212,7 @@ const Navbar = () => {
       if (searchTerm.trim().length > 0) {
         setIsSearching(true);
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-          const res = await axios.get(`${apiUrl}/api/search?q=${searchTerm}`);
+          const res = await api.get(`/api/search?q=${searchTerm}`);
           setSearchResults(res.data);
           setShowResults(true);
         } catch (err) {
@@ -265,9 +274,7 @@ const Navbar = () => {
             onClick={() => { setMobileSearchOpen(false); setSearchTerm(''); }}
             className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-400"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <X size={24} strokeWidth={2} />
           </button>
           
           <div className="flex-1 relative" ref={mobileSearchRef}>
@@ -298,11 +305,11 @@ const Navbar = () => {
         <div className="sm:hidden relative" ref={menuRef}>
           <button 
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2 p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-md transition-all btn-press w-8 h-8 flex-col justify-center"
+            className="flex items-center justify-center p-1.5 bg-gray-100/50 dark:bg-[#272729]/50 hover:bg-gray-200 dark:hover:bg-[#343536] rounded-xl transition-all active:scale-95 w-9 h-9 text-gray-700 dark:text-gray-300 shadow-sm border border-gray-200/50 dark:border-[#343536]/50 btn-press"
           >
-            <span className={`block w-5 h-[2px] bg-gray-600 dark:bg-gray-300 rounded transition-all origin-center ${menuOpen ? 'rotate-45 translate-y-[5px]' : ''}`}></span>
-            <span className={`block w-5 h-[2px] bg-gray-600 dark:bg-gray-300 rounded transition-all ${menuOpen ? 'opacity-0' : ''}`}></span>
-            <span className={`block w-5 h-[2px] bg-gray-600 dark:bg-gray-300 rounded transition-all origin-center ${menuOpen ? '-rotate-45 -translate-y-[5px]' : ''}`}></span>
+            <div className={`flex items-center justify-center transition-transform duration-300 ${menuOpen ? 'rotate-90' : 'rotate-0'}`}>
+              {menuOpen ? <X size={20} strokeWidth={2.5} /> : <AlignLeft size={20} strokeWidth={2.5} />}
+            </div>
           </button>
 
           {/* Left-aligned Mobile Menu Dropdown */}
@@ -324,7 +331,8 @@ const Navbar = () => {
                     </div>
                     <div>
                       <p className="text-gray-900 dark:text-white font-bold text-sm">u/{user?.username}</p>
-                      <p className="text-green-500 text-xs font-medium">Online</p>
+                      <p className="text-green-500 text-[11px] font-medium mb-0.5">Online</p>
+                      {accountAgeText && <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{accountAgeText}</p>}
                     </div>
                   </div>
 
@@ -333,7 +341,7 @@ const Navbar = () => {
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    <UserIcon size={20} strokeWidth={2} />
                     View Profile
                   </Link>
 
@@ -342,7 +350,7 @@ const Navbar = () => {
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    <Users size={20} strokeWidth={2} />
                     Create Community
                   </Link>
                   
@@ -351,11 +359,7 @@ const Navbar = () => {
                     onClick={() => { toggleTheme(); }}
                     className="flex w-full items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
                   >
-                    {isDarkMode ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    )}
+                    {isDarkMode ? <Sun size={20} strokeWidth={2} /> : <Moon size={20} strokeWidth={2} />}
                     {isDarkMode ? "Light Mode" : "Dark Mode"}
                   </button>
 
@@ -364,7 +368,7 @@ const Navbar = () => {
                       onClick={handleLogout}
                       className="flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-[#272729] hover:text-red-600 dark:hover:text-red-300 transition-all text-sm w-full"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      <LogOut size={20} strokeWidth={2} />
                       Log Out
                     </button>
                   </div>
@@ -382,11 +386,7 @@ const Navbar = () => {
                     onClick={() => { toggleTheme(); }}
                     className="flex w-full items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
                   >
-                    {isDarkMode ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    )}
+                    {isDarkMode ? <Sun size={20} strokeWidth={2} /> : <Moon size={20} strokeWidth={2} />}
                     {isDarkMode ? "Light Mode" : "Dark Mode"}
                   </button>
                 </>
@@ -407,13 +407,7 @@ const Navbar = () => {
       {/* Desktop Search Bar */}
       <div className="hidden sm:block flex-1 max-w-150 mx-4 relative" ref={desktopSearchRef}>
         <div className="bg-gray-100/50 dark:bg-[#272729]/50 backdrop-blur-sm border border-transparent dark:border-[#343536] rounded-md px-4 py-1.5 flex items-center hover:border-gray-300 dark:hover:border-gray-500 transition-all focus-within:border-gray-300 dark:focus-within:border-gray-400 focus-within:bg-white dark:focus-within:bg-[#272729]">
-          <svg className={`w-4 h-4 ${isSearching ? 'text-orange-500 animate-spin' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {isSearching ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            )}
-          </svg>
+          <Search size={16} strokeWidth={2.5} className={isSearching ? 'text-orange-500 animate-pulse' : 'text-gray-400'} />
           <input 
             type="text" 
             placeholder="Search communities, users, posts..." 
@@ -438,9 +432,7 @@ const Navbar = () => {
           onClick={() => setMobileSearchOpen(true)}
           className="sm:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-300 transition-all btn-press"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <Search size={22} strokeWidth={2} />
         </button>
         
         {/* Toggle Theme Button (Desktop Only, hidden on sm) */}
@@ -449,28 +441,20 @@ const Navbar = () => {
           className="hidden sm:block p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-300 transition-all btn-press"
           title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
-          {isDarkMode ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
+          {isDarkMode ? <Sun size={20} strokeWidth={2} /> : <Moon size={20} strokeWidth={2} />}
         </button>
 
         {token ? (
           <>
             {/* Desktop: Create Post (Primary Action) */}
-            <Link to="/create-post" className="hidden lg:flex bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-1.5 rounded-full transition-all shadow-sm hover:shadow-md items-center gap-1.5 btn-press">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            <Link to="/create-post" className="hidden xl:flex bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-1.5 rounded-full transition-all shadow-sm hover:shadow-md items-center gap-1.5 btn-press">
+              <Pencil size={16} strokeWidth={2.5} />
               Create Post
             </Link>
 
             {/* Desktop: Create Community (Secondary Action) */}
-            <Link to="/create-community" className="hidden lg:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-gray-200 dark:border-[#343536] items-center gap-1.5 btn-press">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+            <Link to="/create-community" className="hidden xl:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-gray-200 dark:border-[#343536] items-center gap-1.5 btn-press">
+              <Users size={16} strokeWidth={2.5} />
               Community
             </Link>
 
@@ -478,11 +462,9 @@ const Navbar = () => {
             <div className="relative" ref={desktopNotifRef}>
               <button 
                 onClick={() => setNotifOpen(!notifOpen)}
-                className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all relative btn-press"
+                className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all relative btn-press text-gray-600 dark:text-gray-300"
               >
-                <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+                <Bell size={24} strokeWidth={2} />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 bg-orange-600 text-white text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border-2 border-white dark:border-[#1a1a1b]">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -505,8 +487,9 @@ const Navbar = () => {
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="py-10 text-center text-gray-500 text-sm">
-                         No notifications yet 🍃
+                      <div className="py-10 flex flex-col items-center justify-center gap-2 text-center text-gray-500 text-sm">
+                         <Bell size={24} className="opacity-30" />
+                         <span>No notifications yet</span>
                       </div>
                     ) : (
                       notifications.map(n => (
@@ -554,8 +537,8 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Create Post Icon */}
-            <Link to="/create-post" className="sm:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all text-lg btn-press">
-              <span>✏️</span>
+            <Link to="/create-post" className="sm:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all text-gray-600 dark:text-gray-300 btn-press">
+              <Pencil size={22} strokeWidth={2} />
             </Link>
 
             {/* Desktop: Modern Profile Pill */}
@@ -579,20 +562,18 @@ const Navbar = () => {
                   <span className="text-[12px] font-bold text-gray-900 dark:text-white">u/{user?.username}</span>
                 </div>
                 {/* Dropdown Chevron */}
-                <svg className="w-3 h-3 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown size={14} strokeWidth={2.5} className="text-gray-400 ml-1" />
               </div>
 
               {/* Hover Dropdown for Profile & Logout */}
               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#1a1a1b] border border-gray-100 dark:border-[#343536] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden animate-fade-up">
                 <Link to={`/u/${user?.username}`} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <UserIcon size={16} strokeWidth={2} />
                   My Profile
                 </Link>
                 <div className="h-px bg-gray-100 dark:bg-[#343536]"></div>
                 <button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-medium transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  <LogOut size={16} strokeWidth={2} />
                   Log Out
                 </button>
               </div>

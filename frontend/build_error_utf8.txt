@@ -1,0 +1,119 @@
+﻿
+> frontend@0.0.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 2172 modules transformed.
+node.exe : 
+[31mΓ£ù[39m Build 
+failed in 2.53s
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\sahil\AppData
+\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([31mΓ£ù[39m   
+  Build failed in 2    
+.53s:String) [], R    
+emoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+[31merror during 
+build:
+[31msrc/components/Tip
+TapEditor.jsx (9:7): 
+"default" is not 
+exported by "node_modul
+es/@tiptap/extension-ta
+ble/dist/index.js", 
+imported by "src/compon
+ents/TipTapEditor.jsx".
+[31m
+file: [36mE:/Vartalap/
+frontend/src/components
+/TipTapEditor.jsx:9:7[
+31m
+[33m
+ 7: import Image from '
+@tiptap/extension-image
+';
+ 8: import Youtube 
+from '@tiptap/extension
+-youtube';
+ 9: import Table from '
+@tiptap/extension-table
+';
+           ^
+10: import TableRow 
+from '@tiptap/extension
+-table-row';
+11: import TableCell 
+from '@tiptap/extension
+-table-cell';
+[31m
+    at getRollupError (
+file:///E:/Vartalap/fro
+ntend/node_modules/roll
+up/dist/es/shared/parse
+Ast.js:402:41)
+    at error (file:///E
+:/Vartalap/frontend/nod
+e_modules/rollup/dist/e
+s/shared/parseAst.js:39
+8:42)
+    at Module.error (fi
+le:///E:/Vartalap/front
+end/node_modules/rollup
+/dist/es/shared/node-en
+try.js:17040:16)
+    at 
+Module.traceVariable (f
+ile:///E:/Vartalap/fron
+tend/node_modules/rollu
+p/dist/es/shared/node-e
+ntry.js:17452:29)
+    at ModuleScope.find
+Variable (file:///E:/Va
+rtalap/frontend/node_mo
+dules/rollup/dist/es/sh
+ared/node-entry.js:1507
+0:39)
+    at ReturnValueScope
+.findVariable (file:///
+E:/Vartalap/frontend/no
+de_modules/rollup/dist/
+es/shared/node-entry.js
+:5673:38)
+    at FunctionBodyScop
+e.findVariable (file://
+/E:/Vartalap/frontend/n
+ode_modules/rollup/dist
+/es/shared/node-entry.j
+s:5673:38)
+    at 
+MemberExpression.bind (
+file:///E:/Vartalap/fro
+ntend/node_modules/roll
+up/dist/es/shared/node-
+entry.js:7392:49)
+    at 
+CallExpression.bind (fi
+le:///E:/Vartalap/front
+end/node_modules/rollup
+/dist/es/shared/node-en
+try.js:2829:23)
+    at 
+CallExpression.bind (fi
+le:///E:/Vartalap/front
+end/node_modules/rollup
+/dist/es/shared/node-en
+try.js:12179:15)[39m

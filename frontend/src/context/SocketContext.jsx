@@ -10,17 +10,25 @@ export const SocketProvider = ({ children }) => {
     const [onlineUsers, setOnlineUsers] = useState(new Set());
 
     useEffect(() => {
-        const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-        // Token should be read fresh or passed as a dependency if strictly managed
         const currentToken = localStorage.getItem('token');
+        if (!currentToken) return; // Don't even try to connect if not logged in
+
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+        
         const newSocket = io(socketUrl, {
-            auth: { token: currentToken || undefined }
+            auth: { token: currentToken },
+            withCredentials: true // For cookie support
         });
         
-        // FIX: The linter warns about synchronous setState in useEffect, 
-        // but for setting up a Socket on mount, this is the correct pattern.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSocket(newSocket);
+
+        newSocket.on('connect_error', (err) => {
+            console.error("Socket Connection Error:", err.message);
+            // If it's an auth error, it might be due to expired token
+            if (err.message.includes("Authentication error")) {
+                setSocket(null);
+            }
+        });
 
         newSocket.on('online_users_list', (users) => {
             setOnlineUsers(new Set(users));
@@ -38,15 +46,10 @@ export const SocketProvider = ({ children }) => {
             });
         });
 
-        return () => newSocket.close();
-    }, [
-        // Re-run this effect if the token changes (e.g. login/logout)
-        // Note: Since we are reading from localStorage directly, 
-        // this might strictly require a trigger or context value to be perfect, 
-        // but adding it logically helps if the component re-mounts or props change.
-        // Ideally, pass 'token' into SocketProvider from AuthContext.
-        localStorage.getItem('token') 
-    ]);
+        return () => {
+            newSocket.close();
+        };
+    }, [localStorage.getItem('token')]);
 
     // Effect to join personal room when socket and user ID are available
     useEffect(() => {

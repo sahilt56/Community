@@ -29,6 +29,11 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
 
     const savedCommunity = await newCommunity.save();
     
+    // 🚀 Signal frontend to update 'Your Communities' list
+    if (req.io) {
+      req.io.to(req.user.id).emit('user_communities_updated');
+    }
+
     res.status(201).json({
       message: "Community created successfully!",
       community: savedCommunity
@@ -43,7 +48,7 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { sort } = req.query;
-    let communities = await Community.find();
+    let communities = await Community.find().populate('creator', 'username profilePic');
 
     if (sort === 'popular') {
       // Sort by member count descending
@@ -56,6 +61,18 @@ router.get('/', async (req, res) => {
     res.json(communities);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// GET JOINED COMMUNITIES FOR CURRENT USER
+router.get('/joined', verifyToken, async (req, res) => {
+  try {
+    const joinedCommunities = await Community.find({ members: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(joinedCommunities);
+  } catch (err) {
+    console.error("Error fetching joined communities:", err);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -140,7 +157,7 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
       const deleteOldFile = async (oldUrl) => {
         if (!oldUrl) return;
         if (oldUrl.startsWith('http')) {
-          await deleteFromCloudinary(oldUrl);
+          if (typeof deleteFromCloudinary === 'function') await deleteFromCloudinary(oldUrl);
         } else {
           const filename = oldUrl.split('/').pop();
           const filePath = path.join(__dirname, '../uploads', filename);
@@ -153,12 +170,14 @@ router.put('/:id/update', verifyToken, upload.fields([{ name: 'profilePic', maxC
       if (req.files['profilePic'] && req.files['profilePic'][0]) {
         await deleteOldFile(community.profilePic);
         const file = req.files['profilePic'][0];
-        community.profilePic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
+        const fileUrl = file.path || file.secure_url || "";
+        community.profilePic = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
       }
       if (req.files['bannerPic'] && req.files['bannerPic'][0]) {
         await deleteOldFile(community.bannerPic);
         const file = req.files['bannerPic'][0];
-        community.bannerPic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
+        const fileUrl = file.path || file.secure_url || "";
+        community.bannerPic = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
       }
     }
 
@@ -206,7 +225,7 @@ router.delete('/:id/remove-image', verifyToken, async (req, res) => {
       const path = require('path');
 
       if (oldUrl.startsWith('http')) {
-        await deleteFromCloudinary(oldUrl);
+        if (typeof deleteFromCloudinary === 'function') await deleteFromCloudinary(oldUrl);
       } else {
         const filename = oldUrl.split('/').pop();
         const filePath = path.join(__dirname, '../uploads', filename);
@@ -244,7 +263,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     const deleteOldFile = async (oldUrl) => {
       if (!oldUrl) return;
       if (oldUrl.startsWith('http')) {
-        await deleteFromCloudinary(oldUrl);
+        if (typeof deleteFromCloudinary === 'function') await deleteFromCloudinary(oldUrl);
       } else {
         const filename = oldUrl.split('/').pop();
         const filePath = path.join(__dirname, '../uploads', filename);
@@ -318,6 +337,11 @@ router.post('/:id/join', verifyToken, async (req, res) => {
     community.members.push(userId);
     await community.save();
 
+    // 🚀 Signal frontend to update 'Your Communities' list
+    if (req.io) {
+      req.io.to(userId).emit('user_communities_updated');
+    }
+
     res.status(200).json({ message: "Successfully joined the community!", community });
   } catch (err) {
     res.status(500).json({ error: 'An error occurred. Please try again.' });
@@ -336,6 +360,11 @@ router.post('/:id/leave', verifyToken, async (req, res) => {
     if (community.members.includes(userId)) {
       community.members.pull(userId);
       await community.save();
+    }
+
+    // 🚀 Signal frontend to update 'Your Communities' list
+    if (req.io) {
+      req.io.to(userId).emit('user_communities_updated');
     }
 
     res.status(200).json({ message: "Left the community.", community });

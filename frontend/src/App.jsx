@@ -10,6 +10,7 @@ import CreatePostPage from './pages/CreatePostPage';
 import Explore from './pages/Explore';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
+import MobileBottomNav from './components/MobileBottomNav';
 import { SocketProvider } from './context/SocketContext';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
@@ -29,11 +30,11 @@ function App() {
           }}
         />
         <Navbar />
-        <div className="flex-1 overflow-hidden w-full max-w-400 mx-auto px-4 lg:px-8 flex justify-between gap-6 mt-4 items-start">
+        <div className="flex-1 overflow-hidden w-full max-w-400 mx-auto px-4 xl:px-8 flex justify-center gap-6 mt-4 items-start">
           <LeftSidebar />
           
           {/* Main Content Area */}
-          <div className="flex-1 max-w-225 min-w-0 h-full overflow-y-auto no-scrollbar pb-10">
+          <div className="flex-1 max-w-225 min-w-0 h-full overflow-y-auto no-scrollbar pb-24 xl:pb-10 w-full mx-auto">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -48,6 +49,8 @@ function App() {
 
           <RightSidebar />
         </div>
+        
+        <MobileBottomNav />
       </div>
       </SocketProvider>
     </ThemeProvider>

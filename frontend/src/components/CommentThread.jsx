@@ -1,5 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import TipTapEditor from './TipTapEditor';
+import api from '../api';
+import toast from 'react-hot-toast';
+import { ArrowUp, ArrowDown, MessageCircle, Share, Pencil, Trash2 } from 'lucide-react';
+
+const sanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
+    iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+  },
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+};
 
 const CommentThread = ({ 
   comment, 
@@ -16,18 +34,61 @@ const CommentThread = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
 
-  const handleReplySubmit = () => {
+  const handleReplySubmit = async () => {
     if (!replyText.trim()) return;
-    onReply(comment._id, replyText);
+    
+    let finalContent = replyText;
+    const filesToUpload = pendingEditorFiles.filter(item => finalContent.includes(item.url));
+    if (filesToUpload.length > 0) {
+      const loadingId = toast.loading('Uploading media inside reply... ⏳');
+      try {
+        for (const item of filesToUpload) {
+          const fd = new FormData();
+          fd.append('media', item.file);
+          const res = await api.post('/api/upload', fd);
+          const realUrl = res.data.url.startsWith('http') ? res.data.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${res.data.url}`;
+          finalContent = finalContent.split(item.url).join(realUrl);
+        }
+        toast.success('Media embedded successfully! 🎉', { id: loadingId });
+      } catch (err) {
+        toast.error("Failed to upload media. ❌", { id: loadingId });
+        return;
+      }
+    }
+
+    onReply(comment._id, finalContent);
     setReplyText('');
     setShowReplyForm(false);
+    setPendingEditorFiles([]);
   };
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async () => {
     if (!editText.trim()) return;
-    onEdit(comment._id, editText);
+
+    let finalContent = editText;
+    const filesToUpload = pendingEditorFiles.filter(item => finalContent.includes(item.url));
+    if (filesToUpload.length > 0) {
+      const loadingId = toast.loading('Uploading media inside edit... ⏳');
+      try {
+        for (const item of filesToUpload) {
+          const fd = new FormData();
+          fd.append('media', item.file);
+          const res = await api.post('/api/upload', fd);
+          const realUrl = res.data.url.startsWith('http') ? res.data.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${res.data.url}`;
+          finalContent = finalContent.split(item.url).join(realUrl);
+        }
+        toast.success('Media embedded successfully! 🎉', { id: loadingId });
+      } catch (err) {
+        toast.error("Failed to upload media. ❌", { id: loadingId });
+        return;
+      }
+    }
+
+    onEdit(comment._id, finalContent);
     setIsEditing(false);
+    setPendingEditorFiles([]);
   };
 
   const isNested = depth > 0;
@@ -82,11 +143,16 @@ const CommentThread = ({
         {/* Comment Text / Edit Form */}
         {isEditing ? (
           <div className="mt-2">
-            <textarea 
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="w-full bg-white dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] p-2 rounded h-20 outline-none focus:border-blue-500 dark:focus:border-gray-500 resize-none mb-2 text-sm transition-colors"
-            />
+            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[8rem] h-auto resize-y mb-2">
+               <TipTapEditor
+                 value={editText}
+                 onChange={setEditText}
+                 onPendingFile={(file, url) => setPendingEditorFiles(prev => [...prev, { file, url }])}
+                 placeholder="Edit your comment..."
+                 minHeight="100%"
+                 variant="comment"
+               />
+            </div>
             <div className="flex justify-end gap-2">
               <button 
                 onClick={() => setIsEditing(false)}
@@ -103,9 +169,15 @@ const CommentThread = ({
             </div>
           </div>
         ) : (
-          <p className={`text-gray-800 dark:text-gray-200 text-sm mb-2 ${isDeleted ? 'italic text-gray-500' : ''}`}>
-            {comment.text}
-          </p>
+          <div className={`text-gray-800 dark:text-gray-200 text-sm mb-2 prose prose-sm dark:prose-invert max-w-none ${isDeleted ? 'italic text-gray-500' : ''}`}>
+            {isDeleted ? (
+               <p>[deleted]</p>
+            ) : (
+               <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
+                 {comment.text || ''}
+               </ReactMarkdown>
+            )}
+          </div>
         )}
         
         {/* Actions bar */}
@@ -115,42 +187,42 @@ const CommentThread = ({
             <div className="flex items-center bg-gray-200 dark:bg-[#272729] rounded-full overflow-hidden transition-colors">
                <button 
                  onClick={() => onVote(comment._id, 'upvote')}
-                 className={`p-1.5 transition-all ${hasUpvoted ? 'text-orange-600 dark:text-orange-500 bg-orange-500/10' : 'hover:bg-gray-300 dark:hover:bg-[#343536]'}`}
+                 className={`py-1.5 px-2 transition-all ${hasUpvoted ? 'text-orange-600 dark:text-orange-500 bg-orange-500/10' : 'hover:bg-gray-300 dark:hover:bg-[#343536]'}`}
                >
-                  ⬆️
+                  <ArrowUp size={16} strokeWidth={hasUpvoted ? 3 : 2} />
                </button>
                <span className={`px-1 ${hasUpvoted ? 'text-orange-600 dark:text-orange-500' : hasDownvoted ? 'text-blue-600 dark:text-blue-500' : 'text-gray-900 dark:text-white'}`}>
                  {netVotes}
                </span>
                <button 
                  onClick={() => onVote(comment._id, 'downvote')}
-                 className={`p-1.5 transition-all ${hasDownvoted ? 'text-blue-600 dark:text-blue-500 bg-blue-500/10' : 'hover:bg-gray-300 dark:hover:bg-[#343536]'}`}
+                 className={`py-1.5 px-2 transition-all ${hasDownvoted ? 'text-blue-600 dark:text-blue-500 bg-blue-500/10' : 'hover:bg-gray-300 dark:hover:bg-[#343536]'}`}
                >
-                  ⬇️
+                  <ArrowDown size={16} strokeWidth={hasDownvoted ? 3 : 2} />
                </button>
             </div>
 
             <button 
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1"
+              className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1.5"
             >
-              <span>💬 Reply</span>
+              <MessageCircle size={14} /> <span>Reply</span>
             </button>
 
             <button 
               onClick={() => onShare(comment._id)}
-              className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1"
+              className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1.5"
             >
-              <span>🔗 Share</span>
+              <Share size={14} /> <span>Share</span>
             </button>
 
             {/* Author specific actions */}
             {isAuthor && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1"
+                className="hover:bg-gray-200 dark:hover:bg-[#272729] px-2 py-1.5 rounded transition-colors flex items-center gap-1.5"
               >
-                <span>✏️ Edit</span>
+                <Pencil size={14} /> <span>Edit</span>
               </button>
             )}
 
@@ -162,9 +234,9 @@ const CommentThread = ({
                   onDelete(comment._id);
                 }
               }}
-              className="hover:text-red-500 px-2 py-1.5 rounded transition-colors flex items-center gap-1 ml-auto"
+              className="hover:text-red-500 px-2 py-1.5 rounded transition-colors flex items-center gap-1.5 ml-auto"
             >
-              <span>🗑️ Delete</span>
+              <Trash2 size={14} /> <span>Delete</span>
             </button>
           </div>
         )}
@@ -172,12 +244,16 @@ const CommentThread = ({
         {/* Inline Reply Form */}
         {showReplyForm && (
           <div className="mt-3">
-            <textarea 
-              placeholder="What are your thoughts?" 
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              className="w-full bg-white dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] p-2 rounded h-16 outline-none focus:border-blue-500 dark:focus:border-gray-500 resize-none mb-2 text-sm transition-colors"
-            />
+            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[8rem] h-auto resize-y mb-2">
+               <TipTapEditor
+                 value={replyText}
+                 onChange={setReplyText}
+                 onPendingFile={(file, url) => setPendingEditorFiles(prev => [...prev, { file, url }])}
+                 placeholder="What are your thoughts?"
+                 minHeight="100%"
+                 variant="comment"
+               />
+            </div>
             <div className="flex justify-end gap-2">
               <button 
                 onClick={() => setShowReplyForm(false)}

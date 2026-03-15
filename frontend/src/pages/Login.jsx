@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
+import { UserPlus } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Login = () => {
@@ -48,8 +49,7 @@ const Login = () => {
 
         setIsCheckingUsername(true);
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-          const res = await axios.get(`${apiUrl}/api/auth/check-username/${username}`);
+          const res = await api.get(`/api/auth/check-username/${username}`);
           setUsernameStatus(res.data);
         } catch (err) {
           console.error("Error checking username:", err);
@@ -78,8 +78,7 @@ const Login = () => {
 
     setSendingOtp(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/auth/send-otp`, { email, username });
+      await api.post('/api/auth/send-otp', { email, username });
       setOtpSent(true);
       toast.success("OTP sent to your email!");
     } catch (err) {
@@ -101,8 +100,7 @@ const Login = () => {
     const payload = isLogin ? { email, password } : { username, email, password, otp };
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.post(`${apiUrl}${endpoint}`, payload);
+      const res = await api.post(endpoint, payload);
       
       toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
@@ -119,8 +117,7 @@ const Login = () => {
       const currentToken = token || googleAccessToken;
       if (!currentToken) return;
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.post(`${apiUrl}/api/auth/google`, {
+      const res = await api.post('/api/auth/google', {
         access_token: currentToken,
         username: providedUsername
       });
@@ -155,7 +152,9 @@ const Login = () => {
         
         {showPrompt ? (
           <div className="animate-fade-in">
-            <div className="text-5xl mb-4">👤</div>
+            <div className="flex justify-center mb-5">
+              <div className="w-16 h-16 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-full flex items-center justify-center shadow-sm border border-orange-100 dark:border-orange-500/20"><UserPlus size={32} strokeWidth={2.5} /></div>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Almost There!</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Choose a unique username for your Vartalap account.</p>
             

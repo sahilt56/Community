@@ -11,7 +11,10 @@ const CommentSchema = new mongoose.Schema({
   
   // Yeh jaadu wali line hai! Agar koi directly post pe comment karega toh yeh null hoga. 
   // Lekin agar koi kisi aur ke comment ka "Reply" dega, toh yahan us original comment ki ID aayegi.
-  parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null }
+  parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
+  
+  // 🏆 Anubhav Bounty Winner check
+  isAccepted: { type: Boolean, default: false }
   
 }, { timestamps: true });
 

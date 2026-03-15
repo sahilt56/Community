@@ -123,7 +123,7 @@ router.post('/google', async (req, res) => {
 
     res.status(200).json({
       message: "Google Login successful!",
-      user: { id: user._id, username: user.username, profilePic: user.profilePic || null }
+      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0 }
     });
 
   } catch (err) {
@@ -274,7 +274,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ 
       message: "User registered successfully!",
-      user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null } 
+      user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null, anubhav: savedUser.anubhav || 0 } 
     });
 
   } catch (err) {
@@ -312,7 +312,7 @@ router.post('/login', async (req, res) => {
     // 4. Success response
     res.status(200).json({
       message: "Login successful!",
-      user: { id: user._id, username: user.username, profilePic: user.profilePic || null }
+      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0 }
     });
 
   } catch (err) {

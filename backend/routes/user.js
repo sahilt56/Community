@@ -130,7 +130,7 @@ router.put('/:username/update', verifyToken, upload.fields([
       
       if (oldUrl.startsWith('http')) {
         // Cloudinary deletion
-        await deleteFromCloudinary(oldUrl);
+        if (typeof deleteFromCloudinary === 'function') await deleteFromCloudinary(oldUrl);
       } else {
         // Local Disk storage cleanup
         const filename = oldUrl.split('/').pop();
@@ -143,19 +143,21 @@ router.put('/:username/update', verifyToken, upload.fields([
     };
 
     // Handle profile image upload
-    if (req.files['profilePic']) {
+    if (req.files && req.files['profilePic']) {
       // Delete old profile pic before saving new one
       await deleteOldFile(user.profilePic);
       const file = req.files['profilePic'][0];
-      user.profilePic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
+      const fileUrl = file.path || file.secure_url || "";
+      user.profilePic = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
     }
 
     // Handle banner image upload
-    if (req.files['bannerPic']) {
+    if (req.files && req.files['bannerPic']) {
       // Delete old banner pic before saving new one
       await deleteOldFile(user.bannerPic);
       const file = req.files['bannerPic'][0];
-      user.bannerPic = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
+      const fileUrl = file.path || file.secure_url || "";
+      user.bannerPic = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
     }
 
     // Handle description update
@@ -201,7 +203,7 @@ router.delete('/:username/remove-image', verifyToken, async (req, res) => {
     const oldUrl = user[type];
     if (oldUrl) {
       if (oldUrl.startsWith('http')) {
-        await deleteFromCloudinary(oldUrl);
+        if (typeof deleteFromCloudinary === 'function') await deleteFromCloudinary(oldUrl);
       } else {
         const filename = oldUrl.split('/').pop();
         const filePath = path.join(__dirname, '../uploads', filename);

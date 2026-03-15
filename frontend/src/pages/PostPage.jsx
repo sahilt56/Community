@@ -1,27 +1,42 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
 import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import TipTapEditor from '../components/TipTapEditor';
+import { Scale, Trophy, ExternalLink, ArrowUp, ArrowDown, MessageCircle, Share, Bookmark, BookmarkCheck, Trash2, ThumbsUp, ThumbsDown, ArrowLeft, Flag, AlertTriangle } from 'lucide-react';
+
+const sanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
+    iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+  },
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+};
 
 const PostPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [stance, setStance] = useState('neutral'); // ⚖️ For Debate Mode
+  const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
   const { socket } = useContext(SocketContext);
   
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   const fetchSinglePost = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/posts/${id}`);
+      const res = await api.get(`/api/posts/${id}`);
       setPost(res.data);
     } catch (err) {
       console.error("Error fetching post", err);
@@ -49,7 +64,6 @@ const PostPage = () => {
     };
   }, [socket, id]);
 
-  // Comment bhejne ka function (Top level ya in-line reply dono ke liye)
   const handleCommentSubmit = async (parentId = null, text = commentText) => {
     if (!text.trim()) return;
     if (!currentUser) {
@@ -57,15 +71,37 @@ const PostPage = () => {
       return;
     }
 
+    let finalContent = text;
+    // We only process pending files for root comments since inline replies handle their own
+    if (!parentId) {
+      const filesToUpload = pendingEditorFiles.filter(item => finalContent.includes(item.url));
+      if (filesToUpload.length > 0) {
+        const loadingId = toast.loading('Uploading media inside comment... ⏳');
+        try {
+          for (const item of filesToUpload) {
+            const fd = new FormData();
+            fd.append('media', item.file);
+            const res = await api.post('/api/upload', fd);
+            const realUrl = res.data.url.startsWith('http') ? res.data.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${res.data.url}`;
+            finalContent = finalContent.split(item.url).join(realUrl);
+          }
+          toast.success('Media embedded successfully! 🎉', { id: loadingId });
+        } catch (err) {
+          console.error("Upload error", err);
+          toast.error("Failed to upload media. ❌", { id: loadingId });
+          return;
+        }
+      }
+    }
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(
-        `${apiUrl}/api/posts/${id}/comment`, 
-        { text: text, parentId: parentId }, // Send parentId to backend
-        { withCredentials: true }
-      );
+      await api.post(`/api/posts/${id}/comment`, { 
+        text: finalContent, parentId: parentId, stance: parentId ? 'neutral' : stance 
+      });
       if (!parentId) {
         setCommentText(''); // Sirf main dabba khali karo agar root comment hai
+        setStance('neutral'); // Stance reset karo
+        setPendingEditorFiles([]);
       }
       fetchSinglePost();  // Post ko refresh karo taaki naya comment dikhe
     } catch (err) {
@@ -115,8 +151,7 @@ const PostPage = () => {
     // Toggle-off supported by backend logic
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${id}/upvote`, {}, { withCredentials: true });
+      const res = await api.put(`/api/posts/${id}/upvote`);
       // Targeted update to preserve populated data and avoid duplication
       setPost(prev => ({ ...prev, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes }));
     } catch (err) {
@@ -132,8 +167,7 @@ const PostPage = () => {
     // Toggle-off supported by backend logic
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${id}/downvote`, {}, { withCredentials: true });
+      const res = await api.put(`/api/posts/${id}/downvote`);
       // Targeted update to preserve populated data and avoid duplication
       setPost(prev => ({ ...prev, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes }));
     } catch (err) {
@@ -144,11 +178,7 @@ const PostPage = () => {
   const handleCommentEdit = async (commentId, newText) => {
     if (!currentUser) return;
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/comment/${commentId}`, 
-        { text: newText }, 
-        { withCredentials: true }
-      );
+      await api.put(`/api/posts/${id}/comment/${commentId}`, { text: newText });
       toast.success("Comment updated! ✨");
       fetchSinglePost();
     } catch (err) {
@@ -160,8 +190,7 @@ const PostPage = () => {
   const handleCommentDelete = async (commentId) => {
     if (!currentUser) return;
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${id}/comment/${commentId}`, { withCredentials: true });
+      await api.delete(`/api/posts/${id}/comment/${commentId}`);
       toast.success("Comment deleted! 🗑️");
       fetchSinglePost();
     } catch (err) {
@@ -176,8 +205,7 @@ const PostPage = () => {
       return;
     }
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/comment/${commentId}/${type}`, {}, { withCredentials: true });
+      await api.put(`/api/posts/${id}/comment/${commentId}/${type}`);
       fetchSinglePost();
     } catch (err) {
       console.error("Comment voting error:", err);
@@ -190,8 +218,7 @@ const PostPage = () => {
       return;
     }
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${id}/save`, {}, { withCredentials: true });
+      const res = await api.put(`/api/posts/${id}/save`);
       toast.success(res.data.message);
       fetchSinglePost();
     } catch (err) {
@@ -203,8 +230,7 @@ const PostPage = () => {
   const handleHide = async () => {
     if (!currentUser) return toast.error("Log in to hide posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/posts/${id}/hide`, {}, { withCredentials: true });
+      await api.put(`/api/posts/${id}/hide`);
       toast.success("Post Hidden! 🚫");
       navigate('/');
     } catch (err) {
@@ -216,7 +242,7 @@ const PostPage = () => {
     if (!currentUser) return toast.error("Log in to report posts!");
     toast((t) => (
       <div className="flex flex-col gap-3 p-1">
-        <p className="font-bold text-orange-600">🚩 Report This Post</p>
+        <p className="font-bold text-orange-600 flex items-center gap-2"><Flag size={16} /> Report This Post</p>
         <p className="text-xs text-gray-500">Select a reason:</p>
         <div className="flex flex-col gap-1">
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
@@ -236,11 +262,7 @@ const PostPage = () => {
 
   const submitReport = async (reason) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/reports`, 
-        { targetType: 'post', targetId: id, reason },
-      { withCredentials: true }
-      );
+      await api.post(`/api/reports`, { targetType: 'post', targetId: id, reason });
       toast.success('Report submitted! Our team will review it. 🛡️');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit report.');
@@ -254,6 +276,16 @@ const PostPage = () => {
     }).catch(err => {
       console.error("Share error:", err);
     });
+  };
+
+  const handleAcceptBounty = async (commentId) => {
+    try {
+      await api.put(`/api/posts/${id}/comment/${commentId}/accept-bounty`);
+      toast.success("Bounty awarded! 🏆");
+      fetchSinglePost();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to award bounty");
+    }
   };
 
   if (!post) return <div className="mt-10"><SkeletonLoader /></div>;
@@ -274,7 +306,7 @@ const PostPage = () => {
   const handleDeletePost = () => {
     toast((t) => (
       <div>
-        <p className="mb-2">Are you sure you want to delete this post? 🗑️</p>
+        <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
            <button 
              onClick={() => { toast.dismiss(t.id); executeDeletePost(); }} 
@@ -295,9 +327,8 @@ const PostPage = () => {
 
   const executeDeletePost = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${post._id}`, { withCredentials: true });
-      toast.success("Post deleted! 💨");
+      await api.delete(`/api/posts/${post._id}`);
+      toast.success("Post deleted!");
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || "Error deleting post");
@@ -306,8 +337,8 @@ const PostPage = () => {
 
   return (
     <div className="mt-6 pb-10">
-      <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-4 text-sm flex items-center gap-1 transition-colors">
-        ← Back to Feed
+      <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-4 text-sm flex items-center gap-1.5 transition-colors">
+        <ArrowLeft size={16} /> Back to Feed
       </button>
 
       <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-6 rounded-md shadow-sm transition-colors overflow-visible relative">
@@ -326,11 +357,24 @@ const PostPage = () => {
           />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{post.title}</h1>
+      {/* ⚖️ Debate Badge */}
+      {post.postType === 'debate' && (
+        <div className="mb-4 inline-flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-red-500 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm">
+          <Scale size={14} /> Live Debate
+        </div>
+      )}
+      
+      {/* 🏆 Bounty Badge */}
+      {post.bountyAmount > 0 && (
+        <div className={`mb-4 ml-2 inline-flex items-center gap-1.5 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm ${post.bountyResolved ? 'bg-gray-500' : 'bg-gradient-to-r from-yellow-500 to-orange-500'}`}>
+          <Trophy size={14} /> {post.bountyAmount} Anubhav Bounty {post.bountyResolved ? '(Resolved)' : ''}
+        </div>
+      )}
         {post.postType === 'link' && post.link && (
           <div className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] p-4 rounded-md mb-4 flex items-center justify-between group hover:border-gray-400 dark:hover:border-gray-500 transition-all">
             <div className="flex flex-col gap-1 overflow-hidden">
               <span className="text-blue-600 dark:text-blue-400 text-sm font-bold truncate">{post.link}</span>
-              <span className="text-gray-500 tracking-wide text-xs">External Link 🔗</span>
+              <span className="text-gray-500 tracking-wide text-xs flex items-center gap-1">External Link <ExternalLink size={12} /></span>
             </div>
             <a 
               href={post.link.startsWith('http') ? post.link : `https://${post.link}`} 
@@ -338,7 +382,7 @@ const PostPage = () => {
               rel="noopener noreferrer"
               className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-2"
             >
-              Open ↗️
+              Open <ExternalLink size={14} />
             </a>
           </div>
         )}
@@ -365,7 +409,7 @@ const PostPage = () => {
           </div>
         )}
         <div className="text-gray-800 dark:text-gray-300 text-base leading-relaxed whitespace-pre-wrap mb-4">
-          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+          <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
             {post.content || ''}
           </ReactMarkdown>
         </div>
@@ -381,7 +425,7 @@ const PostPage = () => {
                   hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                 }`}
               >
-                 <span className="text-base">⬆️</span>
+                 <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
                  <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
               </div>
               
@@ -394,23 +438,23 @@ const PostPage = () => {
                   hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                 }`}
               >
-                 <span className="text-base">⬇️</span>
+                 <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
                  <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
               </div>
             </div>
 
            {/* Comments Count Indicator */}
            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full transition-colors">
-              <span>💬</span>
-              <span className="text-[11px] sm:text-xs">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
+              <MessageCircle size={14} />
+              <span className="text-[11px] sm:text-xs pt-0.5">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
            </div>
 
             <div 
               onClick={() => handleShare()}
               className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-[#343536] cursor-pointer transition-all"
             >
-               <span>🔗</span>
-               <span className="text-[11px] sm:text-xs">Share</span>
+               <Share size={14} />
+               <span className="text-[11px] sm:text-xs pt-0.5">Share</span>
             </div>
 
             {/* Save Button */}
@@ -420,8 +464,8 @@ const PostPage = () => {
                 post.savedBy?.includes(currentUser?.id) ? 'bg-yellow-50 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-500/50' : 'bg-gray-100 dark:bg-[#272729] text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#343536]'
               }`}
             >
-               <span>{post.savedBy?.includes(currentUser?.id) ? '🔖' : '📑'}</span>
-               <span className="text-[11px] sm:text-xs">{post.savedBy?.includes(currentUser?.id) ? 'Saved' : 'Save'}</span>
+               {post.savedBy?.includes(currentUser?.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+               <span className="text-[11px] sm:text-xs pt-0.5">{post.savedBy?.includes(currentUser?.id) ? 'Saved' : 'Save'}</span>
             </div>
 
             {/* Delete Button (Author/Mod only) */}
@@ -430,8 +474,8 @@ const PostPage = () => {
                 onClick={handleDeletePost}
                 className="flex items-center gap-1.5 bg-red-600/10 text-red-500 border border-red-500 px-3 py-1.5 rounded-full hover:bg-red-500 hover:text-white cursor-pointer transition-all ml-auto"
               >
-                <span>🗑️</span>
-                <span className="text-[11px] sm:text-xs">Delete</span>
+                <Trash2 size={14} />
+                <span className="text-[11px] sm:text-xs pt-0.5">Delete</span>
               </div>
             )}
         </div>
@@ -442,12 +486,31 @@ const PostPage = () => {
         <p className="text-gray-800 dark:text-white mb-2 text-sm font-bold">
           Comment as <span className="text-blue-600 dark:text-cyan-400">u/{currentUser?.username || 'Anonymous'}</span>
         </p>
-        <textarea 
-          placeholder="What are your thoughts?" 
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          className="w-full bg-gray-50 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-200 dark:border-[#343536] p-3 rounded h-24 outline-none focus:border-blue-500 dark:focus:border-gray-500 resize-none mb-2 transition-colors"
-        />
+      {/* ⚖️ Debate Mode Stance Selector */}
+      {post.postType === 'debate' && (
+        <div className="flex gap-3 mb-3">
+          <button 
+            onClick={() => setStance('agree')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'agree' ? 'bg-green-500 border-green-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-green-500 hover:text-green-500'}`}
+          ><ThumbsUp size={14} /> I Agree</button>
+          <button 
+            onClick={() => setStance('disagree')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'disagree' ? 'bg-red-500 border-red-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-red-500 hover:text-red-500'}`}
+          ><ThumbsDown size={14} /> I Disagree</button>
+        </div>
+      )}
+        <div className="mb-3">
+          <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[6rem] sm:min-h-[8rem] h-auto resize-none sm:resize-y flex flex-col">
+            <TipTapEditor
+              value={commentText}
+              onChange={setCommentText}
+              onPendingFile={(file, url) => setPendingEditorFiles(prev => [...prev, { file, url }])}
+              placeholder="What are your thoughts? (Markdown supported ✨)"
+              minHeight="100%"
+              variant="comment"
+            />
+          </div>
+        </div>
         <div className="flex justify-end">
           <button 
             onClick={() => handleCommentSubmit(null, commentText)}
@@ -458,25 +521,52 @@ const PostPage = () => {
         </div>
       </div>
 
-      {/* Comments Dikhane ka Section (Tree Format) */}
-      <div className="mt-6 flex flex-col gap-2">
-        {rootComments && rootComments.length > 0 ? (
-          rootComments.map((rootComment) => (
-            <CommentThread 
-              key={rootComment._id} 
-              comment={rootComment} 
-              onReply={handleCommentSubmit}
-              onVote={handleCommentVote}
-              onShare={handleShare}
-              onEdit={handleCommentEdit}
-              onDelete={handleCommentDelete}
-              currentUser={currentUser}
-            />
-          ))
-        ) : (
-          <p className="text-gray-500 text-center mt-4">No comments yet. Be the first to share your thoughts!</p>
-        )}
-      </div>
+      {/* ⚖️ Comments Display Section */}
+      {post.postType === 'debate' ? (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* Agree Column */}
+          <div className="border-t-[4px] border-green-500 pt-4 bg-gradient-to-b from-green-50 to-transparent dark:from-green-900/10 rounded-b-lg">
+            <h3 className="text-green-600 dark:text-green-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsUp size={18} strokeWidth={2.5} /> For / Agree</h3>
+            <div className="flex flex-col gap-2 px-1">
+              {rootComments.filter(c => c.stance === 'agree').map((rootComment) => (
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} />
+              ))}
+              {rootComments.filter(c => c.stance === 'agree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
+            </div>
+          </div>
+          {/* Disagree Column */}
+          <div className="border-t-[4px] border-red-500 pt-4 bg-gradient-to-b from-red-50 to-transparent dark:from-red-900/10 rounded-b-lg">
+            <h3 className="text-red-600 dark:text-red-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsDown size={18} strokeWidth={2.5} /> Against / Disagree</h3>
+            <div className="flex flex-col gap-2 px-1">
+              {rootComments.filter(c => c.stance === 'disagree').map((rootComment) => (
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} />
+              ))}
+              {rootComments.filter(c => c.stance === 'disagree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-2">
+          {rootComments && rootComments.length > 0 ? (
+            rootComments.map((rootComment) => (
+              <CommentThread 
+                key={rootComment._id} 
+                comment={rootComment} 
+                onReply={handleCommentSubmit}
+                onVote={handleCommentVote}
+                onShare={handleShare}
+                onEdit={handleCommentEdit}
+                onDelete={handleCommentDelete}
+                currentUser={currentUser}
+                onAcceptBounty={handleAcceptBounty}
+                post={post}
+              />
+            ))
+          ) : (
+            <p className="text-gray-500 text-center mt-4">No comments yet. Be the first to share your thoughts!</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

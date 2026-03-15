@@ -1,11 +1,26 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom'; // FIX: Removed unused useNavigate
-import axios from 'axios';
+import api from '../api';
 import toast from 'react-hot-toast';
 import OnlineIndicator from '../components/OnlineIndicator';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
 import { SocketContext } from '../context/SocketContext';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { ArrowUp, ArrowDown, MessageCircle, Camera, Trash2, Pencil, ShieldAlert } from 'lucide-react';
+
+const sanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
+    iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+  },
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+};
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -18,17 +33,15 @@ const UserProfile = () => {
   const [activeMenuId, setActiveMenuId] = useState(null); // Track which post's dropdown is open
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [description, setDescription] = useState('');
+  const [uploadModal, setUploadModal] = useState({ isOpen: false, type: '', file: null, previewUrl: '' });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token');
-  const { socket } = useContext(SocketContext);
+    const { socket } = useContext(SocketContext);
 
   const fetchUserProfile = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const res = await axios.get(`${apiUrl}/api/users/${username}`, config);
+      const res = await api.get(`/api/users/${username}`);
       setProfileData(res.data);
-      setDescription(res.data.profile.description || '');
       
       // Store all data arrays so we can switch tabs without re-fetching
       setAllTabsData({
@@ -55,6 +68,13 @@ const UserProfile = () => {
       // alert("User nahi mila! 🛑");
     }
   };
+
+  // Sync description state when not editing (prevents socket updates from wiping typed text)
+  useEffect(() => {
+    if (profileData && !isEditingDesc) {
+      setDescription(profileData.profile.description || '');
+    }
+  }, [profileData, isEditingDesc]);
 
   const getImageUrl = (url) => {
     if (!url) return null;
@@ -98,10 +118,7 @@ const UserProfile = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/upvote`, {});
       // Merge only the votes to preserve populated author/community
       
       // 1. Calculate Karma Change for Instant UI Update (if visible user owns the post)
@@ -139,10 +156,7 @@ const UserProfile = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/downvote`, {});
       // Merge only the votes to preserve populated author/community
 
       // 1. Calculate Karma Change
@@ -169,7 +183,7 @@ const UserProfile = () => {
     }
   };
 
-  const handleImageUpload = async (e, type) => {
+  const handleImageUpload = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -177,22 +191,29 @@ const UserProfile = () => {
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       toast.error("Unable to upload, please choose a file less than 5MB");
+      e.target.value = ''; // Reset input
       return;
     }
 
+    const previewUrl = URL.createObjectURL(file);
+    setUploadModal({ isOpen: true, type, file, previewUrl });
+    e.target.value = '';
+  };
+
+  const closeUploadModal = () => {
+    if (uploadModal.previewUrl) URL.revokeObjectURL(uploadModal.previewUrl);
+    setUploadModal({ isOpen: false, type: '', file: null, previewUrl: '' });
+  };
+
+  const confirmImageUpload = async () => {
+    if (!uploadModal.file) return;
+    setIsUploadingImage(true);
     const formData = new FormData();
-    formData.append(type, file); // Yahan 'profilePic' ya 'bannerPic' dynamic ja raha hai
+    formData.append(uploadModal.type, uploadModal.file);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/users/${username}/update`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
-        }
-      });
-      // FIX: alert ki jagah toast use karein
-      toast.success(`${type === 'profilePic' ? 'Profile Picture' : 'Banner'} Updated! 📸`);
+      const res = await api.put(`/api/users/${username}/update`, formData);
+      toast.success(`${uploadModal.type === 'profilePic' ? 'Profile Picture' : 'Banner'} Updated! 🎉`);
       
       const storedUser = JSON.parse(localStorage.getItem('user'));
       if (storedUser && res.data.user) {
@@ -203,29 +224,35 @@ const UserProfile = () => {
       }
       
       fetchUserProfile();
+      closeUploadModal();
     } catch (err) {
       toast.error(err.response?.data?.message || "Upload failed");
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
   const handleUpdateDescription = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/users/${username}/update`, { description }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success("Description updated! ✨");
+      // Optimistic update to prevent flicker and immediate text replacement
+      setProfileData(prev => ({
+        ...prev,
+        profile: { ...prev.profile, description }
+      }));
+      await api.put(`/api/users/${username}/update`, { description });
+      toast.success("Description updated!");
       setIsEditingDesc(false);
       fetchUserProfile();
     } catch (err) {
       toast.error(err.response?.data?.message || "Update failed");
+      fetchUserProfile(); // Revert on failure
     }
   };
 
   const handleImageDelete = (type) => {
     toast((t) => (
       <div>
-        <p className="mb-2">{`${type === 'profilePic' ? 'Profile Picture' : 'Banner'} delete karni hai? 🗑️`}</p>
+        <p className="mb-2">{`Are you sure you want to delete ${type === 'profilePic' ? 'Profile Picture' : 'Banner'}?`}</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeImageDelete(type); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -236,9 +263,7 @@ const UserProfile = () => {
 
   const executeImageDelete = async (type) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.delete(`${apiUrl}/api/users/${username}/remove-image`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.delete(`/api/users/${username}/remove-image`, {
         data: { type }
       });
       toast.success(res.data.message);
@@ -265,16 +290,24 @@ const UserProfile = () => {
   let accountAgeText = "Joined recently";
   if (profileData.profile.createdAt) {
     const msPerDay = 1000 * 60 * 60 * 24;
-    const days = Math.floor((Date.now() - new Date(profileData.profile.createdAt).getTime()) / msPerDay);
+    const diff = Math.max(0, Date.now() - new Date(profileData.profile.createdAt).getTime()); // Time Sync drift ko -1 jaane se rokne ke liye
+    const days = Math.floor(diff / msPerDay);
     if (days === 0) accountAgeText = "Joined today";
     else if (days === 1) accountAgeText = "Joined 1 day ago";
-    else accountAgeText = `Joined ${days} days ago`;
+    else if (days < 30) accountAgeText = `Joined ${days} days ago`;
+    else if (days < 365) {
+      const months = Math.floor(days / 30);
+      accountAgeText = `Joined ${months} month${months > 1 ? 's' : ''} ago`;
+    } else {
+      const years = Math.floor(days / 365);
+      accountAgeText = `Joined ${years} year${years > 1 ? 's' : ''} ago`;
+    }
   }
 
   const handleDelete = (postId) => {
     toast((t) => (
       <div>
-        <p className="mb-2">Post delete karni hai? 🗑️</p>
+        <p className="mb-2">Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeDelete(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -285,11 +318,7 @@ const UserProfile = () => {
 
   const executeDelete = async (postId) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('token');
-      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/posts/${postId}`);
       setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
       // Also update in allTabsData to prevent it reappearing on tab switch
       setAllTabsData(prev => {
@@ -304,7 +333,7 @@ const UserProfile = () => {
         }
         return newData;
       });
-      toast.success("Post Deleted! 🗑️");
+      toast.success("Post Deleted!");
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Post delete karne mein error aaya!");
@@ -314,10 +343,7 @@ const UserProfile = () => {
   const handleFollow = async () => {
     if (!token) return toast.error("Log in to follow users!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/users/${profileData.profile._id}/follow`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/users/${profileData.profile._id}/follow`, {});
       setIsFollowing(res.data.isFollowing);
       // Optionally re-fetch profile to update counts, or update local state manually
       setProfileData(prev => ({
@@ -338,7 +364,7 @@ const UserProfile = () => {
   const handleDeleteAccount = () => {
     toast((t) => (
       <div className="flex flex-col gap-3 p-1">
-        <p className="font-bold text-red-600">⚠ Account Permanently Delete Kar Dein?</p>
+        <p className="font-bold text-red-600 flex items-center gap-1"><ShieldAlert size={16} /> Account Permanently Delete Kar Dein?</p>
         <p className="text-xs text-gray-500">Aapka saara data (posts, comments, profile) hamesha ke liye mit jayega. Yeh action undo nahi ho sakta.</p>
         <div className="flex gap-2 justify-end">
           <button 
@@ -360,10 +386,7 @@ const UserProfile = () => {
 
   const executeAccountDeletion = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.delete(`${apiUrl}/api/users/${profileData.profile._id}/delete`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.delete(`/api/users/${profileData.profile._id}/delete`);
       
       toast.success(res.data.message, { duration: 5000 });
       
@@ -391,10 +414,7 @@ const UserProfile = () => {
   const handleSave = async (postId) => {
     if (!token) return toast.error("Log in to save posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/save`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/save`, {});
       // Update local state to reflect save toggle
       const updatePosts = (prev) => prev.map(p => 
         p._id === postId 
@@ -417,10 +437,7 @@ const UserProfile = () => {
   const handleHide = async (postId) => {
     if (!token) return toast.error("Log in to hide posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/hide`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/hide`, {});
       // If hidden, and we aren't specifically in the Hidden tab, remove from view immediately
       if (res.data.isHidden && activeTab !== 'Hidden') {
         setPosts(prev => prev.filter(p => p._id !== postId));
@@ -461,12 +478,10 @@ const UserProfile = () => {
 
   const submitReport = async (postId, reason) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/reports`, 
-        { targetType: 'post', targetId: postId, reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/reports`, 
+        { targetType: 'post', targetId: postId, reason }
       );
-      toast.success('Report submitted! Our team will review it. 🛡️');
+      toast.success('Report submitted! Our team will review it.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit report.');
     }
@@ -474,6 +489,57 @@ const UserProfile = () => {
 
   return (
     <div className="dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
+      
+      {/* MODERN UPLOAD MODAL */}
+      {uploadModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]/50">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+                Update {uploadModal.type === 'profilePic' ? 'Profile Picture' : 'Banner'}
+              </h3>
+              <button 
+                onClick={closeUploadModal}
+                disabled={isUploadingImage}
+                className="text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 flex flex-col items-center">
+              {uploadModal.type === 'profilePic' ? (
+                <div className="w-40 h-40 rounded-full border-4 border-gray-200 dark:border-[#343536] overflow-hidden shadow-xl mb-6 relative bg-gray-100 dark:bg-[#272729]">
+                  <img src={uploadModal.previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-full h-32 rounded-xl border-2 border-gray-200 dark:border-[#343536] overflow-hidden shadow-md mb-6 bg-gray-100 dark:bg-[#272729]">
+                  <img src={uploadModal.previewUrl} alt="Preview" className="w-full h-full object-cover object-center" />
+                </div>
+              )}
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                Looking good! Do you want to save this new {uploadModal.type === 'profilePic' ? 'profile picture' : 'banner'}?
+              </p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={closeUploadModal}
+                  disabled={isUploadingImage}
+                  className="flex-1 px-4 py-2.5 rounded-full font-bold text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmImageUpload}
+                  disabled={isUploadingImage}
+                  className="flex-1 px-4 py-2.5 rounded-full font-bold text-white bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isUploadingImage ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> : 'Save Image'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. TOP HEADER SECTION */}
       <div className="bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md overflow-hidden shadow-md transition-colors">
         {/* Banner */}
@@ -492,17 +558,21 @@ const UserProfile = () => {
           )}
           
           {isOwner && (
-            <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-30">
-              <label className="bg-gray-900/70 hover:bg-gray-900/90 dark:bg-black/70 dark:hover:bg-black/90 text-white px-4 py-2 rounded-full cursor-pointer shadow-xl border border-white/20 flex items-center gap-2">
+            <div className="absolute bottom-3 right-3 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
+              <label 
+                className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                title="Edit Banner"
+              >
                 <input type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'bannerPic')} />
-                <span className="text-sm font-bold">📷 Edit Banner</span>
+                <Camera size={18} strokeWidth={2.5} />
               </label>
               {profileData.profile.bannerPic && (
                 <button 
                   onClick={() => handleImageDelete('bannerPic')}
-                  className="bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 rounded-full shadow-xl border border-white/20 flex items-center gap-2 text-sm font-bold"
+                  className="w-10 h-10 bg-red-600/80 hover:bg-red-600 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                  title="Remove Banner"
                 >
-                  🗑️ Remove
+                  <Trash2 size={18} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -525,14 +595,14 @@ const UserProfile = () => {
               )}
               
               {isOwner && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 cursor-pointer opacity-0 group-hover:opacity-100 transition-all">
-                  <label className="cursor-pointer">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <label className="cursor-pointer p-2 bg-black/40 hover:bg-black/60 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
                     <input type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
-                    <span className="text-xl">📷</span>
+                    <Camera size={20} strokeWidth={2.5} className="text-white" />
                   </label>
                   {profileData.profile.profilePic && (
-                    <button onClick={() => handleImageDelete('profilePic')} className="text-xl hover:scale-110 transition-transform">
-                      🗑️
+                    <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/60 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
+                      <Trash2 size={20} strokeWidth={2.5} />
                     </button>
                   )}
                 </div>
@@ -547,6 +617,7 @@ const UserProfile = () => {
               <p className="text-gray-500 dark:text-gray-400 text-sm">u/{profileData.profile.username}</p>
               <p className="text-gray-600 dark:text-gray-500 text-xs mt-1">
                 {profileData.profile.followers?.length || 0} Followers • {profileData.profile.following?.length || 0} Following
+                <span className="md:hidden"> • {accountAgeText}</span>
               </p>
             </div>
             {/* Action Buttons */}
@@ -566,7 +637,7 @@ const UserProfile = () => {
               {/* Note: Chat is currently a functional stub / WIP */}
               {!isOwner && (
                 <button 
-                  onClick={() => toast("Chat feature is coming soon! 💬", { icon: '💬' })}
+                  onClick={() => toast("Chat feature is coming soon!", { icon: <MessageCircle size={16}/> })}
                   className="flex-1 md:flex-none justify-center bg-transparent border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white font-bold px-6 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-sm"
                 >
                   Chat
@@ -596,7 +667,7 @@ const UserProfile = () => {
       </div>
 
       {/* 2. MAIN CONTENT AREA (2 Columns) */}
-      <div className="flex flex-col md:flex-row gap-6 items-start mt-6">
+      <div className="flex flex-col-reverse md:flex-row gap-6 items-start mt-6">
         
         {/* LEFT COLUMN: FEED */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
@@ -681,7 +752,11 @@ const UserProfile = () => {
                       ))}
                     </div>
                   )}
-                  <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 line-clamp-3">{post.content}</p>
+                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none line-clamp-3">
+                    <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
+                      {post.content || ''}
+                    </ReactMarkdown>
+                  </div>
                   
                   {/* Action Bar */}
                   <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm flex-wrap">
@@ -693,7 +768,7 @@ const UserProfile = () => {
                           hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                         }`}
                       >
-                          <span className="text-base">⬆️</span>
+                          <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
                           <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                       </div>
                       
@@ -705,12 +780,13 @@ const UserProfile = () => {
                           hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                         }`}
                       >
-                          <span className="text-base">⬇️</span>
+                          <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
                           <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
                       </div>
                     </div>
-                    <Link to={`/post/${post._id}`} className="flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-[#272729] px-3 py-1.5 rounded transition-all">
-                        <span>💬 {post.comments?.length || 0} Comments</span>
+                    <Link to={`/post/${post._id}`} className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] px-3 py-1.5 rounded transition-all">
+                        <MessageCircle size={16} strokeWidth={2} />
+                        <span className="pt-0.5">{post.comments?.length || 0} Comments</span>
                     </Link>
 
                   </div>
@@ -721,7 +797,7 @@ const UserProfile = () => {
         </div>
 
         {/* RIGHT COLUMN: PROFILE SIDEBAR CARD */}
-        <div className="w-full md:w-80 h-fit flex flex-col gap-4 sticky top-18">
+        <div className="w-full md:w-80 h-fit flex flex-col gap-4 md:sticky md:top-18">
           <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm overflow-hidden transition-colors">
             <div className="p-4">
               <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4">About User</h3>
@@ -763,16 +839,16 @@ const UserProfile = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative group">
+                  <div className="relative group pr-8">
                     <p className="text-sm text-gray-700 dark:text-gray-300 italic">
                       {profileData.profile.description || "No description provided."}
                     </p>
                     {isOwner && (
                       <button 
                         onClick={() => setIsEditingDesc(true)}
-                        className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 dark:bg-[#272729] p-1 rounded-full text-[10px]"
+                        className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 dark:bg-[#272729] p-1.5 rounded-full text-gray-500 hover:text-orange-500"
                       >
-                        ✏️
+                        <Pencil size={12} />
                       </button>
                     )}
                   </div>
@@ -806,7 +882,7 @@ const UserProfile = () => {
                 onClick={handleDeleteAccount}
                 className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-500 p-3 rounded-xl border border-red-100 dark:border-red-500/20 text-xs font-bold transition-all"
                >
-                 <span>🗑️</span> Delete Account Permanently
+                 <Trash2 size={16} /> Delete Account Permanently
                </button>
                <p className="text-[10px] text-gray-400 mt-2 text-center">Warning: This action cannot be undone.</p>
             </div>

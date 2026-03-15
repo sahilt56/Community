@@ -240,19 +240,49 @@ router.get('/community/:communityId', async (req, res) => {
 // CREATE A NEW POST
 router.post('/create', verifyToken, upload.array('media', 16), contentFilter, async (req, res) => {
   try {
-    const { title, content, communityId, postType, link } = req.body;
+    const { title, content, communityId, postType, link, bountyAmount } = req.body;
     const media = [];
 
     // ... (media handling remains same)
     if (req.files && req.files.length > 0) {
       // ... (validation remains same)
       req.files.forEach(file => {
-        const url = file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`;
+        const fileUrl = file.path || file.secure_url || "";
+        const url = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
         media.push({
           url,
           mimetype: file.mimetype
         });
       });
+    }
+
+    // 🛡️ SECURITY CHECK: Verify if the user is a member of the community
+    const Community = require('../models/Community');
+    const community = await Community.findById(communityId);
+    
+    if (!community) {
+      return res.status(404).json({ error: "Community not found!" });
+    }
+
+    if (!community.members.includes(req.user.id)) {
+      // Allow creator or mod even if they aren't explicit members (edge case safety)
+      const isCreator = community.creator && community.creator.toString() === req.user.id;
+      const isMod = community.moderators && community.moderators.some(id => id.toString() === req.user.id);
+      
+      if (!isCreator && !isMod) {
+        return res.status(403).json({ error: "You can only post in communities you have joined! 🛑" });
+      }
+    }
+
+    // 🏆 Bounty System Logic: Deduct Anubhav from Author
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+    const bounty = parseInt(bountyAmount, 10) || 0;
+
+    if (bounty > 0) {
+      if (user.anubhav < bounty) return res.status(400).json({ error: "Not enough Anubhav points for this bounty!" });
+      user.anubhav -= bounty;
+      await user.save();
     }
 
     const newPost = new Post({
@@ -262,7 +292,8 @@ router.post('/create', verifyToken, upload.array('media', 16), contentFilter, as
       community: communityId,
       author: req.user.id,
       postType: postType || 'text',
-      link: link || ""
+      link: link || "",
+      bountyAmount: bounty
     });
 
     const savedPost = await newPost.save();
@@ -453,9 +484,9 @@ router.post('/:id/comment', verifyToken, contentFilter, async (req, res) => {
     const newComment = {
       text: req.body.text,
       user: req.user.id, // Auth middleware se user ID
-      // Agar front-end se parentId aayi hai (matlab ye reply hai), toh usko save karo.
-      // Nahi toh by default undefined/null rahega (matlab root comment hai)
-      parentId: req.body.parentId || null
+      parentId: req.body.parentId || null,
+      // ⚖️ Debate Mode Stance ('agree', 'disagree', 'neutral')
+      stance: req.body.stance || 'neutral'
     };
 
     post.comments.push(newComment);
@@ -716,6 +747,56 @@ router.delete('/:postId/comment/:commentId', verifyToken, async (req, res) => {
     res.json({ message: "Comment deleted! 🗑️", post });
   } catch (err) {
     res.status(500).json({ error: 'An error occurred. Please try again.' });
+  }
+});
+
+// 🏆 ACCEPT BOUNTY ROUTE
+router.put('/:postId/comment/:commentId/accept-bounty', verifyToken, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    // Sirf post author hi answer accept kar sakta hai
+    if (post.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Only the post author can award the bounty!" });
+    }
+
+    // Check agar bounty already resolved hai
+    if (post.bountyResolved) {
+      return res.status(400).json({ message: "Bounty is already resolved! 🛑" });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Khud ke comment ko accept nahi kar sakte
+    if (comment.user.toString() === req.user.id) {
+      return res.status(400).json({ message: "You cannot accept your own comment for a bounty!" });
+    }
+
+    // Transfer points
+    const User = require('../models/User');
+    const commentAuthor = await User.findById(comment.user);
+    if (commentAuthor && post.bountyAmount > 0) {
+      commentAuthor.anubhav += post.bountyAmount;
+      await commentAuthor.save();
+    }
+
+    // Update states
+    post.bountyResolved = true;
+    comment.isAccepted = true;
+    await post.save();
+
+    // Emit notification to winner
+    if (req.io) {
+      req.io.to(comment.user.toString()).emit('new_notification', { content: `awarded you a bounty of ${post.bountyAmount} Anubhav! 🏆` });
+      req.io.emit('post_interaction', post._id);
+    }
+
+    res.status(200).json({ message: "Bounty awarded successfully! 🏆", post });
+  } catch (err) {
+    console.error('Bounty error:', err);
+    res.status(500).json({ error: 'Failed to award bounty.' });
   }
 });
 

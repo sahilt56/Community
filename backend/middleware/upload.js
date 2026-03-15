@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multerCloudinary = require('multer-storage-cloudinary');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -17,18 +17,36 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
     api_secret: process.env.CLOUDINARY_API_SECRET
   });
 
-  storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: 'reddit_clone',
-      allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi','webp'],
-      resource_type: "auto", // Automatically detect if it's an image or video
-      public_id: (req, file) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        return uniqueSuffix + '-' + file.originalname.split('.')[0];
+  // 🧠 Smart Fallback: Check if we are using v4 or older version of the package
+  if (multerCloudinary.CloudinaryStorage) {
+    // Version 4.x Syntax
+    storage = new multerCloudinary.CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'reddit_clone',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi','webp'],
+        resource_type: "auto",
+        public_id: (req, file) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          return uniqueSuffix + '-' + file.originalname.split('.')[0];
+        }
       }
-    }
-  });
+    });
+  } else {
+    // Version 2.x / 3.x Syntax (Fallback)
+    storage = multerCloudinary({
+      cloudinary: require('cloudinary'), // pass the root module, since v2 is accessed inside
+      folder: 'reddit_clone',
+      allowedFormats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi', 'webp'],
+      params: {
+        resource_type: 'auto'
+      },
+      filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + '-' + file.originalname.split('.')[0]);
+      }
+    });
+  }
   console.log("Using Cloudinary Storage ☁️");
 } else {
   // Ensure the 'uploads' directory exists
@@ -68,7 +86,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 1024 * 1024 * 5 // 5MB limit
+    fileSize: 1024 * 1024 * 10 // 10MB limit
   }
 });
 

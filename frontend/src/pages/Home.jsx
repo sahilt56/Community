@@ -1,10 +1,25 @@
 import React, { useEffect, useState, useRef, useCallback, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Link } from 'react-router-dom';
 import { SocketContext } from '../context/SocketContext';
 import toast from 'react-hot-toast';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
+import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangle, CheckCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+
+const sanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
+    iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+  },
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+};
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
@@ -33,8 +48,7 @@ const Home = () => {
   const fetchPosts = useCallback(async (pageNum = 1, reset = false) => {
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/posts?sort=${sortBy}&page=${pageNum}&limit=5`);
+      const res = await api.get(`/api/posts?sort=${sortBy}&page=${pageNum}&limit=5`);
       setPosts(prev => reset ? res.data.posts : [...prev, ...res.data.posts]);
       setHasMore(res.data.hasMore);
     } catch (err) {
@@ -109,10 +123,7 @@ const Home = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/upvote`, {});
       // Merge only the votes to preserve populated author/community
       setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
@@ -130,10 +141,7 @@ const Home = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/downvote`, {});
       // Merge only the votes to preserve populated author/community
       setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
@@ -144,16 +152,13 @@ const Home = () => {
   const handleSave = async (postId) => {
     if (!token) return toast.error("Log in to save posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/save`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/save`, {});
       setPosts(prev => prev.map(p => 
         p._id === postId 
           ? { ...p, savedBy: res.data.isSaved ? [...(p.savedBy || []), currentUser.id] : (p.savedBy || []).filter(id => id !== currentUser.id) }
           : p
       ));
-      toast.success(res.data.isSaved ? "Saved! 💾" : "Removed from Saved!");
+      toast.success(res.data.isSaved ? "Post Saved!" : "Removed from Saved!");
     } catch (err) {
       console.error("Save error:", err);
     }
@@ -162,10 +167,7 @@ const Home = () => {
   const handleHide = async (postId) => {
     if (!token) return toast.error("Log in to hide posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/hide`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/hide`, {});
       if (res.data.isHidden) {
         setPosts(prev => prev.filter(p => p._id !== postId));
         toast.success("Post Hidden! 🚫");
@@ -199,10 +201,8 @@ const Home = () => {
 
   const submitReport = async (postId, reason) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/reports`, 
-        { targetType: 'post', targetId: postId, reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/reports`, 
+        { targetType: 'post', targetId: postId, reason }
       );
       toast.success('Report submitted! Our team will review it. 🛡️');
     } catch (err) {
@@ -213,7 +213,7 @@ const Home = () => {
   const handleDelete = (postId) => {
     toast((t) => (
       <div>
-        <p className="mb-2">Post delete karni hai? 🗑️</p>
+        <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeDelete(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -224,12 +224,9 @@ const Home = () => {
 
   const executeDelete = async (postId) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/posts/${postId}`);
       setPosts(prev => prev.filter(p => p._id !== postId));
-      toast.success("Post Deleted! 🗑️");
+      toast.success("Post deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Failed to delete post.");
@@ -250,8 +247,8 @@ const Home = () => {
                 : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className={`text-lg ${sortBy === sortType ? 'animate-bounce' : ''}`}>
-              {sortType === 'hot' ? '🔥' : sortType === 'new' ? '💥' : '⬆️'}
+            <span className={`flex items-center justify-center ${sortBy === sortType ? 'animate-bounce' : ''}`}>
+              {sortType === 'hot' ? <Flame size={18} strokeWidth={2.5} /> : sortType === 'new' ? <Sparkles size={18} strokeWidth={2.5} /> : <ArrowUp size={18} strokeWidth={2.5} />}
             </span>
             <span className="capitalize">{sortType}</span>
           </button>
@@ -295,6 +292,25 @@ const Home = () => {
                 onOpenChange={(isOpen) => setActiveMenuId(isOpen ? post._id : (prev => prev === post._id ? null : prev))}
               />
             </div>
+            
+            {/* Link Post Rendering - Added so links show up immediately in feed */}
+            {post.postType === 'link' && post.link && (
+              <div className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] p-3 rounded-md mb-3 flex items-center justify-between group hover:border-gray-400 dark:hover:border-gray-500 transition-all">
+                <div className="flex flex-col gap-0.5 overflow-hidden">
+                  <span className="text-blue-600 dark:text-blue-400 text-sm font-bold truncate">{post.link}</span>
+                  <span className="text-gray-500 tracking-wide text-[11px]">External Link 🔗</span>
+                </div>
+                <a 
+                  href={post.link.startsWith('http') ? post.link : `https://${post.link}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5 flex-shrink-0"
+                >
+                  Open ↗️
+                </a>
+              </div>
+            )}
+
             {post.media && post.media.length > 0 && (
               <div className={`grid gap-2 mb-4 ${post.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {post.media.map((item, idx) => (
@@ -316,7 +332,11 @@ const Home = () => {
                 ))}
               </div>
             )}
-            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4">{post.content}</p>
+            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
+                {post.content || ''}
+              </ReactMarkdown>
+            </div>
             
             {/* Post Actions */}
             <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
@@ -329,7 +349,7 @@ const Home = () => {
                       hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                     }`}
                   >
-                    <span className="text-base">⬆️</span>
+                  <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
                     <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                   </div>
                   
@@ -341,14 +361,14 @@ const Home = () => {
                       hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                     }`}
                   >
-                    <span className="text-base">⬇️</span>
+                  <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
                     <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
                   </div>
                 </div>
  
                 {/* Comments Link */}
                 <Link to={`/post/${post._id}`} className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] px-2 py-1.5 rounded cursor-pointer transition-all">
-                   <span>💬</span>
+                   <MessageCircle size={14} strokeWidth={2} />
                    <span className="text-[11px] sm:text-xs">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
                 </Link>
 
@@ -357,7 +377,7 @@ const Home = () => {
                   onClick={() => handleShare(post._id)}
                   className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] px-2 py-1.5 rounded cursor-pointer transition-all"
                 >
-                   <span>🔗</span>
+                   <Share size={14} strokeWidth={2} />
                    <span className="text-[11px] sm:text-xs">Share</span>
                 </div>
 
@@ -374,7 +394,7 @@ const Home = () => {
         )}
         {!hasMore && posts.length > 0 && (
           <div className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm animate-fade-in">
-            <div className="text-3xl mb-2">🚀</div>
+            <CheckCircle size={32} strokeWidth={1.5} className="mx-auto mb-3 text-gray-400" />
             <p className="font-bold">You've reached the end!</p>
             <p className="text-xs mt-1">Aapne saari posts dekh li hain.</p>
           </div>

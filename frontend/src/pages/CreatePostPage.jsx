@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreatePost from '../components/CreatePost';
+import { AlertCircle, Pencil } from 'lucide-react';
 
 const CreatePostPage = () => {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ const CreatePostPage = () => {
   if (!token) {
     return (
       <div className="text-center text-gray-400 mt-20">
-        <p className="text-lg font-bold mb-4">Post create karne ke liye pehle Log In karein! 🛑</p>
+        <p className="text-lg font-bold mb-4 flex items-center justify-center gap-2"><AlertCircle size={22} className="text-red-500" /> Post create karne ke liye pehle Log In karein!</p>
         <button 
           onClick={() => navigate('/login')}
           className="bg-orange-600 text-white font-bold px-6 py-2 rounded-full hover:bg-orange-700 transition-all"
@@ -22,7 +23,7 @@ const CreatePostPage = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors">Create a Post ✍️</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors flex items-center gap-2.5"><Pencil size={24} className="text-orange-500" /> Create a Post</h1>
       <CreatePost onPostCreated={() => navigate('/')} />
     </div>
   );

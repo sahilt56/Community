@@ -1,11 +1,27 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
 import CommunityMenu from '../components/CommunityMenu';
+import { SocketContext } from '../context/SocketContext';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle } from 'lucide-react';
+
+const sanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
+    iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+  },
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+};
 
 const CommunityPage = () => {
   const { id } = useParams();
@@ -52,8 +68,7 @@ const CommunityPage = () => {
   // FIX: Wrapped in useCallback to safely use inside useEffect
   const fetchCommunityInfo = useCallback(async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/communities/${id}`);
+      const res = await api.get(`/api/communities/${id}`);
       setCommunity(res.data);
     } catch (err) {
       console.error("Error fetching community", err);
@@ -64,8 +79,7 @@ const CommunityPage = () => {
   const fetchCommunityPosts = useCallback(async (pageNum = 1, reset = false) => {
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/posts/community/${id}?sort=${sortBy}&page=${pageNum}&limit=5`);
+      const res = await api.get(`/api/posts/community/${id}?sort=${sortBy}&page=${pageNum}&limit=5`);
       setPosts(prev => reset ? res.data.posts : [...prev, ...res.data.posts]);
       setHasMore(res.data.hasMore);
     } catch (err) {
@@ -101,10 +115,7 @@ const CommunityPage = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/upvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/upvote`, {});
       // Merge only the votes to preserve populated author/community
       setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
@@ -122,10 +133,7 @@ const CommunityPage = () => {
     if (!post) return;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/downvote`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/downvote`, {});
       // Merge only the votes to preserve populated author/community
       setPosts(prev => prev.map(p => p._id === postId ? { ...p, upvotes: res.data.post.upvotes, downvotes: res.data.post.downvotes } : p));
     } catch (err) {
@@ -136,7 +144,7 @@ const CommunityPage = () => {
   const handleShare = (postId) => {
     const url = `${window.location.origin}/post/${postId}`;
     navigator.clipboard.writeText(url).then(() => {
-      toast.success("Link copied to clipboard! 📋");
+      toast.success("Link copied to clipboard!");
     }).catch(err => {
       console.error("Share error:", err);
     });
@@ -145,10 +153,7 @@ const CommunityPage = () => {
   const handleJoin = async () => {
     if (!token) return toast.error("Please log in to join!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.post(`${apiUrl}/api/communities/${community._id}/join`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post(`/api/communities/${community._id}/join`, {});
       toast.success(res.data.message || "Successfully joined!");
       fetchCommunityInfo(); // Refresh to update members
     } catch (err) {
@@ -162,7 +167,7 @@ const CommunityPage = () => {
 
     toast((t) => (
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-bold text-white">Community leave karni hai? 🏃‍♂️</p>
+        <p className="text-sm font-bold text-white flex items-center gap-2"><LogOut size={16} /> Are you sure you want to leave?</p>
         <div className="flex gap-2 justify-end">
           <button 
             onClick={() => { toast.dismiss(t.id); executeLeave(); }}
@@ -183,11 +188,8 @@ const CommunityPage = () => {
 
   const executeLeave = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/communities/${community._id}/leave`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success("Left the community! 👋");
+      await api.post(`/api/communities/${community._id}/leave`, {});
+      toast.success("Left the community!");
       fetchCommunityInfo(); // Refresh to update members
     } catch (err) {
       toast.error(err.response?.data?.message || "Error leaving community");
@@ -198,12 +200,10 @@ const CommunityPage = () => {
   const handleAddMod = async () => {
     if (!newModId.trim()) return toast.error("Please enter a User ID");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/communities/${community._id}/add-mod`, 
-        { userId: newModId }, 
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/communities/${community._id}/add-mod`, 
+        { userId: newModId }
       );
-      toast.success("Moderator added successfully! 🛡️");
+      toast.success("Moderator added successfully!");
       setNewModId('');
       fetchCommunityInfo();
     } catch (err) {
@@ -213,12 +213,10 @@ const CommunityPage = () => {
 
   const handleRemoveMod = async (modId) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/communities/${community._id}/remove-mod`, 
-        { userId: modId }, 
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/communities/${community._id}/remove-mod`, 
+        { userId: modId }
       );
-      toast.success("Moderator removed! 📉");
+      toast.success("Moderator removed!");
       fetchCommunityInfo();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error removing moderator");
@@ -253,13 +251,7 @@ const CommunityPage = () => {
       if (bannerFile) formData.append('bannerPic', bannerFile);
       formData.append('rules', JSON.stringify(editForm.rules));
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/communities/${community._id}/update`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}` 
-        }
-      });
+      await api.put(`/api/communities/${community._id}/update`, formData);
       toast.success('Community updated successfully! 🎉');
       setIsEditing(false);
       fetchCommunityInfo();
@@ -274,7 +266,7 @@ const CommunityPage = () => {
   const handleDeleteCommunity = () => {
     toast((t) => (
       <div>
-        <p className="mb-2">Are you extremely sure you want to PERMANENTLY delete v/{community.name}? 🛑</p>
+        <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you extremely sure you want to PERMANENTLY delete v/{community.name}?</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeDeleteCommunity(); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Delete</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -285,11 +277,8 @@ const CommunityPage = () => {
 
   const executeDeleteCommunity = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/communities/${community._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success("Community deleted forever. 💥");
+      await api.delete(`/api/communities/${community._id}`);
+      toast.success("Community deleted forever.");
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || "Error deleting community");
@@ -307,7 +296,7 @@ const CommunityPage = () => {
             <button
               key={reason}
               onClick={() => { toast.dismiss(t.id); submitCommunityReport(reason); }}
-              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+              className="text-left px-3 py-1.5 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
@@ -320,12 +309,10 @@ const CommunityPage = () => {
 
   const submitCommunityReport = async (reason) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/reports`, 
-        { targetType: 'community', targetId: community._id, reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/reports`, 
+        { targetType: 'community', targetId: community._id, reason }
       );
-      toast.success('Community report submitted! 🛡️');
+      toast.success('Community report submitted!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit report.');
     }
@@ -334,16 +321,13 @@ const CommunityPage = () => {
   const handleSavePost = async (postId) => {
     if (!token) return toast.error("Log in to save posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/save`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/save`, {});
       setPosts(prev => prev.map(p => 
         p._id === postId 
           ? { ...p, savedBy: res.data.isSaved ? [...(p.savedBy || []), currentUser.id] : (p.savedBy || []).filter(id => id !== currentUser.id) }
           : p
       ));
-      toast.success(res.data.isSaved ? "Saved! 💾" : "Removed from Saved!");
+      toast.success(res.data.isSaved ? "Saved!" : "Removed from Saved!");
     } catch (err) {
       console.error("Save error:", err);
     }
@@ -352,13 +336,10 @@ const CommunityPage = () => {
   const handleHidePost = async (postId) => {
     if (!token) return toast.error("Log in to hide posts!");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${apiUrl}/api/posts/${postId}/hide`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/api/posts/${postId}/hide`, {});
       if (res.data.isHidden) {
         setPosts(prev => prev.filter(p => p._id !== postId));
-        toast.success("Post Hidden! 🚫");
+        toast.success("Post Hidden!");
       }
     } catch (err) {
       console.error("Hide error:", err);
@@ -389,12 +370,10 @@ const CommunityPage = () => {
 
   const submitPostReport = async (postId, reason) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/reports`, 
-        { targetType: 'post', targetId: postId, reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(`/api/reports`, 
+        { targetType: 'post', targetId: postId, reason }
       );
-      toast.success('Report submitted! Our team will review it. 🛡️');
+      toast.success('Report submitted! Our team will review it.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit report.');
     }
@@ -403,7 +382,7 @@ const CommunityPage = () => {
   const handleDeletePost = (postId) => {
     toast((t) => (
       <div>
-        <p className="mb-2">Post delete karni hai? 🗑️</p>
+        <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
           <button onClick={() => { toast.dismiss(t.id); executeDeletePost(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
           <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
@@ -414,12 +393,9 @@ const CommunityPage = () => {
 
   const executeDeletePost = async (postId) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/posts/${postId}`);
       setPosts(prev => prev.filter(p => p._id !== postId));
-      toast.success("Post Deleted! 🗑️");
+      toast.success("Post Deleted!");
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Failed to delete post.");
@@ -687,7 +663,7 @@ const CommunityPage = () => {
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center justify-between bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] p-3 rounded-md">
                             <div className="flex items-center gap-3">
-                              <span className="text-xl">👑</span>
+                              <Crown size={20} className="text-yellow-500" />
                               <div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">u/{community.creator?.username || 'Creator'}</p>
                                 <p className="text-xs text-orange-600 dark:text-orange-500">Creator & Head Mod</p>
@@ -698,7 +674,7 @@ const CommunityPage = () => {
                           {community.moderators && community.moderators.map((mod) => (
                             <div key={mod._id || mod} className="flex items-center justify-between bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] p-3 rounded-md">
                               <div className="flex items-center gap-3">
-                                <span className="text-xl">🛡️</span>
+                                <Shield size={20} className="text-blue-500" />
                                 <div>
                                   <p className="text-sm font-bold text-gray-900 dark:text-white">u/{mod.username || mod}</p>
                                   <p className="text-xs text-blue-600 dark:text-blue-400">Moderator</p>
@@ -723,7 +699,7 @@ const CommunityPage = () => {
                       Cancel
                     </button>
                     <button type="submit" disabled={isSaving} className="bg-orange-600 text-white font-bold px-8 py-2 rounded-full shadow-md hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                      {isSaving ? <span className="animate-spin text-lg">⏳</span> : 'Save Changes'}
+                  {isSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Save Changes'}
                     </button>
                   </div>
                 </form>
@@ -744,9 +720,7 @@ const CommunityPage = () => {
                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <span className="text-lg">
-                  {sortType === 'hot' ? '🔥' : sortType === 'new' ? '💥' : '⬆️'}
-                </span>
+                {sortType === 'hot' ? <Flame size={16} /> : sortType === 'new' ? <Sparkles size={16} /> : <ArrowUp size={16} />}
                 <span className="capitalize">{sortType}</span>
               </button>
             ))}
@@ -810,7 +784,11 @@ const CommunityPage = () => {
                         ))}
                       </div>
                     )}
-                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4">{post.content}</p>
+                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
+                        {post.content || ''}
+                      </ReactMarkdown>
+                    </div>
                     
                     {/* Post Actions */}
                     <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
@@ -822,7 +800,7 @@ const CommunityPage = () => {
                             hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                           }`}
                         >
-                            <span className="text-base">⬆️</span>
+                            <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
                             <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                         </div>
                         
@@ -834,15 +812,15 @@ const CommunityPage = () => {
                             hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                           }`}
                         >
-                            <span className="text-base">⬇️</span>
+                            <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
                             <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
                         </div>
                       </div>
 
                       {/* Comments Link */}
                       <Link to={`/post/${post._id}`} className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] px-2 py-1.5 rounded cursor-pointer transition-all">
-                         <span>💬</span>
-                         <span className="text-[11px] sm:text-xs">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
+                         <MessageCircle size={14} strokeWidth={2} />
+                         <span className="text-[11px] sm:text-xs pt-0.5">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
                       </Link>
 
                       {/* Share Button */}
@@ -850,8 +828,8 @@ const CommunityPage = () => {
                         onClick={() => handleShare(post._id)}
                         className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] px-2 py-1.5 rounded cursor-pointer transition-all"
                       >
-                         <span>🔗</span>
-                         <span className="text-[11px] sm:text-xs">Share</span>
+                         <Share size={14} strokeWidth={2} />
+                         <span className="text-[11px] sm:text-xs pt-0.5">Share</span>
                       </div>
                     </div>
                   </div>
@@ -867,7 +845,10 @@ const CommunityPage = () => {
             )}
             {!hasMore && posts.length > 0 && (
               <div className="text-center text-gray-500 py-4 font-bold text-sm">
-                TUMNE SAARI POSTS DEKH LI HAIN! 🚀
+              <div className="flex flex-col items-center justify-center gap-1">
+                <CheckCircle size={24} className="text-gray-400 mb-1" />
+                <p>You've reached the end of the feed!</p>
+              </div>
               </div>
             )}
           </div>
@@ -891,7 +872,7 @@ const CommunityPage = () => {
                 ))
               ) : (
                 <div className="p-10 text-center flex flex-col items-center gap-2">
-                  <span className="text-2xl opacity-50">📜</span>
+              <ScrollText size={32} strokeWidth={1.5} className="text-gray-400 opacity-50 mb-2" />
                   <p className="text-xs text-gray-500">No rules set for this community.</p>
                 </div>
               )}

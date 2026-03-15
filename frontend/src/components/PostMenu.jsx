@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { MoreVertical, Bookmark, BookmarkCheck, EyeOff, Flag, Trash2 } from 'lucide-react';
 
 const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,9 +35,9 @@ const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpe
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-all"
+        className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#272729] transition-all btn-press"
       >
-        ⋮
+        <MoreVertical size={18} strokeWidth={2.5} />
       </button>
 
       {isOpen && (
@@ -45,9 +46,9 @@ const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpe
           {onSave && !isAuthor && (
             <div 
               onClick={(e) => { e.stopPropagation(); onSave(post._id); setIsOpen(false); }}
-              className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-3 cursor-pointer transition-all"
+              className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-2.5 cursor-pointer transition-all"
             >
-              <span className={isSaved ? 'text-green-500' : 'text-gray-400 text-lg'}>💾</span> 
+              {isSaved ? <BookmarkCheck size={16} className="text-green-500" strokeWidth={2.5} /> : <Bookmark size={16} className="text-gray-500" strokeWidth={2} />}
               <span className={`text-sm font-bold ${isSaved ? 'text-green-500' : 'text-gray-700 dark:text-gray-300'}`}>
                 {isSaved ? 'Saved' : 'Save'}
               </span>
@@ -58,9 +59,9 @@ const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpe
           {onHide && isAuthor && (
             <div 
               onClick={(e) => { e.stopPropagation(); onHide(post._id); setIsOpen(false); }}
-              className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-3 cursor-pointer transition-all"
+              className="flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-[#272729] px-4 py-2.5 cursor-pointer transition-all"
             >
-              <span className={isHidden ? 'text-red-400' : 'text-gray-400 text-lg'}>🚫</span> 
+              {isHidden ? <EyeOff size={16} className="text-red-500" strokeWidth={2.5} /> : <EyeOff size={16} className="text-gray-500" strokeWidth={2} />}
               <span className={`text-sm font-bold ${isHidden ? 'text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
                 {isHidden ? 'Unhide' : 'Hide'}
               </span>
@@ -71,10 +72,10 @@ const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpe
           {onReport && !isAuthor && (
             <div 
               onClick={(e) => { e.stopPropagation(); onReport(post._id); setIsOpen(false); }}
-              className="flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-4 py-3 cursor-pointer transition-all"
+              className="flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-4 py-2.5 cursor-pointer transition-all text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500"
             >
-              <span className="text-gray-400 text-lg">🚩</span>
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Report</span>
+              <Flag size={16} className="text-gray-500 group-hover:text-orange-500" strokeWidth={2} />
+              <span className="text-sm font-bold">Report</span>
             </div>
           )}
 
@@ -82,9 +83,9 @@ const PostMenu = ({ post, currentUser, onSave, onHide, onReport, onDelete, onOpe
           {onDelete && isAuthor && (
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(post._id); setIsOpen(false); }}
-              className="flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-3 transition-all border-t border-gray-200 dark:border-[#343536] mt-1 text-red-500 w-full text-left"
+              className="flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2.5 transition-all border-t border-gray-200 dark:border-[#343536] mt-1 text-red-500 w-full text-left"
             >
-              <span className="text-lg">🗑️</span> <span className="text-sm font-bold">Delete Post</span>
+              <Trash2 size={16} strokeWidth={2} /> <span className="text-sm font-bold">Delete Post</span>
             </button>
           )}
         </div>

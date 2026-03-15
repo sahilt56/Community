@@ -6,6 +6,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 
 // Environment variables load karna
 dotenv.config();
@@ -16,22 +17,20 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 // 🔒 Security: Use Helmet to set secure HTTP headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.disable('x-powered-by'); // Hide server info
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173", // Assuming default Vite port, adjust if needed
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
-});
+
 
 // 📝 Logging: Track all incoming HTTP requests to detect anomalies or attacks
 app.use(morgan('combined')); // 'combined' format IP address, Date, URL, Status aur User-Agent print karta hai
 
 // Middleware
 app.use(express.json({ limit: '1mb' })); // 🔒 Security: Limit body size to prevent OOM attacks
+app.use(cookieParser()); // 🍪 Ye cookies ko read karne ke liye zaroori hai!
 
 // 🔒 Security: Restrict CORS to known frontend origins only
 const allowedOrigins = [
@@ -51,6 +50,14 @@ app.use(cors({
   },
   credentials: true
 }));
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  }
+});
 
 // 🔒 Security: Rate limit auth routes to prevent brute-force attacks
 const authLimiter = rateLimit({
@@ -152,6 +159,7 @@ const userRoute = require('./routes/user');
 const searchRoute = require('./routes/search');
 const notificationRoute = require('./routes/notifications');
 const reportRoute = require('./routes/report');
+const uploadRoute = require('./routes/upload');
 
 // API Routes ko use karna
 app.use('/api/auth', authLimiter, authRoute); // 🔒 Rate limited
@@ -162,7 +170,7 @@ app.use('/api/users', userRoute);
 app.use('/api/search', searchRoute);
 app.use('/api/notifications', notificationRoute);
 app.use('/api/reports', reportRoute);
-
+app.use('/api/upload', uploadRoute);
 
 // Basic Route
 app.get('/', (req, res) => {

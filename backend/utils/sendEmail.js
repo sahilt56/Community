@@ -15,11 +15,16 @@ const sendEmail = async (options) => {
       resolvedIPv4 = targetHost; // Fallback if DNS lookup completely fails
     }
 
+    // Determine port and secure flag dynamically
+    // Render and many cloud providers block port 587 (timeout). Port 465 (SSL) works flawlessly.
+    const smtpPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465;
+    const isSecure = smtpPort === 465;
+
     // Create a transporter using SMTP
     const transporter = nodemailer.createTransport({
       host: resolvedIPv4, // Connect directly to the IPv4 address
-      port: process.env.SMTP_PORT || 587,
-      secure: false, // true for 465, false for other ports
+      port: smtpPort,
+      secure: isSecure, // true for 465, false for 587
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,

@@ -10,6 +10,7 @@ import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangl
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { Helmet } from 'react-helmet-async';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -240,6 +241,11 @@ const Home = () => {
 
   return (
     <div className="">
+      <Helmet>
+        <title>{sortBy === 'hot' ? 'Trending Discussions' : sortBy === 'new' ? 'Latest Posts' : 'Top Rated'} | Vartalap</title>
+        <meta name="description" content={`Explore the ${sortBy} posts and discussions on Vartalap. Join the conversation with students and professionals.`} />
+      </Helmet>
+
       {/* Sorting Tabs */}
       <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-2 mb-4 flex items-center gap-1 overflow-x-auto transition-colors shadow-sm animate-fade-up">
         {['hot', 'new', 'top'].map((sortType) => (

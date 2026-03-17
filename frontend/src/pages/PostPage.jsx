@@ -10,8 +10,8 @@ import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import TipTapEditor from '../components/TipTapEditor';
 import { Scale, Trophy, ExternalLink, ArrowUp, ArrowDown, MessageCircle, Share, Bookmark, BookmarkCheck, Trash2, ThumbsUp, ThumbsDown, ArrowLeft, Flag, AlertTriangle, ShieldAlert, Award } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -357,6 +357,15 @@ const PostPage = () => {
 
   return (
     <div className="mt-6 pb-10">
+      <Helmet>
+        <title>{post.title.length > 60 ? post.title.substring(0, 60) + '...' : post.title} | Vartalap</title>
+        <meta name="description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
+      </Helmet>
+      
       <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-4 text-sm flex items-center gap-1.5 transition-colors">
         <ArrowLeft size={16} /> Back to Feed
       </button>

@@ -11,10 +11,10 @@ import VoicePartyTab from '../components/VoicePartyTab';
 import CreatePost from '../components/CreatePost';
 import { SocketContext } from '../context/SocketContext';
 import PollView from '../components/PollView';
-import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle, Calendar, Mic, BarChart2, ExternalLink, Users, Ban, Award } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -466,6 +466,13 @@ const CommunityPage = () => {
 
   return (
     <div className="mt-6">
+      <Helmet>
+        <title>v/{community.name} | Vartalap</title>
+        <meta name="description" content={community.description ? (community.description.length > 150 ? community.description.substring(0, 150) + '...' : community.description) : `Join the v/${community.name} community on Vartalap. A place for ${community.topic || 'discussions'}.`} />
+        <meta property="og:title" content={`v/${community.name} | Vartalap`} />
+        <meta property="og:description" content={community.description ? (community.description.length > 150 ? community.description.substring(0, 150) + '...' : community.description) : `Join the v/${community.name} community on Vartalap. A place for ${community.topic || 'discussions'}.`} />
+      </Helmet>
+      
       {/* Community BANNER & DETAILS */}
       <div className="bg-gray-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-sm mb-6 relative transition-colors">
         {/* Banner Image */}

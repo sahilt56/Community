@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -67,6 +68,14 @@ function App() {
   return (
     <ThemeProvider>
       <SocketProvider>
+        <Helmet>
+          <title>Vartalap - Connect, Share, and Grow Together</title>
+          <meta name="description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
+          <meta property="og:title" content="Vartalap - Connect, Share, and Grow Together" />
+          <meta property="og:description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
+          <meta name="twitter:title" content="Vartalap - Connect, Share, and Grow Together" />
+          <meta name="twitter:description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
+        </Helmet>
         <div className="h-screen flex flex-col bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
         <Toaster 
           position="bottom-center"

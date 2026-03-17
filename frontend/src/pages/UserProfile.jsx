@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -498,6 +499,12 @@ const UserProfile = () => {
 
   return (
     <div className="dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
+      <Helmet>
+        <title>u/{profileData.profile.username} | Vartalap</title>
+        <meta name="description" content={profileData.profile.description ? (profileData.profile.description.length > 150 ? profileData.profile.description.substring(0, 150) + '...' : profileData.profile.description) : `Check out u/${profileData.profile.username}'s profile, posts, and communities on Vartalap.`} />
+        <meta property="og:title" content={`u/${profileData.profile.username} | Vartalap`} />
+        <meta property="og:description" content={profileData.profile.description ? (profileData.profile.description.length > 150 ? profileData.profile.description.substring(0, 150) + '...' : profileData.profile.description) : `Check out u/${profileData.profile.username}'s profile, posts, and communities on Vartalap.`} />
+      </Helmet>
       
       {/* FOLLOWERS/FOLLOWING MODAL */}
       {followersModal.isOpen && (

@@ -7,9 +7,8 @@ const sendEmail = async (options) => {
     }
 
     const payload = {
-      // ⚠️ IMPORTANT: Resend free tier only allows sending FROM 'onboarding@resend.dev' TO your verified email.
-      // Once you verify a custom domain (e.g., vartalap.live), you can change this to 'no-reply@vartalap.live'.
-      from: 'Vartalap Community <onboarding@resend.dev>',
+      // Now that the domain is verified, we can use the custom domain
+      from: 'Vartalap Community <no-reply@vartalap.live>',
       to: [options.email],
       subject: options.subject,
       html: options.html,

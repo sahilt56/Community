@@ -230,21 +230,29 @@ router.post('/send-otp', async (req, res) => {
       </div>
     `;
 
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      sendEmail({
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.log(`[TESTING] OTP for ${email} is: ${otp}`);
+      return res.status(500).json({ error: 'Email configuration is missing on the server. Please contact the administrator.' });
+    }
+
+    try {
+      await sendEmail({
         email,
         subject: 'Verify your Vartalap Registration',
         message,
         html: htmlMessage
-      }).catch(err => console.error("Error sending OTP email:", err));
-    } else {
-        console.log(`[TESTING] OTP for ${email} is: ${otp}`);
+      });
+      res.status(200).json({ message: "OTP sent successfully!" });
+    } catch (emailErr) {
+      console.error("Error sending OTP email:", emailErr);
+      // Remove the generated OTP since it wasn't sent
+      await Otp.deleteMany({ email });
+      return res.status(500).json({ error: `Failed to send email. Error: ${emailErr.message}` });
     }
 
-    res.status(200).json({ message: "OTP sent successfully!" });
   } catch (err) {
     console.error('Send OTP error:', err);
-    res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+    res.status(500).json({ error: 'Failed to process request. Please try again.' });
   }
 });
 

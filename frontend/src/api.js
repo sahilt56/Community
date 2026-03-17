@@ -14,7 +14,8 @@ const api = axios.create({
 // Request Interceptor: Attach token automatically
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
+  // 🛡️ Prevent sending the literal string "undefined" to backend
+  if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -30,6 +31,17 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+
+    // Agar token completely invalid ya corrupt ho gaya (jaise "undefined" string ban jana localstorage me)
+    if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID') {
+      console.error("Invalid token detected. Clearing session...");
+      localStorage.removeItem('user'); 
+      localStorage.removeItem('token'); 
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'; 
+      }
+      return Promise.reject(error);
+    }
 
     // Agar 401 (Unauthorized) aaya aur backend ne 'TOKEN_EXPIRED' code bheja hai, toh token refresh karne ki koshish karo
     if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_EXPIRED' && !originalRequest._retry) {

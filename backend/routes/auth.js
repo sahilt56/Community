@@ -24,19 +24,22 @@ const generateTokens = (userId) => {
 };
 
 // Helper function to set HttpOnly cookies
+// Note: For cross-domain deployments (like Render free tier frontend/backend splits),
+// sameSite MUST be 'none' and secure MUST be true for cookies to be attached.
 const setTokenCookies = (res, accessToken, refreshToken) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('token', accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 2 * 60 * 60 * 1000 // 2 hours
   });
   if (refreshToken) {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 2 * 60 * 60 * 1000 // 2 hours
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (match refresh token expiry)
     });
   }
 };
@@ -162,6 +165,7 @@ router.post('/google', async (req, res) => {
 
     res.status(200).json({
       message: "Google Login successful!",
+      token: accessToken, // 🛡️ FALLBACK: Return token in JSON for localStorage if cookies are dropped cross-origin
       user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0, isAdmin: user.isAdmin || false }
     });
 
@@ -347,6 +351,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ 
       message: "User registered successfully!",
+      token: accessToken, // 🛡️ FALLBACK: Return token in JSON for localStorage if cookies are dropped cross-origin
       user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null, anubhav: savedUser.anubhav || 0, isAdmin: savedUser.isAdmin || false } 
     });
 
@@ -519,6 +524,7 @@ router.post('/login', async (req, res) => {
     // 4. Success response
     res.status(200).json({
       message: "Login successful!",
+      token: accessToken, // 🛡️ FALLBACK: Return token in JSON for localStorage if cookies are dropped cross-origin
       user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0, isAdmin: user.isAdmin || false }
     });
 

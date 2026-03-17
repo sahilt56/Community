@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Login = () => {
@@ -14,6 +14,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
@@ -25,6 +26,7 @@ const Login = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // New states for Google Username flow
   const [showPrompt, setShowPrompt] = useState(false);
@@ -321,15 +323,25 @@ const Login = () => {
                         value={otp}
                         required
                       />
-                      <input
-                        type="password"
-                        placeholder="New Password"
-                        className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        value={newPassword}
-                        required
-                        minLength={6}
-                      />
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          placeholder="New Password"
+                          className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm pr-12"
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          value={newPassword}
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 text-left px-1 -mt-1">Password must be at least 8 characters long, contain 1 number, and 1 uppercase letter.</p>
                     </div>
                   )}
                 </>
@@ -379,15 +391,28 @@ const Login = () => {
                     value={email}
                     required
                   />
-                  <div className="flex flex-col items-end">
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-                      onChange={(e) => setPassword(e.target.value)}
-                      value={password}
-                      required
-                    />
+                  <div className="flex flex-col items-end w-full">
+                    <div className="relative w-full">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm pr-12"
+                        onChange={(e) => setPassword(e.target.value)}
+                        value={password}
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {!isLogin && (
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 text-left px-1 mt-1.5 w-full">Password must be at least 8 characters long, contain 1 number, and 1 uppercase letter.</p>
+                    )}
                     {isLogin && (
                       <button 
                         type="button" 

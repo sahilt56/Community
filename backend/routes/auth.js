@@ -400,21 +400,29 @@ router.post('/forgot-password-otp', async (req, res) => {
       </div>
     `;
 
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      sendEmail({
+    if (!process.env.RESEND_API_KEY) {
+      console.log(`[TESTING] Reset OTP for ${email} is: ${otp}`);
+      return res.status(500).json({ error: 'Email API configuration is missing on the server. Please contact the administrator.' });
+    }
+
+    try {
+      await sendEmail({
         email,
         subject: 'Vartalap Password Reset OTP',
         message,
         html: htmlMessage
-      }).catch(err => console.error("Error sending Reset OTP email:", err));
-    } else {
-        console.log(`[TESTING] Reset OTP for ${email} is: ${otp}`);
+      });
+      res.status(200).json({ message: "Password reset OTP sent successfully!" });
+    } catch (emailErr) {
+      console.error("Error sending Reset OTP email:", emailErr);
+      // Remove the generated OTP since it wasn't sent
+      await Otp.deleteMany({ email });
+      return res.status(500).json({ error: `Failed to send email. Error: ${emailErr.message}` });
     }
 
-    res.status(200).json({ message: "Password reset OTP sent successfully!" });
   } catch (err) {
     console.error('Send reset OTP error:', err);
-    res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+    res.status(500).json({ error: 'Failed to process request. Please try again.' });
   }
 });
 

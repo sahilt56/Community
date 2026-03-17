@@ -355,6 +355,11 @@ const PostPage = () => {
     }
   };
 
+  // 🖼️ Dynamic Image Logic for SEO
+  const postImage = post?.media?.length > 0 && post.media[0].mimetype?.startsWith('image/') 
+    ? (post.media[0].url.startsWith('http') ? post.media[0].url : `${import.meta.env.VITE_API_URL || 'https://api.vartalap.live'}${post.media[0].url}`)
+    : 'https://www.vartalap.live/favicon.png';
+
   return (
     <div className="mt-6 pb-10">
       <Helmet>
@@ -362,8 +367,10 @@ const PostPage = () => {
         <meta name="description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
+        <meta property="og:image" content={postImage} />
         <meta name="twitter:title" content={post.title} />
         <meta name="twitter:description" content={post.content ? (post.content.length > 150 ? post.content.substring(0, 150) + '...' : post.content) : `Join the discussion about ${post.title} on Vartalap.`} />
+        <meta name="twitter:image" content={postImage} />
       </Helmet>
       
       <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-4 text-sm flex items-center gap-1.5 transition-colors">

@@ -35,21 +35,31 @@ const { startCronJob } = require('./jobs/cleanupJob'); // Auto-Cleanup DB Job
 // ==========================================
 // 🚀 CORS CONFIGURATION
 // ==========================================
+// 🚀 CORS Configuration (Simplest & Most Robust)
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
   'https://vartalap.live',
   'https://www.vartalap.live',
-  process.env.FRONTEND_URL 
-].filter(Boolean);
+  'https://api.vartalap.live' // API origin ko bhi safety ke liye add kar do
+];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // 1. Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS policy violation'));
+    
+    // 2. Check if origin is in our whitelist
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.error("CORS Blocked Origin:", origin); // Logs mein origin check karne ke liye
+      callback(new Error('CORS policy violation'));
+    }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-protection', 'Accept', 'Origin', 'X-Requested-With'],
   credentials: true
 }));
 

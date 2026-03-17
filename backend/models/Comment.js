@@ -4,7 +4,7 @@ const CommentSchema = new mongoose.Schema({
   content: { type: String, required: true },
   
   // Jis user ne comment kiya hai
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, // false kiya gaya hai taaki 'soft delete' ke time author null karne par server crash na ho
   
   // Jis post par comment kiya hai
   post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },

@@ -29,11 +29,15 @@ function App() {
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
       // 2 hours = 2 * 60 * 60 * 1000 = 7200000 ms
-      inactivityTimer = setTimeout(() => {
-        if (localStorage.getItem('token')) {
+      inactivityTimer = setTimeout(async () => {
+        if (localStorage.getItem('token') || document.cookie.includes('token')) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          toast.error('Session expired due to inactivity. Please log in again.', { duration: 5000 });
+          try {
+            await fetch('/api/auth/logout', { method: 'POST' }); // ensure HttpOnly cookie is wiped
+          } catch(e) {}
+          
+          toast.error('Session expired due to 2 hours of inactivity. Please log in again.', { duration: 5000 });
           navigate('/login');
           window.dispatchEvent(new Event('auth-change'));
         }

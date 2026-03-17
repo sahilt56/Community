@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import TipTapEditor from '../components/TipTapEditor';
 import { 
   Shield, AlertTriangle, Users, MessageSquare, Send, X, Lock,
-  Trash2, CheckCircle, Search, MoreVertical, Activity, Layers, Ban, MessageCircle, KeyRound, Award
+  Trash2, CheckCircle, Search, MoreVertical, Activity, Layers, Ban, MessageCircle, KeyRound, Award, Database, HardDriveDownload
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -26,8 +26,9 @@ const AdminDashboard = () => {
   const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
   const [now, setNow] = useState(Date.now());
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [globalSettings, setGlobalSettings] = useState({ disablePost: false, disableCommunity: false, disableComment: false, disableReply: false, disablePoll: false, disableVoice: false, disableEvent: false });
+  const [globalSettings, setGlobalSettings] = useState({ disablePost: false, disableCommunity: false, disableComment: false, disableReply: false, disablePoll: false, disableVoice: false, disableEvent: false, autoCleanup: false });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [storageModal, setStorageModal] = useState(false);
   
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -103,6 +104,9 @@ const AdminDashboard = () => {
           const resPoll = await api.get('/api/admin/settings/global_disable_poll');
           const resVoice = await api.get('/api/admin/settings/global_disable_voice');
           const resEvent = await api.get('/api/admin/settings/global_disable_event');
+          let resCleanup = { data: { value: 'false' } };
+          try { resCleanup = await api.get('/api/admin/settings/auto_cleanup_enabled'); } catch(e){}
+
           setGlobalSettings({
               disablePost: resPost.data.value === 'true',
               disableCommunity: resComm.data.value === 'true',
@@ -110,7 +114,8 @@ const AdminDashboard = () => {
               disableReply: resReply.data.value === 'true',
               disablePoll: resPoll.data.value === 'true',
               disableVoice: resVoice.data.value === 'true',
-              disableEvent: resEvent.data.value === 'true'
+              disableEvent: resEvent.data.value === 'true',
+              autoCleanup: resCleanup.data.value === true || resCleanup.data.value === 'true'
           });
         } catch (e) {
             // Ignored if they don't exist yet
@@ -638,6 +643,79 @@ const AdminDashboard = () => {
       }
   };
 
+  const handleToggleGlobalSetting = async (settingKey, currentValue) => {
+      const newValue = !currentValue;
+      try {
+          await api.put(`/api/admin/settings/${settingKey}`, { 
+            value: newValue.toString(),
+            description: settingKey === 'auto_cleanup_enabled' ? "Automated nightly DB cleanup job" : ""
+          });
+          
+          toast.success("Setting updated successfully!");
+          
+          // Re-fetch global settings to keep UI in sync
+          const res = await api.get(`/api/admin/settings/${settingKey}`);
+          
+          setGlobalSettings(prev => {
+              const keyMap = {
+                  'global_disable_post': 'disablePost',
+                  'global_disable_community': 'disableCommunity',
+                  'global_disable_comment': 'disableComment',
+                  'global_disable_reply': 'disableReply',
+                  'global_disable_poll': 'disablePoll',
+                  'global_disable_voice': 'disableVoice',
+                  'global_disable_event': 'disableEvent',
+                  'auto_cleanup_enabled': 'autoCleanup'
+              };
+              const stateKey = keyMap[settingKey];
+              if (stateKey) {
+                  return { ...prev, [stateKey]: res.data.value === 'true' || res.data.value === true };
+              }
+              return prev;
+          });
+      } catch (err) {
+          toast.error("Failed to update setting.");
+      }
+  };
+
+  const formatBytes = (bytes) => {
+    if (!bytes && bytes !== 0) return '0.00 MB';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
+  const getCollectionColor = (index) => {
+    const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500', 'bg-cyan-500'];
+    return colors[index % colors.length];
+  };
+
+  const handleClearCollection = (colName, filterType) => {
+      let message = `Are you sure you want to permanently delete ${filterType === 'old' ? 'older (30+ days)' : 'ALL'} data from the '${colName}' collection? This cannot be undone.`;
+      
+      toast((t) => (
+        <div className="flex flex-col gap-3 p-1">
+          <p className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-red-500 shrink-0" />
+            {message}
+          </p>
+          <div className="flex gap-2 justify-end mt-1">
+            <button onClick={() => { toast.dismiss(t.id); executeClearCollection(colName, filterType); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete Data</button>
+            <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+          </div>
+        </div>
+      ), { duration: Infinity, position: 'top-center' });
+  };
+
+  const executeClearCollection = async (colName, filterType) => {
+      try {
+          const res = await api.delete(`/api/admin/collections/${colName}/clear?filterType=${filterType}`);
+          toast.success(res.data.message);
+          fetchData(); 
+      } catch (err) {
+          toast.error(err.response?.data?.error || `Failed to clear ${colName}.`);
+      }
+  };
+
   if (!user || !user.isAdmin) return null;
 
   return (
@@ -690,7 +768,7 @@ const AdminDashboard = () => {
                 <>
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && stats && (
-                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                             <div className="bg-gray-50 dark:bg-[#272729] rounded-xl p-4 md:p-5 border border-gray-200 dark:border-[#343536]">
                                 <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm font-medium">Total Users</p>
                                 <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mt-1 md:mt-2">{stats.totalUsers}</p>
@@ -706,6 +784,69 @@ const AdminDashboard = () => {
                             <div className="bg-red-50 dark:bg-red-500/10 rounded-xl p-4 md:p-5 border border-red-200 dark:border-red-500/20">
                                 <p className="text-red-500 dark:text-red-400 text-xs md:text-sm font-medium">Pending Reports</p>
                                 <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-500 mt-1 md:mt-2">{stats.pendingReports}</p>
+                            </div>
+                            
+                            {/* DB Storage Section - Full Width on small, Col-Span-2/4 on larger */}
+                            <div className="col-span-2 lg:col-span-3 xl:col-span-4 bg-gray-50 dark:bg-[#272729] rounded-xl p-4 md:p-5 border border-gray-200 dark:border-[#343536] flex flex-col justify-between mt-2">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h3 className="text-gray-900 dark:text-white text-base md:text-lg font-bold flex items-center gap-2">
+                                            <Database className="w-5 h-5 text-orange-500" /> Database Storage Profile (512 MB Free Tier)
+                                        </h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Detailed breakdown of space consumed by individual collections.</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                                            {formatBytes(stats.dbStorageUsed)}
+                                        </span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">/ 512.00 MB</span>
+                                    </div>
+                                </div>
+                                
+                                <button 
+                                    onClick={() => setStorageModal(true)}
+                                    className="mb-4 self-start bg-orange-100 hover:bg-orange-200 text-orange-700 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 dark:text-orange-400 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                                >
+                                    <HardDriveDownload className="w-4 h-4" /> Manage Storage & Clean Up
+                                </button>
+
+                                {/* Stacked Progress Bar */}
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 md:h-4 mt-2 mb-4 overflow-hidden flex shadow-inner">
+                                    {stats.collectionsStats && stats.collectionsStats.length > 0 ? (
+                                        stats.collectionsStats.map((col, idx) => {
+                                            const totalLimit = 512 * 1024 * 1024;
+                                            const percentage = Math.max((col.sizeBytes / totalLimit) * 100, 0.5); // min 0.5% to be visible if tiny
+                                            return (
+                                                <div 
+                                                    key={col.name}
+                                                    title={`${col.name}: ${formatBytes(col.sizeBytes)}`}
+                                                    className={`h-full ${getCollectionColor(idx)} border-r border-[#272729] last:border-0 hover:brightness-110 transition-all cursor-crosshair`} 
+                                                    style={{ width: `${percentage}%` }}
+                                                ></div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div 
+                                            className={`h-full ${stats.dbStorageUsed && (stats.dbStorageUsed / (1024 * 1024)) > 400 ? 'bg-red-500' : 'bg-orange-500'}`} 
+                                            style={{ width: `${Math.min(((stats.dbStorageUsed || 0) / (1024 * 1024) / 512) * 100, 100)}%` }}
+                                        ></div>
+                                    )}
+                                </div>
+
+                                {/* Legend Grid */}
+                                {stats.collectionsStats && (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-2 border-t border-gray-200 dark:border-gray-700/50 pt-4">
+                                        {stats.collectionsStats.map((col, idx) => (
+                                            <div key={col.name} className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded-full shrink-0 ${getCollectionColor(idx)} shadow-sm`}></div>
+                                                <div className="overflow-hidden">
+                                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 capitalize truncate">{col.name}</p>
+                                                    <p className="text-[10px] md:text-xs text-gray-500 font-medium">{formatBytes(col.sizeBytes)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -790,6 +931,19 @@ const AdminDashboard = () => {
                                     Instantly disable certain features across the entire platform in case of emergency.
                                 </p>
                                 <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/30 mb-2">
+                                        <div>
+                                            <p className="font-bold text-gray-900 dark:text-white flex items-center gap-1"><Database className="w-4 h-4 text-emerald-500"/> Automated Nightly Cleanup</p>
+                                            <p className="text-xs text-gray-500">Automatically deletes read notifications (7d) and dismissed reports (30d) at midnight to save space.</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleToggleGlobalSetting('auto_cleanup_enabled', globalSettings.autoCleanup)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${globalSettings.autoCleanup ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${globalSettings.autoCleanup ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
                                     <div className="flex items-center justify-between bg-gray-50 dark:bg-[#272729] p-4 rounded-xl border border-gray-200 dark:border-[#343536]">
                                         <div>
                                             <p className="font-bold text-gray-900 dark:text-white">Disable Post Creation</p>
@@ -1165,6 +1319,63 @@ const AdminDashboard = () => {
             </div>
         </div>
       )}
+      {/* STORAGE MANAGEMENT MODAL */}
+      {storageModal && (
+          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                  <div className="p-4 md:p-5 border-b border-gray-200 dark:border-[#343536] flex justify-between items-center bg-gray-50 dark:bg-[#272729]">
+                      <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <HardDriveDownload className="w-5 h-5 text-orange-500" /> Storage Management
+                      </h2>
+                      <button onClick={() => setStorageModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition bg-white dark:bg-[#1a1a1b] p-1.5 rounded-full border border-gray-200 dark:border-[#343536] shadow-sm">
+                          <X className="w-5 h-5" />
+                      </button>
+                  </div>
+                  <div className="p-4 md:p-6 overflow-y-auto">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Free up active database storage by permanently deleting old or unnecessary records. <strong className="text-red-500">Warning: Actions here are irreversible.</strong></p>
+                      
+                      <div className="flex flex-col gap-4">
+                          {stats?.collectionsStats?.map(col => {
+                              // We only allow certain collections to be bulk cleared safely
+                              const saveable = ['notifications', 'messages', 'reports', 'comments', 'posts'].includes(col.name.toLowerCase());
+                              
+                              return (
+                                  <div key={col.name} className="bg-gray-50 dark:bg-[#272729] rounded-xl p-4 border border-gray-200 dark:border-[#343536] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                      <div>
+                                          <p className="font-bold text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                                              {col.name} 
+                                          </p>
+                                          <p className="text-xs text-gray-500 font-medium mt-1">Space Used: <span className="text-gray-800 dark:text-gray-300 font-bold">{formatBytes(col.sizeBytes)}</span></p>
+                                      </div>
+                                      
+                                      {saveable ? (
+                                          <div className="flex flex-wrap gap-2 shrink-0">
+                                              {/* For Posts/Comments we might just want to delete older ones safely */}
+                                              {['posts', 'comments', 'notifications'].includes(col.name.toLowerCase()) && (
+                                                  <button onClick={() => handleClearCollection(col.name, 'old')} className="bg-orange-100 hover:bg-orange-200 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-orange-200 dark:border-orange-800/50">
+                                                      <Trash2 className="w-3.5 h-3.5" /> Clear Older than 30 Days
+                                                  </button>
+                                              )}
+                                              <button onClick={() => handleClearCollection(col.name, 'all')} className="bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-red-200 dark:border-red-800/30">
+                                                  <AlertTriangle className="w-3.5 h-3.5" /> Delete ALL Data
+                                              </button>
+                                          </div>
+                                      ) : (
+                                          <p className="text-xs text-gray-400 italic">Core data (not safe to bulk clear)</p>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                          
+                          {(!stats?.collectionsStats || stats.collectionsStats.length === 0) && (
+                              <p className="text-sm text-gray-500 text-center py-4">No collection stats available to manage.</p>
+                          )}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };

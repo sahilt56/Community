@@ -326,6 +326,23 @@ const Navbar = () => {
     }
   };
 
+  const deleteNotification = async (notifId, e) => {
+    e.stopPropagation(); // Click event ko parent div tak jaane se roko taki page redirect na ho
+    // Optimistic UI update
+    const notifToDelete = notifications.find(n => n._id === notifId);
+    setNotifications(prev => prev.filter(n => n._id !== notifId));
+    if (notifToDelete && !notifToDelete.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+
+    try {
+        await api.delete(`/api/notifications/${notifId}`);
+    } catch (err) {
+        console.error("Failed to delete notification:", err);
+        fetchNotifications(); // Revert on failure
+    }
+  };
+
   useEffect(() => {
     const sync = () => {
       setToken(localStorage.getItem('token'));
@@ -697,7 +714,7 @@ const Navbar = () => {
                         notifications.map(n => (
                           <div 
                             key={n._id}
-                            className={`flex items-start gap-3 px-4 py-3 border-b border-gray-200 dark:border-[#343536]/50 hover:bg-gray-50 dark:hover:bg-[#272729] transition-all cursor-pointer ${!n.read ? 'bg-blue-50 dark:bg-blue-500/5 border-l-2 border-l-blue-500' : ''}`}
+                            className={`flex items-start gap-3 px-4 py-3 border-b border-gray-200 dark:border-[#343536]/50 hover:bg-gray-50 dark:hover:bg-[#272729] transition-all cursor-pointer group ${!n.read ? 'bg-blue-50 dark:bg-blue-500/5 border-l-2 border-l-blue-500' : ''}`}
                             onClick={() => {
                               if (!n.read) markAsRead(n._id);
                               
@@ -747,13 +764,20 @@ const Navbar = () => {
                                   : n.type === 'admin_message'
                                   ? `: ${stripHtml(n.content)}`
                                   : n.type === 'vote' ? ' voted on your post' : n.type === 'comment' ? ' commented on your post' : n.type === 'reply' ? ' replied to your comment' : n.type === 'mention' ? ' mentioned you in a comment' : n.type === 'report' ? ' reported a ' + (n.content?.split(' ')[2] || 'item') : n.type === 'chat_invite' ? ' ' + n.content : ' started following you'}
-                              </span>
+                                </span>
                               </p>
                               {(n.type !== 'follow' && n.type !== 'report' && n.type !== 'chat_invite' && n.type !== 'welcome' && n.type !== 'admin_message') && <p className="text-xs text-blue-500 dark:text-blue-400 mt-1 line-clamp-1">{n.post?.title}</p>}
                               <p className="text-[10px] text-gray-500 mt-1">
                                 {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
+                            <button 
+                                onClick={(e) => deleteNotification(n._id, e)} 
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-colors self-center opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title="Delete Notification"
+                             >
+                                <X size={16} strokeWidth={2.5}/>
+                            </button>
                           </div>
                         ))
                       )}

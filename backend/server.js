@@ -11,15 +11,26 @@ const cookieParser = require('cookie-parser');
 // Environment variables load karna
 dotenv.config();
 
+// Initialize Redis Client Connection
+require('./utils/redisClient');
+
 const app = express();
 const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 const http = require('http');
 const { Server } = require('socket.io');
 
 // Share online users map across the app
 app.set('onlineUsers', new Map());
 
+// 🛡️ Security: Agar backend Cloudflare, Nginx ya kisi cloud provider (Render/Heroku) ke piche hai
+// Toh yeh zaroori hai, warna Rate Limiter sabko ek hi Proxy IP samajh kar block kar dega!
+app.set('trust proxy', 1);
+
 const chatCleanup = require('./services/chatCleanup'); // Auto-Destruct Service
+const { startCronJob } = require('./jobs/cleanupJob'); // Auto-Cleanup DB Job
 
 // 🔒 Security: Use Helmet to set secure HTTP headers
 app.use(helmet({
@@ -36,6 +47,15 @@ app.use(morgan('combined')); // 'combined' format IP address, Date, URL, Status 
 // Middleware
 app.use(express.json({ limit: '1mb' })); // 🔒 Security: Limit body size to prevent OOM attacks
 app.use(cookieParser()); // 🍪 Ye cookies ko read karne ke liye zaroori hai!
+
+// 🔒 Security: Prevent NoSQL Injection attacks by sanitizing incoming data 
+app.use(mongoSanitize());
+
+// 🔒 Security: Prevent XSS attacks (Cross-site script injection)
+app.use(xss());
+
+// 🔒 Security: Prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // 🔒 Security: Restrict CORS to known frontend origins only
 const allowedOrigins = [
@@ -80,7 +100,7 @@ app.use((req, res, next) => {
 });
 
 // 🔒 Security: Verify JWT token before allowing Socket.IO connections
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   // Extract token from HttpOnly cookie
   const cookieHeader = socket.handshake.headers.cookie;
   let token = null;
@@ -103,6 +123,13 @@ io.use((socket, next) => {
     return next(new Error("Authentication error: No token provided"));
   }
   try {
+    // 🛡️ Security: Check if token is blacklisted (Logged out)
+    const BlacklistToken = require('./models/BlacklistToken');
+    const isBlacklisted = await BlacklistToken.findOne({ token });
+    if (isBlacklisted) {
+      return next(new Error("Authentication error: Token is blacklisted/logged out"));
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.id;
     next();
@@ -136,14 +163,33 @@ io.on('connection', (socket) => {
   // ==========================================
   // 💬 CHAT ROOM SOCKET LOGIC
   // ==========================================
-  socket.on('join_chat_room', (roomId) => {
-    socket.join(`room_${roomId}`);
-    console.log(`User ${socket.userId} joined Chat Room: ${roomId}`);
+  socket.on('join_chat_room', async (roomId) => {
+    try {
+      const ChatRoom = require('./models/ChatRoom');
+      const User = require('./models/User');
+      
+      const room = await ChatRoom.findById(roomId);
+      if (!room) return;
+
+      const user = await User.findById(socket.userId);
+      if (!user || user.isBanned) return;
+
+      const isParticipant = room.participants.some(p => p.toString() === socket.userId);
+      
+      // 🛡️ SECURITY: Sirf participants ya admins hi room ke socket mein jud sakte hain!
+      if (!isParticipant && !user.isAdmin) {
+        console.log(`[SECURITY] Blocked unauthorized join attempt to room ${roomId} by user ${socket.userId}`);
+        return;
+      }
+
+      socket.join(`room_${roomId}`);
+    } catch (err) {
+      console.error("Socket join_chat_room error:", err);
+    }
   });
 
   socket.on('leave_chat_room', (roomId) => {
     socket.leave(`room_${roomId}`);
-    console.log(`User ${socket.userId} left Chat Room: ${roomId}`);
   });
 
   socket.on('send_chat_message', async (data) => {
@@ -191,10 +237,21 @@ io.on('connection', (socket) => {
   // ==========================================
   // 🎤 VOICE PARTY WEBRTC SIGNALING
   // ==========================================
-  socket.on('join-voice-room', (roomId, userId) => {
-    socket.join(`voice-${roomId}`);
-    // Notify others in the room that a new user connected so they can initiate a WebRTC offer
-    socket.to(`voice-${roomId}`).emit('user-connected-voice', { socketId: socket.id, userId });
+  socket.on('join-voice-room', async (roomId, userId) => {
+    try {
+      // 🛡️ SECURITY: Verify that the voice room actually exists and is active
+      const VoiceRoom = require('./models/VoiceRoom');
+      const room = await VoiceRoom.findById(roomId);
+      if (!room || !room.isActive) {
+        return;
+      }
+
+      socket.join(`voice-${roomId}`);
+      // Notify others in the room that a new user connected so they can initiate a WebRTC offer
+      socket.to(`voice-${roomId}`).emit('user-connected-voice', { socketId: socket.id, userId });
+    } catch (err) {
+      console.error("Socket join voice room error:", err);
+    }
   });
 
   socket.on('voice-offer', (payload) => {
@@ -241,8 +298,26 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use((req, res, next) => {
   // Sirf data change karne wali requests (POST, PUT, DELETE, PATCH) par check lagao
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    // 1. Custom Header Check
     if (req.headers['x-csrf-protection'] !== '1') {
       return res.status(403).json({ message: "Forbidden: Possible CSRF Attack blocked! 🛡️" });
+    }
+
+    // 2. Strict Origin/Referer Validation
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({ message: "Forbidden: Cross-Site Request Forgery (Origin mismatch) blocked! 🛡️" });
+    }
+    
+    if (!origin && referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (!allowedOrigins.includes(refererUrl.origin)) {
+          return res.status(403).json({ message: "Forbidden: Cross-Site Request Forgery (Referer mismatch) blocked! 🛡️" });
+        }
+      } catch (e) {}
     }
   }
   next();
@@ -264,8 +339,20 @@ const eventRoute = require('./routes/event');
 const voiceRoute = require('./routes/voice');
 const systemMessageRoute = require('./routes/systemMessages');
 
+// 🔒 Security: Global Rate Limiter for all other API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per 15 minutes for generic API calls
+  message: { message: 'Too many requests from this IP, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Apply global rate limiter to all /api routes
+app.use('/api', apiLimiter);
+
 // API Routes ko use karna
-app.use('/api/auth', authLimiter, authRoute); // 🔒 Rate limited
+app.use('/api/auth', authLimiter, authRoute); // 🔒 Strict Rate limited
 app.use('/api/communities', communityRoute);
 app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes); // Mount Admin Router
@@ -334,6 +421,8 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`Server & Socket.IO running on port ${PORT} ⚡`);
       // 🧹 Initialize the Auto-Destruct Sweeper
       chatCleanup.initializeCleanupSweep();
+      // 🧹 Initialize Auto DB Cleanup Cron Job
+      startCronJob();
     });
   })
   .catch((err) => console.log('Database connection error:', err));

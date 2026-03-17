@@ -66,6 +66,20 @@ router.delete('/clear-all', verifyToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'An error occurred while clearing notifications.' });
   }
+});// CLEAR SINGLE notification
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndDelete({ 
+      _id: req.params.id, 
+      recipient: req.user.id 
+    });
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found or unauthorized" });
+    }
+    res.json({ message: "Notification deleted" });
+  } catch (err) {
+    res.status(500).json({ error: 'An error occurred while deleting the notification.' });
+  }
 });
 
 module.exports = router;

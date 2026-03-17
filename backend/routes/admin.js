@@ -8,6 +8,7 @@ const Community = require('../models/Community');
 const Report = require('../models/Report');
 const Notification = require('../models/Notification');
 const Setting = require('../models/Setting');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // Apply admin middleware to all routes in this file
@@ -61,11 +62,40 @@ router.get('/stats', async (req, res) => {
     const totalPosts = await Post.countDocuments({ isDeleted: { $ne: true } });
     const pendingReports = await Report.countDocuments({ status: 'pending' });
 
+    let dbStorageUsed = 0;
+    let collectionsStats = [];
+    try {
+        const dbStats = await mongoose.connection.db.stats();
+        // storageSize often represents allocated space + indexes. dataSize is uncompressed data.
+        // For free tier tracking (e.g. Atlas 512MB), dataSize + indexSize is a good logical gauge.
+        dbStorageUsed = (dbStats.dataSize || 0) + (dbStats.indexSize || 0);
+
+        // Fetch collection stats for major collections
+        const colNames = ['users', 'posts', 'communities', 'comments', 'notifications', 'messages'];
+        for (const cName of colNames) {
+            try {
+               const cstats = await mongoose.connection.db.command({ collStats: cName });
+               const sizeBytes = (cstats.size || 0) + (cstats.totalIndexSize || 0);
+               if (sizeBytes > 0) {
+                 collectionsStats.push({ name: cName, sizeBytes });
+               }
+            } catch(e) { /* ignore missing */ }
+        }
+        
+        // Sort largest first
+        collectionsStats.sort((a,b) => b.sizeBytes - a.sizeBytes);
+        
+    } catch (e) {
+        console.error("Failed to fetch DB stats", e);
+    }
+
     res.json({
       totalUsers,
       totalCommunities,
       totalPosts,
-      pendingReports
+      pendingReports,
+      dbStorageUsed,
+      collectionsStats
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch admin statistics' });
@@ -525,6 +555,64 @@ router.put('/reports/:id/resolve', async (req, res) => {
     } catch (err) {
         console.error("Resolve error:", err);
         res.status(500).json({ error: "Failed to resolve report." });
+    }
+});
+
+// ==========================================
+// 🧹 6. DATA DELETION / CLEANUP
+// ==========================================
+router.delete('/collections/:name/clear', async (req, res) => {
+    try {
+        const { name } = req.params;
+        const { filterType } = req.query; // e.g., 'all', 'old' 
+        
+        let ModelToClear;
+        let query = {};
+
+        switch(name.toLowerCase()) {
+            case 'notifications':
+                ModelToClear = Notification;
+                break;
+            case 'messages':
+                const Message = require('../models/Message'); // dynamically import
+                ModelToClear = Message;
+                break;
+            case 'reports':
+                ModelToClear = Report;
+                query = { status: { $in: ['reviewed', 'dismissed'] } }; // only clear resolved ones
+                break;
+            case 'comments':
+                const Comment = require('../models/Comment');
+                ModelToClear = Comment;
+                break;
+            case 'posts':
+                ModelToClear = Post;
+                if (filterType === 'old') {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    query = { createdAt: { $lt: thirtyDaysAgo } };
+                }
+                break;
+            default:
+                return res.status(400).json({ message: "Invalid or unsupported collection for deletion." });
+        }
+
+        if (filterType === 'old' && !query.createdAt) {
+             const thirtyDaysAgo = new Date();
+             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+             query.createdAt = { $lt: thirtyDaysAgo };
+        }
+
+        const result = await ModelToClear.deleteMany(query);
+
+        res.json({ 
+            message: `Successfully deleted ${result.deletedCount} documents from ${name}.`,
+            deletedCount: result.deletedCount
+        });
+
+    } catch (err) {
+        console.error("Cleanup error:", err);
+        res.status(500).json({ error: "Failed to clear collection data." });
     }
 });
 

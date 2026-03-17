@@ -31,9 +31,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Backend 403 (Forbidden) bhejta hai jab Token expire ho jata hai ya invalid hota hai
-    // Agar 403 aaya, aur humne pehle retry nahi kiya hai, toh token refresh karne ki koshish karo
-    if (error.response?.status === 403 && !originalRequest._retry) {
+    // Agar 401 (Unauthorized) aaya aur backend ne 'TOKEN_EXPIRED' code bheja hai, toh token refresh karne ki koshish karo
+    if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {

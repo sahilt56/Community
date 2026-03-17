@@ -6,10 +6,16 @@ const Notification = require('../models/Notification');
 const verifyToken = require('../middleware/verifyToken');
 const upload = require('../middleware/upload');
 const contentFilter = require('../middleware/contentFilter');
+const redisClient = require('../utils/redisClient');
 
 
 router.get('/', async (req, res) => {
   try {
+    // ⚡ Caching: Create a unique key for this specific request
+    const cacheKey = `posts:${JSON.stringify(req.query)}`;
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) return res.json(JSON.parse(cachedData));
+
     const { sort = 'hot', page = 1, limit = 10 } = req.query; 
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -63,12 +69,18 @@ router.get('/', async (req, res) => {
     // For 'new' sort, we use optimized query. For others, we use slice results.
     const hasMore = startIndex + limitNum < totalDocs;
 
-    res.json({
+    const responseData = {
       posts: posts,
       hasMore,
       page: pageNum,
       totalPages: Math.ceil(totalDocs / limitNum)
-    });
+    };
+
+    // ⚡ Caching: Store the result in Redis for 5 minutes (300 seconds)
+    // Feeds change frequently, so a short TTL is good.
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(responseData));
+
+    res.json(responseData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });
@@ -99,6 +111,11 @@ function calculateHotScore(post) {
 // GET POSTS BY COMMUNITY (ID OR NAME)
 router.get('/community/:communityId', async (req, res) => {
   try {
+    // ⚡ Caching: Create a unique key for this specific request
+    const cacheKey = `posts:community:${req.params.communityId}:${JSON.stringify(req.query)}`;
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) return res.json(JSON.parse(cachedData));
+
     const { communityId } = req.params;
     const { sort = 'hot', page = 1, limit = 10 } = req.query;
     
@@ -161,12 +178,16 @@ router.get('/community/:communityId', async (req, res) => {
 
     const hasMore = startIndex + limitNum < totalDocs;
 
-    res.json({
+    const responseData = {
       posts: posts,
       hasMore,
       page: pageNum,
       totalPages: Math.ceil(totalDocs / limitNum)
-    });
+    };
+
+    // ⚡ Caching: Store the result in Redis for 5 minutes
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(responseData));
+    res.json(responseData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });
@@ -287,6 +308,12 @@ router.post('/create', verifyToken, upload.array('media', 16), contentFilter, as
       req.io.emit('new_post', savedPost);
     }
 
+    // ⚡ Cache Invalidation: New post created, so clear all feed caches
+    // A simple strategy is to delete all keys related to post lists.
+    const keys = await redisClient.keys('posts:*');
+    if (keys.length > 0) await redisClient.del(keys);
+    console.log(`[Cache] Invalidated ${keys.length} post list caches due to new post.`);
+
     res.status(201).json({
       message: "Post created successfully!",
       post: savedPost
@@ -354,6 +381,13 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
     post.hotScore = calculateHotScore(post);
     await post.save();
 
+    // ⚡ Cache Invalidation: Post data changed, clear relevant caches
+    const postCacheKey = `post:${req.params.id}`;
+    const listCacheKeys = await redisClient.keys('posts:*'); // Clear all list caches
+    const keysToDel = [postCacheKey, ...listCacheKeys];
+    if (keysToDel.length > 0) await redisClient.del(keysToDel);
+    console.log(`[Cache] Invalidated post ${req.params.id} and list caches due to vote.`);
+
     if (req.io) req.io.emit('post_interaction', post._id);
     res.status(200).json({ message: "Post upvoted successfully", post });
 
@@ -417,6 +451,13 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
     post.hotScore = calculateHotScore(post);
     await post.save();
 
+    // ⚡ Cache Invalidation: Post data changed, clear relevant caches
+    const postCacheKey = `post:${req.params.id}`;
+    const listCacheKeys = await redisClient.keys('posts:*'); // Clear all list caches
+    const keysToDel = [postCacheKey, ...listCacheKeys];
+    if (keysToDel.length > 0) await redisClient.del(keysToDel);
+    console.log(`[Cache] Invalidated post ${req.params.id} and list caches due to vote.`);
+
     if (req.io) req.io.emit('post_interaction', post._id);
     res.status(200).json({ message: "Post downvoted successfully", post });
 
@@ -432,6 +473,11 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
 // GET SINGLE POST
 router.get('/:id', async (req, res) => {
   try {
+    // ⚡ Caching: Check for single post cache
+    const cacheKey = `post:${req.params.id}`;
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) return res.json(JSON.parse(cachedData));
+
     // 1. Invalid ID format check (Prevents Server 500 CastError crash)
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid Post ID format!" });
@@ -445,7 +491,11 @@ router.get('/:id', async (req, res) => {
     if (!post || post.isDeleted) {
       return res.status(404).json({ message: "Post nahi mili bhai!" });
     }
+
+    // ⚡ Caching: Store the result in Redis for 1 hour (3600 seconds)
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(post));
     res.json(post);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });
@@ -470,6 +520,13 @@ router.put('/:id', verifyToken, contentFilter, async (req, res) => {
     if (link !== undefined) post.link = link;
 
     await post.save();
+
+    // ⚡ Cache Invalidation: Post data changed, clear relevant caches
+    const postCacheKey = `post:${req.params.id}`;
+    const listCacheKeys = await redisClient.keys('posts:*');
+    const keysToDel = [postCacheKey, ...listCacheKeys];
+    if (keysToDel.length > 0) await redisClient.del(keysToDel);
+
     res.json({ message: "Post updated successfully! ✨", post });
   } catch (err) {
     console.error('Post edit error:', err);
@@ -501,6 +558,13 @@ router.delete('/:id', verifyToken, async (req, res) => {
     // Soft delete — sirf flag lagao, DB se kuch mat hatao
     post.isDeleted = true;
     await post.save();
+
+    // ⚡ Cache Invalidation: Post deleted, clear relevant caches
+    const postCacheKey = `post:${req.params.id}`;
+    const listCacheKeys = await redisClient.keys('posts:*');
+    const keysToDel = [postCacheKey, ...listCacheKeys];
+    if (keysToDel.length > 0) await redisClient.del(keysToDel);
+    console.log(`[Cache] Invalidated post ${req.params.id} and list caches due to deletion.`);
 
     res.json({ message: "Post deleted successfully! 🗑️" });
   } catch (err) {
@@ -613,6 +677,13 @@ router.put('/:id/vote', verifyToken, async (req, res) => {
 
     await post.save();
     
+    // ⚡ Cache Invalidation: Post data changed, clear relevant caches
+    const postCacheKey = `post:${req.params.id}`;
+    const listCacheKeys = await redisClient.keys('posts:*');
+    const keysToDel = [postCacheKey, ...listCacheKeys];
+    if (keysToDel.length > 0) await redisClient.del(keysToDel);
+    console.log(`[Cache] Invalidated post ${req.params.id} and list caches due to poll vote.`);
+
     // Check if we need to emit post_interaction
     if (req.io) req.io.emit('post_interaction', post._id);
 

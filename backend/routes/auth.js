@@ -9,6 +9,7 @@ const Notification = require('../models/Notification');
 const Setting = require('../models/Setting');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+const BlacklistToken = require('../models/BlacklistToken');
 
 // Initialize Google Auth Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -17,8 +18,8 @@ const axios = require('axios'); // Add axios at the top if not present, though w
 
 // Helper function to generate tokens
 const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' }); // 🛡️ Security: Short-lived access token
+  const refreshToken = jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' }); // Long-lived refresh token
   return { accessToken, refreshToken };
 };
 
@@ -28,14 +29,14 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 15 * 60 * 1000 // 15 minutes
+    maxAge: 2 * 60 * 60 * 1000 // 2 hours
   });
   if (refreshToken) {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 2 * 60 * 60 * 1000 // 2 hours
     });
   }
 };
@@ -256,8 +257,9 @@ router.post('/register', async (req, res) => {
     if (typeof email !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ message: "Invalid input format!" });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters long!" });
+    // 🛡️ Security: Strong Password Policy
+    if (password.length < 8 || !/\d/.test(password) || !/[A-Z]/.test(password)) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long, include a number and an uppercase letter!" });
     }
 
     if (!otp) {
@@ -413,12 +415,14 @@ router.post('/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
-    if (!email || !otp || !newPassword) {
-      return res.status(400).json({ message: "All fields are required!" });
+    // 🛡️ Security: Prevent NoSQL object injection by checking types
+    if (!email || !otp || !newPassword || typeof otp !== 'string' || typeof newPassword !== 'string') {
+      return res.status(400).json({ message: "All fields are required and must be valid text!" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters long!" });
+    // 🛡️ Security: Strong Password Policy
+    if (newPassword.length < 8 || !/\d/.test(newPassword) || !/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long, include a number and an uppercase letter!" });
     }
 
     // 1. Check if user exists
@@ -440,11 +444,8 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP! Try again." });
     }
 
-    // 3. Hash new password and update user
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
-    user.password = hashedPassword;
+    // 3. Update user password (Mongoose pre-save hook will hash it automatically)
+    user.password = newPassword;
     await user.save();
 
     // 4. Delete used OTPs
@@ -515,14 +516,27 @@ router.post('/login', async (req, res) => {
 router.post('/refresh-token', async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
-    if (!refreshToken) return res.status(401).json({ message: "Refresh Token is required!" });
+    if (!refreshToken) return res.status(401).json({ message: "Authentication required. Please log in." });
 
-    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, (err, user) => {
-      if (err) return res.status(403).json({ message: "Invalid or expired Refresh Token! Please log in again." });
+    // Check if the refresh token is blacklisted
+    const isBlacklisted = await BlacklistToken.findOne({ token: refreshToken });
+    if (isBlacklisted) {
+      return res.status(401).json({ message: "Session has been invalidated. Please log in again." });
+    }
 
-      // Issue a new short-lived access token
-      const newAccessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-      setTokenCookies(res, newAccessToken, null); // Keep old refresh token
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, async (err, user) => {
+      if (err) return res.status(401).json({ message: "Invalid or expired session! Please log in again." });
+
+      // 🛡️ Security: Refresh Token Rotation
+      // Purane refresh token ko blacklist karo
+      const decodedRefresh = jwt.decode(refreshToken);
+      if (decodedRefresh && decodedRefresh.exp) {
+        await BlacklistToken.create({ token: refreshToken, expiresAt: new Date(decodedRefresh.exp * 1000) });
+      }
+
+      // Naya access aur refresh token issue karo
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
+      setTokenCookies(res, newAccessToken, newRefreshToken);
       res.status(200).json({ message: "Token refreshed successfully" });
     });
   } catch (err) {
@@ -531,7 +545,28 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // LOGOUT ROUTE
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  try {
+    const accessToken = req.cookies?.token;
+    const refreshToken = req.cookies?.refreshToken;
+
+    // JWT ko decode karke uski expiry date nikalenge taaki DB ko pata ho kab delete karna hai
+    if (accessToken) {
+      const decodedAccess = jwt.decode(accessToken);
+      if (decodedAccess && decodedAccess.exp) {
+        await BlacklistToken.create({ token: accessToken, expiresAt: new Date(decodedAccess.exp * 1000) });
+      }
+    }
+    if (refreshToken) {
+      const decodedRefresh = jwt.decode(refreshToken);
+      if (decodedRefresh && decodedRefresh.exp) {
+        await BlacklistToken.create({ token: refreshToken, expiresAt: new Date(decodedRefresh.exp * 1000) });
+      }
+    }
+  } catch (err) {
+    console.error("Error blacklisting token during logout:", err);
+  }
+
   res.clearCookie('token');
   res.clearCookie('refreshToken');
   res.status(200).json({ message: "Logged out successfully!" });

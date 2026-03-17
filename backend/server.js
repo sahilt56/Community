@@ -64,6 +64,8 @@ app.use(hpp());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'https://vartalap.live',
+  'https://www.vartalap.live',
   process.env.FRONTEND_URL // Add your production URL in .env
 ].filter(Boolean);
 

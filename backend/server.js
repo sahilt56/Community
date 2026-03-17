@@ -397,7 +397,7 @@ app.use((err, req, res, next) => {
     stack: process.env.NODE_ENV === 'production' ? '🥞 Stack trace hidden' : err.stack,
   });
 });
-
+// mongodb
 // MongoDB Connection
 const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI)

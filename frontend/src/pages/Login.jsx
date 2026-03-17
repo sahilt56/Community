@@ -161,10 +161,12 @@ const Login = () => {
       const currentToken = token || googleAccessToken;
       if (!currentToken) return;
 
-      const res = window.location.href('/api/auth/google', {
+      const res = await api.post('https://api.vartalap.live/api/auth/google', {
         access_token: currentToken,
         username: providedUsername,
         userType: providedUsername ? userType : undefined
+      },{
+        withCredentials: true
       });
 
       if (res.data.status === 'NEED_USERNAME') {

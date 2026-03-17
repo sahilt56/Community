@@ -32,11 +32,32 @@ app.set('trust proxy', 1);
 const chatCleanup = require('./services/chatCleanup'); // Auto-Destruct Service
 const { startCronJob } = require('./jobs/cleanupJob'); // Auto-Cleanup DB Job
 
+// ==========================================
+// 🚀 CORS CONFIGURATION (UPDATED & FIXED)
+// ==========================================
+// CORS must be the VERY FIRST middleware so OPTIONS preflight requests are handled immediately!
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://vartalap.live',
+  'https://www.vartalap.live',
+  process.env.FRONTEND_URL 
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow flexible matching for subdomains if needed, or stick to explicit whitelist
+    return callback(new Error('CORS policy violation'));
+  },
+  credentials: true
+}));
+
 // 🔒 Security: Use Helmet to set secure HTTP headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  // 🛡️ Allow popups (like Google Login) to interact with the main window
-  // This fixes the "Cross-Origin-Opener-Policy" error.
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
 app.disable('x-powered-by'); // Hide server info
@@ -59,24 +80,7 @@ app.use(xss());
 // 🔒 Security: Prevent HTTP Parameter Pollution
 app.use(hpp());
 
-// ==========================================
-// 🚀 CORS CONFIGURATION (UPDATED & FIXED)
-// ==========================================
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://vartalap.live',
-  'https://www.vartalap.live',
-  process.env.FRONTEND_URL // Add your production URL in .env
-].filter(Boolean);
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // OPTIONS is crucial for preflight
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-protection', 'Accept', 'Origin', 'X-Requested-With'], // Whitelisted custom CSRF header
-  credentials: true
-}));
+// CORS Block removed from here as it was moved to the very top of the middleware stack.
 
 // ==========================================
 // 🔌 SOCKET.IO CONFIGURATION

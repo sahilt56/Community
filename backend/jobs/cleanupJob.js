@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
+const https = require('https');
 const Notification = require('../models/Notification');
 const Post = require('../models/Post');
 const Report = require('../models/Report');
@@ -67,6 +68,26 @@ const runCleanup = async () => {
     }
 };
 
+// Self-Ping function to keep the Render free tier server awake
+const keepServerAwake = () => {
+    // Ping the server every 10 minutes (600,000 milliseconds)
+    // Render typically sleeps after 15 minutes of inactivity
+    const PING_INTERVAL = 10 * 60 * 1000;
+    
+    setInterval(() => {
+        const backendUrl = process.env.API_URL || 'https://api.vartalap.live';
+        https.get(backendUrl, (res) => {
+            if (res.statusCode === 200) {
+                console.log(`[Self-Ping] Server actively kept awake at ${new Date().toISOString()}`);
+            } else {
+                console.log(`[Self-Ping] Server ping failed with status: ${res.statusCode}`);
+            }
+        }).on('error', (err) => {
+            console.error('[Self-Ping] Error keeping server awake:', err.message);
+        });
+    }, PING_INTERVAL);
+};
+
 // Schedule job to run every day at Midnight (00:00) server time
 const startCronJob = () => {
     // '0 0 * * *' = at minute 0 past hour 0
@@ -74,6 +95,9 @@ const startCronJob = () => {
         runCleanup();
     });
     console.log("🟢 Auto-Cleanup Cron Job scheduled to run daily at midnight.");
+    
+    // Start the keep-awake interval as soon as the app starts
+    keepServerAwake();
 };
 
 module.exports = { startCronJob, runCleanup };

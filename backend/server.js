@@ -43,7 +43,6 @@ app.disable('x-powered-by'); // Hide server info
 
 const server = http.createServer(app);
 
-
 // 📝 Logging: Track all incoming HTTP requests to detect anomalies or attacks
 app.use(morgan('combined')); // 'combined' format IP address, Date, URL, Status aur User-Agent print karta hai
 
@@ -60,8 +59,11 @@ app.use(xss());
 // 🔒 Security: Prevent HTTP Parameter Pollution
 app.use(hpp());
 
-// 🔒 Security: Restrict CORS to known frontend origins only
+// ==========================================
+// 🚀 CORS CONFIGURATION (UPDATED & FIXED)
+// ==========================================
 const allowedOrigins = [
+  'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
   'https://vartalap.live',
@@ -70,17 +72,15 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // OPTIONS is crucial for preflight
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-protection', 'Accept', 'Origin', 'X-Requested-With'], // Whitelisted custom CSRF header
   credentials: true
 }));
 
+// ==========================================
+// 🔌 SOCKET.IO CONFIGURATION
+// ==========================================
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,

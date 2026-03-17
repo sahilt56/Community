@@ -161,7 +161,7 @@ const Login = () => {
       const currentToken = token || googleAccessToken;
       if (!currentToken) return;
 
-      const res = await api.post('/api/auth/google', {
+      const res = window.location.href('/api/auth/google', {
         access_token: currentToken,
         username: providedUsername,
         userType: providedUsername ? userType : undefined

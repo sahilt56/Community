@@ -11,6 +11,9 @@ const sendEmail = async (options) => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+    rejectUnauthorized: false // 🛡️ Ye Render par connection timeout hone se bachata hai
+  }
     });
 
     // Define email options

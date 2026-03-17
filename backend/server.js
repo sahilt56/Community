@@ -74,7 +74,7 @@ app.use(cookieParser());
 // ==========================================
 // 🛡️ MODERN XSS PROTECTION (FIXED CRASH)
 // ==========================================
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
   // Body sanitize karna
   if (req.body) {
     const cleanBody = xss(JSON.stringify(req.body));
@@ -93,7 +93,7 @@ app.use((req, res, next) => {
     }
   }
   next();
-});
+});**/
 
 // 🔒 Security: Prevent HTTP Parameter Pollution
 app.use(hpp());

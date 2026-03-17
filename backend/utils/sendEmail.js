@@ -13,6 +13,8 @@ const sendEmail = async (options) => {
       },
       // Extra Safety: Directly instruct the network socket to use IPv4
       family: 4,
+      // 🚀 THE ULTIMATE FIX: Force local socket to bind to IPv4 only (Bypasses 'Local (:::0)' error)
+      localAddress: '0.0.0.0',
       tls: {
         rejectUnauthorized: false // 🛡️ Ye Render par connection timeout hone se bachata hai
       },

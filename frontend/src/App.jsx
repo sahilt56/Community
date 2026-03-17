@@ -69,12 +69,13 @@ function App() {
     <ThemeProvider>
       <SocketProvider>
         <Helmet>
-          <title>Vartalap - Connect, Share, and Grow Together</title>
-          <meta name="description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
-          <meta property="og:title" content="Vartalap - Connect, Share, and Grow Together" />
-          <meta property="og:description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
-          <meta name="twitter:title" content="Vartalap - Connect, Share, and Grow Together" />
-          <meta name="twitter:description" content="Vartalap is a vibrant community platform where students and professionals come together to share ideas, ask questions, and build meaningful networks." />
+          <title>Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow</title>
+          <meta name="description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
+          <meta name="keywords" content="community, students, professionals, networking, questions, answers, discussion forum, vartalap, reddit alternative, stackoverflow alternative, quora alternative, indian forum, coding help, ask questions" />
+          <meta property="og:title" content="Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow" />
+          <meta property="og:description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
+          <meta name="twitter:title" content="Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow" />
+          <meta name="twitter:description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
         </Helmet>
         <div className="h-screen flex flex-col bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
         <Toaster 

@@ -69,8 +69,13 @@ app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser()); 
 
 // 🔒 Security: Prevent NoSQL Injection
-app.use(mongoSanitize());
-
+// server.js mein jahan mongoSanitize use kiya hai:
+app.use(
+  mongoSanitize({
+    allowDots: true,
+    replaceWith: '_',
+  })
+);
 // ==========================================
 // 🛡️ MODERN XSS PROTECTION (FIXED CRASH)
 // ==========================================

@@ -89,7 +89,8 @@ const Login = () => {
       setOtpSent(true);
       toast.success("OTP sent to your email!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP");
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Failed to send OTP";
+      toast.error(errorMessage);
     } finally {
       setSendingOtp(false);
     }
@@ -131,7 +132,8 @@ const Login = () => {
       setOtpSent(true);
       toast.success("Password reset OTP sent to your email!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send reset OTP");
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Failed to send reset OTP";
+      toast.error(errorMessage);
     } finally {
       setSendingOtp(false);
     }

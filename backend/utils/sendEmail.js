@@ -12,8 +12,11 @@ const sendEmail = async (options) => {
         pass: process.env.SMTP_PASS,
       },
       tls: {
-    rejectUnauthorized: false // 🛡️ Ye Render par connection timeout hone se bachata hai
-  }
+        rejectUnauthorized: false // 🛡️ Ye Render par connection timeout hone se bachata hai
+      },
+      connectionTimeout: 5000, // Fail fast if SMTP is blocked (e.g. 5 seconds)
+      greetingTimeout: 5000,
+      socketTimeout: 5000
     });
 
     // Define email options
@@ -30,7 +33,7 @@ const sendEmail = async (options) => {
     console.log(`✉️ Email sent: ${info.messageId}`);
   } catch (error) {
     console.error(`❌ Error sending email: ${error.message}`);
-    throw new Error('Email could not be sent');
+    throw error; // 🛡️ Abhi asli error bypass hoke auth.js me jayega
   }
 };
 

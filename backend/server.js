@@ -34,7 +34,10 @@ const { startCronJob } = require('./jobs/cleanupJob'); // Auto-Cleanup DB Job
 
 // 🔒 Security: Use Helmet to set secure HTTP headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  // 🛡️ Allow popups (like Google Login) to interact with the main window
+  // This fixes the "Cross-Origin-Opener-Policy" error.
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
 app.disable('x-powered-by'); // Hide server info
 

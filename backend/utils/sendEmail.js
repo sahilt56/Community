@@ -7,17 +7,12 @@ const sendEmail = async (options) => {
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: process.env.SMTP_PORT || 587,
       secure: false, // true for 465, false for other ports
-      host: 'smtp.gmail.com', // Explicitly use smtp.gmail.com
-      // Force IPv4! This bypasses the ENETUNREACH IPv6 error on Render/VPS
-      // By explicitly specifying ipv4 (family: 4) instead of '0', nodemailer refrains from attempting the broken IPv6 route.
-      tls: {
-        rejectUnauthorized: false
-      },
-      family: 4, // 🚀 FORCE IPv4 CONNECTION HERE!
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Extra Safety: Directly instruct the network socket to use IPv4
+      family: 4,
       tls: {
         rejectUnauthorized: false // 🛡️ Ye Render par connection timeout hone se bachata hai
       },

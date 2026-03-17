@@ -8,6 +8,10 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const xss = require('xss'); // ✅ Naya safe package import kiya
+const dns = require('dns');
+
+// 🌐 DNS FIX: Force Node.js to use IPv4 instead of IPv6 (Bypasses ENETUNREACH SMTP errors)
+dns.setDefaultResultOrder('ipv4first');
 
 // Environment variables load karna
 dotenv.config();

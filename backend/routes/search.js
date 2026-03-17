@@ -16,12 +16,14 @@ router.get('/', async (req, res) => {
 
     // Search communities by name
     const communities = await Community.find({ name: regex })
-      .select('name description members')
+      .select('name description members authorHasVartalapBadge')
+      .sort({ authorHasVartalapBadge: -1, members: -1 })
       .limit(5);
 
-    // Search users by username
-    const users = await User.find({ username: regex })
-      .select('username profilePic')
+    // Search users by username, excluding admins
+    const users = await User.find({ username: regex, isAdmin: { $ne: true } })
+      .select('username profilePic hasVartalapBadge')
+      .sort({ hasVartalapBadge: -1, anubhav: -1 })
       .limit(5);
 
     // Search posts by title or content (excluding deleted posts)
@@ -33,9 +35,10 @@ router.get('/', async (req, res) => {
       ],
       isDeleted: { $ne: true }
     })
-      .select('title community author')
+      .select('title community author authorHasVartalapBadge')
       .populate('community', 'name')
       .populate('author', 'username')
+      .sort({ authorHasVartalapBadge: -1, createdAt: -1 })
       .limit(5);
 
     res.json({ communities, users, posts });

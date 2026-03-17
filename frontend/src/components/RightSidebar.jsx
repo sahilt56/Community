@@ -56,9 +56,16 @@ const [currentTime] = useState(() => Date.now());
     if (!isBackground) setLoadingProfile(true);
     try {
       const res = await api.get(`/api/users/${user.username}`);
+      // console.log("Fetched right sidebar profileStats:", res.data); // ADDED FOR DEBUGGING
       setProfileStats(res.data);
     } catch (err) {
       console.error("Error fetching right sidebar profile", err);
+      // Agar logged-in user ki profile 404 de rahi hai, matlab account delete ho chuka hai
+      if (err.response && err.response.status === 404) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.href = '/login'; // Force auto-logout
+      }
     } finally {
       if (!isBackground) setLoadingProfile(false);
     }
@@ -152,7 +159,7 @@ const [currentTime] = useState(() => Date.now());
 
                 <div className="flex justify-center gap-8 w-full mt-4 mb-4 border-t border-b border-gray-300 dark:border-[#343536] py-3">
                   <div className="flex flex-col items-center">
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">{profileStats?.totalAnubhav || 0}</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">{profileStats?.totalAnubhav || profileStats?.profile?.anubhav || 0}</span>
                     <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Anubhav</span>
                   </div>
                   <div className="flex flex-col items-center">

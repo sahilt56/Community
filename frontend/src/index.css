@@ -3,6 +3,72 @@
 @config "../tailwind.config.js";
 
 /* TipTap Editor Styles */
+.Proimg[style*="display: none"] {
+    display: none !important;
+}
+
+/* React Hot Toast Override */
+.custom-toast-style {
+  background-color: white !important;
+  color: #111827 !important; /* gray-900 */
+}
+
+.dark .custom-toast-style {
+  background-color: #1a1a1b !important;
+  color: white !important;
+}
+
+/* React Quill styling for the Announcement Modal */
+.announcement-quill-wrapper .ql-container {
+  font-family: inherit;
+  font-size: 15px;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  background-color: #f9fafb; /* gray-50 */
+  border-color: #d1d5db; /* gray-300 */
+}
+
+.announcement-quill-wrapper .ql-toolbar {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  background-color: #f3f4f6; /* gray-100 */
+  border-color: #d1d5db; /* gray-300 */
+}
+
+/* Dark mode overrides for Quill */
+.dark .announcement-quill-wrapper .ql-container {
+  background-color: #272729;
+  border-color: #343536;
+  color: white;
+}
+
+.dark .announcement-quill-wrapper .ql-toolbar {
+  background-color: #1a1a1b;
+  border-color: #343536;
+}
+
+.dark .announcement-quill-wrapper .ql-snow .ql-stroke {
+  stroke: #d1d5db; /* gray-300 icon strokes */
+}
+
+.dark .announcement-quill-wrapper .ql-snow .ql-fill {
+  fill: #d1d5db;
+}
+
+.dark .announcement-quill-wrapper .ql-snow .ql-picker {
+  color: #d1d5db;
+}
+
+.dark .announcement-quill-wrapper .ql-snow .ql-picker-options {
+  background-color: #272729;
+  border-color: #343536;
+}
+
+.announcement-quill-wrapper .ql-editor {
+  min-height: 200px;
+}
+
+/* TipTap Editor Styles */
 .ProseMirror {
   outline: none !important;
   min-height: 100%;

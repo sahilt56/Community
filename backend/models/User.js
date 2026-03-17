@@ -16,14 +16,22 @@ const UserSchema = new mongoose.Schema({
   },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  anubhav: { type: Number, default: 0 }, // Reddit ka upvote/downvote score
+  isAdmin: { type: Boolean, default: false },
+  disabledFeatures: [{ type: String }],
+  hasVartalapBadge: { type: Boolean, default: false },
+  anubhav: { type: Number, default: 0 }, // Vartalap platform XP
   profilePic: { type: String, default: '' },
   bannerPic: { type: String, default: '' },
   description: { type: String, default: '' },
+  canUseGifBanner: { type: Boolean, default: false },
+  isBanned: { type: Boolean, default: false },
+  banExpiresAt: { type: Date, default: null },
+  banCount: { type: Number, default: 0 },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
-  hiddenPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }]
+  hiddenPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+  readSystemMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SystemMessage' }]
 }, { timestamps: true });
 
 // Password ko database mein save hone se pehle encrypt (hash) karna

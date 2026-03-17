@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'; // FIX: Hooks import kiye ga
 import api from '../api';
 import toast from 'react-hot-toast';
 import TipTapEditor from './TipTapEditor';
-import { FileText, Image, Link as LinkIcon, UploadCloud, Camera, Film, Home } from 'lucide-react';
+import { FileText, Image, Link as LinkIcon, UploadCloud, Camera, Film, Home, BarChart2, Plus, Trash2 } from 'lucide-react';
 
 const isVideoFile = (fileOrPreview) => {
   const type = fileOrPreview.type || '';
@@ -13,7 +13,7 @@ const isVideoFile = (fileOrPreview) => {
   return ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'].includes(ext);
 };
 
-const CreatePost = ({ onPostCreated }) => {
+const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [files, setFiles] = useState([]); // Array for multiple files
@@ -23,19 +23,30 @@ const CreatePost = ({ onPostCreated }) => {
   
   // FIX: Replaced Date.now() with a simple number state to keep the component pure
   const [fileInputKey, setFileInputKey] = useState(0); 
-  const [postType, setPostType] = useState('text'); // 'text', 'media', 'link'
+  const [postType, setPostType] = useState(initialType || 'text'); // 'text', 'media', 'link', 'poll'
   const [link, setLink] = useState('');
   
   // Track files added directly into the TipTap Editor via local blobs
   const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
 
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const curUserId = currentUser?.id || currentUser?._id;
+
+  // Poll state
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollDurationDays, setPollDurationDays] = useState(3);
+
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
         const res = await api.get('/api/communities/joined'); // Fetch only joined communities
         setCommunities(res.data);
-        if (res.data.length > 0) {
+        if (preselectedCommunityId) {
+          const found = res.data.find(c => c._id === preselectedCommunityId);
+          if (found) setSelectedCommunity(found._id);
+          else if (res.data.length > 0) setSelectedCommunity(res.data[0]._id);
+        } else if (res.data.length > 0) {
           setSelectedCommunity(res.data[0]._id);
         }
       } catch (err) {
@@ -110,6 +121,14 @@ const CreatePost = ({ onPostCreated }) => {
       return;
     }
 
+    if (postType === 'poll') {
+      const filledOptions = pollOptions.filter(opt => opt.trim());
+      if (filledOptions.length < 2) {
+        toast.error("Please provide at least 2 options for your poll!");
+        return;
+      }
+    }
+
     setIsCreating(true);
     let finalContent = content;
 
@@ -147,6 +166,12 @@ const CreatePost = ({ onPostCreated }) => {
     formData.append('postType', postType);
     formData.append('link', link);
     
+    if (postType === 'poll') {
+      const validOptions = pollOptions.filter(opt => opt.trim());
+      formData.append('pollOptions', JSON.stringify(validOptions));
+      formData.append('pollDurationDays', pollDurationDays);
+    }
+    
     // Append all media files
     if (postType === 'media') {
       files.forEach(file => {
@@ -163,12 +188,14 @@ const CreatePost = ({ onPostCreated }) => {
       setPreviews([]);
       setLink('');
       setPendingEditorFiles([]);
+      setPollOptions(['', '']);
+      setPollDurationDays(3);
       setFileInputKey(prev => prev + 1); // FIX: Incremented state instead of Date.now()
       toast.success(`Post Created Successfully!`, { id: loadingId });
       onPostCreated(); 
     } catch (err) {
       console.error("Post creation error:", err);
-      toast.error(err.response?.data?.message || "Error creating post", { id: loadingId });
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Error creating post", { id: loadingId });
     } finally {
       setIsCreating(false);
     }
@@ -188,8 +215,8 @@ const CreatePost = ({ onPostCreated }) => {
         </div>
       ) : (
         <>
-          {/* Post Type Tabs */}
-          <div className="flex border-b border-gray-200 dark:border-[#343536] transition-colors overflow-x-auto no-scrollbar">
+          {/* Post Type Tabs */}      {!initialType && (
+      <div className="flex border-b border-gray-200 dark:border-[#343536] transition-colors overflow-x-auto no-scrollbar">
         <button 
           type="button"
           onClick={() => setPostType('text')}
@@ -211,14 +238,43 @@ const CreatePost = ({ onPostCreated }) => {
         >
           <LinkIcon size={18} /> <span className="whitespace-nowrap">Link</span>
         </button>
+        {(() => {
+          const currentComm = communities.find(c => c._id === selectedCommunity);
+          const isAdmin = currentComm && (
+            currentComm.creator === curUserId ||
+            (currentComm.moderators && currentComm.moderators.includes(curUserId))
+          );
+          if (!isAdmin) return null;
+          return (
+            <button 
+              type="button"
+              onClick={() => setPostType('poll')}
+              className={`flex-1 min-w-20 py-3 text-xs md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-all ${postType === 'poll' ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white bg-gray-50 dark:bg-white/5' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
+            >
+              <BarChart2 size={18} /> <span className="whitespace-nowrap">Poll</span>
+            </button>
+          );
+        })()}
       </div>
+      )}
 
       <div className="p-4">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <select 
               value={selectedCommunity} 
-              onChange={(e) => setSelectedCommunity(e.target.value)}
+              onChange={(e) => {
+                const newCommId = e.target.value;
+                setSelectedCommunity(newCommId);
+                const currentComm = communities.find(c => c._id === newCommId);
+                const isAdmin = currentComm && (
+                  currentComm.creator === curUserId ||
+                  (currentComm.moderators && currentComm.moderators.includes(curUserId))
+                );
+                if (postType === 'poll' && !isAdmin) {
+                  setPostType('text');
+                }
+              }}
               className="w-full md:w-auto bg-gray-50 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] px-4 py-2.5 md:py-2 rounded-md outline-none focus:border-orange-500 dark:focus:border-gray-500 cursor-pointer text-sm font-bold min-w-37.5 transition-colors"
               required
             >
@@ -258,6 +314,68 @@ const CreatePost = ({ onPostCreated }) => {
               onChange={(e) => setLink(e.target.value)}
               required
             />
+          )}
+
+          {postType === 'poll' && (
+            <div className="flex flex-col gap-3">
+              <TipTapEditor
+                value={content}
+                onChange={setContent}
+                onPendingFile={() => {}} // Usually polls don't have images in body, but supported
+                placeholder="Ask your community a question..."
+                minHeight="100px"
+              />
+              <div className="bg-gray-50 dark:bg-[#272729] rounded-lg border border-gray-300 dark:border-[#343536] p-4 mt-2">
+                <p className="font-bold text-gray-900 dark:text-white mb-3 text-sm">Poll Options</p>
+                {pollOptions.map((opt, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2 items-center">
+                    <input 
+                      type="text" 
+                      placeholder={`Option ${idx + 1}`} 
+                      value={opt}
+                      onChange={(e) => {
+                        const newOpts = [...pollOptions];
+                        newOpts[idx] = e.target.value;
+                        setPollOptions(newOpts);
+                      }}
+                      className="flex-1 bg-white dark:bg-[#1a1a1b] text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] p-2.5 rounded outline-none focus:border-orange-500 dark:focus:border-gray-500 transition-all font-medium"
+                    />
+                    {pollOptions.length > 2 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {pollOptions.length < 6 && (
+                  <button 
+                    type="button"
+                    onClick={() => setPollOptions([...pollOptions, ''])}
+                    className="flex items-center gap-1.5 text-sm font-bold text-orange-600 dark:text-orange-400 mt-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    <Plus size={16} /> Add Option
+                  </button>
+                )}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#343536] flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Poll Duration</span>
+                  <select 
+                    value={pollDurationDays}
+                    onChange={(e) => setPollDurationDays(Number(e.target.value))}
+                    className="bg-white dark:bg-[#1a1a1b] text-xs text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] p-2 rounded outline-none w-32 font-bold cursor-pointer"
+                  >
+                    <option value={1}>1 Day</option>
+                    <option value={2}>2 Days</option>
+                    <option value={3}>3 Days</option>
+                    <option value={5}>5 Days</option>
+                    <option value={7}>7 Days</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           )}
 
           {postType === 'media' && (

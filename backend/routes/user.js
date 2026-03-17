@@ -32,13 +32,28 @@ router.get('/:username', async (req, res) => {
       return res.status(404).json({ message: "User not found!" });
     }
 
+    const isOwner = loggedInUserId && loggedInUserId === user._id.toString();
+
+    // 1.5. If user is banned, hide profile from public (unless owner or Admin)
+    let isAdmin = false;
+    if (loggedInUserId) {
+      const requester = await User.findById(loggedInUserId);
+      isAdmin = requester?.isAdmin || false;
+    }
+
+    if (user.isBanned && !isOwner && !isAdmin) {
+      if (!user.banExpiresAt || new Date() <= user.banExpiresAt) {
+          return res.status(404).json({ message: "This user profile is no longer available." });
+      } else {
+        // Ban implicitly expired, but let login route handle the DB update to be safe
+      }
+    }
+
     const Community = require('../models/Community');
     // Fetch communities this user has joined
     const joinedCommunities = await Community.find({ members: user._id }).select('name profilePic description');
     // Fetch communities this user has created
     const createdCommunities = await Community.find({ creator: user._id }).select('name profilePic description');
-
-    const isOwner = loggedInUserId && loggedInUserId === user._id.toString();
 
     // 2. Overview / Posts
     // Base query: author is user, not deleted.
@@ -80,7 +95,7 @@ router.get('/:username', async (req, res) => {
     }
 
     // Calculate total Anubhav (exclude self-votes)
-    let totalAnubhav = 0;
+    let totalAnubhav = user.anubhav || 0;
     userPosts.forEach(post => {
       const otherUpvotes = post.upvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
       const otherDownvotes = post.downvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
@@ -153,9 +168,18 @@ router.put('/:username/update', verifyToken, upload.fields([
 
     // Handle banner image upload
     if (req.files && req.files['bannerPic']) {
+      const file = req.files['bannerPic'][0];
+      const isGif = file.originalname.toLowerCase().endsWith('.gif') || file.mimetype === 'image/gif';
+
+      if (isGif && !user.canUseGifBanner && !user.isAdmin) {
+        // Unauthorized GIF upload. Delete the file immediately.
+        const fileUrl = file.path || file.secure_url || "";
+        await deleteOldFile(fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`);
+        return res.status(403).json({ message: "You do not have permission to upload animated GIF banners. Ask an Admin." });
+      }
+
       // Delete old banner pic before saving new one
       await deleteOldFile(user.bannerPic);
-      const file = req.files['bannerPic'][0];
       const fileUrl = file.path || file.secure_url || "";
       user.bannerPic = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
     }
@@ -289,56 +313,58 @@ router.delete('/:id/delete', verifyToken, async (req, res) => {
 
     // 2. Data Cleanup Logic
     
-    // A. Delete all posts by this user
-    await Post.deleteMany({ author: userId });
+    // A. Find all Communities created by the user
+    // We will delete them completely
+    const communitiesToDelete = await Community.find({ creator: userId });
+    const communityIds = communitiesToDelete.map(c => c._id);
 
-    // B. Remove comments by this user from ALL posts
+    // B. Find all Posts that are either IN these communities OR authored by this user
+    // We will delete all of these posts
+    const Post = require('../models/Post');
+    const postsToDelete = await Post.find({
+      $or: [
+        { author: userId },
+        { community: { $in: communityIds } }
+      ]
+    });
+    const postIds = postsToDelete.map(p => p._id);
+
+    // C. Delete all Comments that are either authored by this user OR belong to any of the deleted posts
+    const Comment = require('../models/Comment');
+    await Comment.deleteMany({
+      $or: [
+        { author: userId },
+        { post: { $in: postIds } }
+      ]
+    });
+
+    // D. Delete the identified Posts and Communities
+    await Post.deleteMany({ _id: { $in: postIds } });
+    await Community.deleteMany({ _id: { $in: communityIds } });
+
+    // E. Remove user's ID from various arrays in remaining documents
+    await Post.updateMany({}, { 
+      $pull: { upvotes: userId, downvotes: userId, savedBy: userId, hiddenBy: userId } 
+    });
+    
+    // Remove user votes from poll options in remaining posts
     await Post.updateMany(
-      {},
-      { $pull: { comments: { user: userId } } }
+      { 'pollOptions.votes': userId },
+      { $pull: { 'pollOptions.$[].votes': userId } }
     );
 
-    // C. Remove user's ID from upvotes, downvotes, savedBy, and hiddenBy lists on ALL posts
-    await Post.updateMany(
-      {},
-      { 
-        $pull: { 
-          upvotes: userId, 
-          downvotes: userId, 
-          savedBy: userId, 
-          hiddenBy: userId 
-        } 
-      }
-    );
+    await Comment.updateMany({}, {
+      $pull: { upvotes: userId, downvotes: userId }
+    });
 
-    // D. Remove user from all community membership lists
-    await Community.updateMany(
-      { members: userId },
-      { $pull: { members: userId } }
-    );
+    await Community.updateMany({}, { 
+      $pull: { members: userId, moderators: userId, bannedUsers: userId } 
+    });
 
-    // E. Handle communities where this user was the CREATOR
-    // Option: Delete community OR transfer ownership? For now, we'll keep it but set creator to null 
-    // to avoid orphaning. Alternatively, we could delete the community entirely.
-    // Let's set it to null so the community remains but marks the creator as 'Deleted User'.
-    await Community.updateMany(
-      { creator: userId },
-      { $set: { creator: null } }
-    );
+    await User.updateMany({ following: userId }, { $pull: { following: userId } });
+    await User.updateMany({ followers: userId }, { $pull: { followers: userId } });
 
-    // F. Cleanup Followers / Following references in other Users
-    // Remove me from others' 'following' lists (they were following me)
-    await User.updateMany(
-        { following: userId },
-        { $pull: { following: userId } }
-    );
-    // Remove me from others' 'followers' lists (I was following them)
-    await User.updateMany(
-        { followers: userId },
-        { $pull: { followers: userId } }
-    );
-
-    // G. Finally, delete the User document
+    // F. Finally, delete the User document
     await User.findByIdAndDelete(userId);
 
     res.status(200).json({ message: "Account deleted permanently. We're sad to see you go! 👋" });

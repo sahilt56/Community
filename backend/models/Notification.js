@@ -14,7 +14,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['vote', 'comment', 'follow'], 
+    enum: ['vote', 'comment', 'follow', 'report', 'chat_invite', 'welcome', 'admin_message'], 
     required: true 
   },
   post: { 
@@ -23,6 +23,14 @@ const NotificationSchema = new mongoose.Schema({
   },
   commentId: {
     type: String // To link to a specific comment if needed
+  },
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ChatRoom'
+  },
+  reportId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Report'
   },
   content: {
     type: String // Optional: summary of notice

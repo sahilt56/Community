@@ -18,6 +18,13 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
+  
+  const [userType, setUserType] = useState('student');
+
+  // Forgot Password flow states
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   // New states for Google Username flow
   const [showPrompt, setShowPrompt] = useState(false);
@@ -97,7 +104,7 @@ const Login = () => {
     }
 
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-    const payload = isLogin ? { email, password } : { username, email, password, otp };
+    const payload = isLogin ? { email, password } : { username, email, password, otp, userType };
     
     try {
       const res = await api.post(endpoint, payload);
@@ -112,6 +119,43 @@ const Login = () => {
     }
   };
 
+  const handleForgotPasswordOtp = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      await api.post('/api/auth/forgot-password-otp', { email: resetEmail });
+      setOtpSent(true);
+      toast.success("Password reset OTP sent to your email!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send reset OTP");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail || !otp || !newPassword) {
+      toast.error("Please fill all fields.");
+      return;
+    }
+    try {
+      await api.post('/api/auth/reset-password', { email: resetEmail, otp, newPassword });
+      toast.success("Password reset successfully! Please log in.");
+      setIsForgotPassword(false);
+      setIsLogin(true);
+      setOtpSent(false);
+      setOtp('');
+      setNewPassword('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reset password.");
+    }
+  };
+
   const handleGoogleSubmit = async (providedUsername, token) => {
     try {
       const currentToken = token || googleAccessToken;
@@ -119,7 +163,8 @@ const Login = () => {
 
       const res = await api.post('/api/auth/google', {
         access_token: currentToken,
-        username: providedUsername
+        username: providedUsername,
+        userType: providedUsername ? userType : undefined
       });
 
       if (res.data.status === 'NEED_USERNAME') {
@@ -167,6 +212,23 @@ const Login = () => {
                 value={username}
                 required
               />
+              
+              <div className="flex bg-gray-100 dark:bg-[#272729] rounded-xl p-1 mt-1 border border-gray-200 dark:border-[#343536]">
+                <button
+                  type="button"
+                  onClick={() => setUserType('student')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${userType === 'student' ? 'bg-white dark:bg-[#343536] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                >
+                  Student
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('professional')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${userType === 'professional' ? 'bg-white dark:bg-[#343536] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                >
+                  Professional
+                </button>
+              </div>
               {isCheckingUsername && <div className="absolute right-3 top-3.5"><span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin block"></span></div>}
               
               {usernameStatus && (
@@ -197,13 +259,17 @@ const Login = () => {
                 <img src={logo} alt="Vartalap Logo" className="w-24 h-24 object-cover rounded-full animate-float" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{isLogin ? 'Welcome Back' : 'Join Vartalap'}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Join Vartalap')}
+            </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-              {isLogin ? 'Login to continue your conversation' : (otpSent ? 'Enter the security code to verify your email' : 'Create an account and dive in')}
+              {isForgotPassword 
+                ? (otpSent ? 'Enter OTP and your new password' : 'Enter your email to receive a reset code')
+                : (isLogin ? 'Login to continue your conversation' : (otpSent ? 'Enter the security code to verify your email' : 'Create an account and dive in'))}
             </p>
 
             {/* Google Login Button */}
-            {(!otpSent || isLogin) && (
+            {(!otpSent && !isForgotPassword) && (
               <div className="mb-6">
                 <button 
                   onClick={() => loginWithGoogle()}
@@ -227,26 +293,78 @@ const Login = () => {
               </div>
             )}
 
-            <form onSubmit={isLogin || otpSent ? handleSubmit : handleSendOtp} className="flex flex-col gap-3">
+            <form onSubmit={isForgotPassword ? (otpSent ? handleResetPassword : handleForgotPasswordOtp) : (isLogin || otpSent ? handleSubmit : handleSendOtp)} className="flex flex-col gap-3">
               
-              {(!otpSent || isLogin) && (
+              {isForgotPassword ? (
+                <>
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm mb-2"
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    value={resetEmail}
+                    required
+                    disabled={otpSent}
+                  />
+                  {otpSent && (
+                    <div className="animate-fade-in flex flex-col gap-3">
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        maxLength={6}
+                        className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-center tracking-widest text-xl font-bold"
+                        onChange={(e) => setOtp(e.target.value)}
+                        value={otp}
+                        required
+                      />
+                      <input
+                        type="password"
+                        placeholder="New Password"
+                        className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        value={newPassword}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                (!otpSent || isLogin) && (
                 <>
                   {!isLogin && (
                     <div className="relative">
                       <input
                         type="text"
                         placeholder="Username"
-                        className={`focus-ring bg-gray-50 dark:bg-[#272729] border ${usernameStatus ? (usernameStatus.available ? 'border-green-500' : 'border-red-500') : 'border-gray-200'} dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm`}
+                        className={`focus-ring bg-gray-50 dark:bg-[#272729] border ${usernameStatus ? (usernameStatus.available ? 'border-green-500' : 'border-red-500') : 'border-gray-200'} dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm mb-3`}
                         onChange={(e) => setUsername(e.target.value)}
                         value={username}
                         required
                       />
                       {isCheckingUsername && <div className="absolute right-3 top-3.5"><span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin block"></span></div>}
                       {usernameStatus && (
-                        <p className={`text-[10px] text-left mt-0.5 px-1 ${usernameStatus.available ? 'text-green-600' : 'text-red-500'}`}>
+                        <p className={`text-[10px] text-left mt-0.5 px-1 ${usernameStatus.available ? 'text-green-600' : 'text-red-500'} mb-2`}>
                           {usernameStatus.message}
                         </p>
                       )}
+
+                      <div className="flex bg-gray-100 dark:bg-[#272729] rounded-xl p-1 mb-1 border border-gray-200 dark:border-[#343536]">
+                        <button
+                          type="button"
+                          onClick={() => setUserType('student')}
+                          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${userType === 'student' ? 'bg-white dark:bg-[#343536] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                          Student
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUserType('professional')}
+                          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${userType === 'professional' ? 'bg-white dark:bg-[#343536] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                          Professional
+                        </button>
+                      </div>
                     </div>
                   )}
                   <input
@@ -257,18 +375,33 @@ const Login = () => {
                     value={email}
                     required
                   />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
-                    onChange={(e) => setPassword(e.target.value)}
-                    value={password}
-                    required
-                  />
+                  <div className="flex flex-col items-end">
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      className="focus-ring bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-gray-900 dark:text-white p-3.5 rounded-xl outline-none w-full transition-all text-sm"
+                      onChange={(e) => setPassword(e.target.value)}
+                      value={password}
+                      required
+                    />
+                    {isLogin && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setIsForgotPassword(true);
+                          setOtpSent(false);
+                          setOtp('');
+                        }}
+                        className="text-xs text-orange-500 hover:text-orange-600 font-medium mt-2"
+                      >
+                        Forgot Password?
+                      </button>
+                    )}
+                  </div>
                 </>
-              )}
+              ))}
 
-              {!isLogin && otpSent && (
+              {!isLogin && !isForgotPassword && otpSent && (
                 <div className="animate-fade-in flex flex-col gap-3">
                   <div className="text-gray-600 dark:text-gray-300 text-sm mb-2 text-left bg-orange-50 dark:bg-orange-500/10 p-3 rounded-xl border border-orange-100 dark:border-orange-500/20">
                     We've sent a 6-digit code to <strong>{email}</strong>
@@ -294,37 +427,56 @@ const Login = () => {
 
               <button
                 type="submit"
-                disabled={sendingOtp || (usernameStatus && !usernameStatus.available && !isLogin)}
+                disabled={sendingOtp || (usernameStatus && !usernameStatus.available && !isLogin && !isForgotPassword)}
                 className={`btn-press mt-2 text-white font-bold p-3.5 rounded-xl transition-all shadow-lg text-base tracking-wide flex justify-center items-center gap-2 ${
-                  (sendingOtp || (usernameStatus && !usernameStatus.available && !isLogin))
+                  (sendingOtp || (usernameStatus && !usernameStatus.available && !isLogin && !isForgotPassword))
                     ? 'bg-gray-400 cursor-not-allowed' 
                     : 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
                 }`}
               >
-                {isLogin 
-                  ? 'Log In' 
-                  : (otpSent 
-                      ? 'Verify & Create Account' 
-                      : (sendingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Send OTP')
-                    )
+                {isForgotPassword 
+                  ? (otpSent ? 'Reset Password' : (sendingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Send Reset OTP'))
+                  : (isLogin 
+                    ? 'Log In' 
+                    : (otpSent 
+                        ? 'Verify & Create Account' 
+                        : (sendingOtp ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Send OTP')
+                      ))
                 }
               </button>
             </form>
 
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-[#343536] transition-colors">
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                {isLogin ? "New to Vartalap? " : "Already a member? "}
-                <span
-                  onClick={() => {
-                      setIsLogin(!isLogin);
-                      setOtpSent(false); 
-                      setUsernameStatus(null);
-                  }}
-                  className="text-orange-500 font-bold cursor-pointer hover:underline hover:text-orange-600 transition-colors"
-                >
-                  {isLogin ? 'Sign Up' : 'Log In'}
-                </span>
-              </p>
+              {isForgotPassword ? (
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  Remembered your password?{' '}
+                  <span
+                    onClick={() => {
+                        setIsForgotPassword(false);
+                        setIsLogin(true);
+                        setOtpSent(false); 
+                    }}
+                    className="text-orange-500 font-bold cursor-pointer hover:underline hover:text-orange-600 transition-colors"
+                  >
+                    Back to Login
+                  </span>
+                </p>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  {isLogin ? "New to Vartalap? " : "Already a member? "}
+                  <span
+                    onClick={() => {
+                        setIsLogin(!isLogin);
+                        setOtpSent(false); 
+                        setUsernameStatus(null);
+                        setIsForgotPassword(false);
+                    }}
+                    className="text-orange-500 font-bold cursor-pointer hover:underline hover:text-orange-600 transition-colors"
+                  >
+                    {isLogin ? 'Sign Up' : 'Log In'}
+                  </span>
+                </p>
+              )}
             </div>
           </>
         )}

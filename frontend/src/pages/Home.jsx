@@ -5,7 +5,8 @@ import { SocketContext } from '../context/SocketContext';
 import toast from 'react-hot-toast';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
-import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangle, CheckCircle } from 'lucide-react';
+import PollView from '../components/PollView';
+import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangle, CheckCircle, Award } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -233,6 +234,10 @@ const Home = () => {
     }
   };
 
+  const handlePollVoteSuccess = (postId, updatedPost) => {
+    setPosts(prev => prev.map(p => p._id === postId ? updatedPost : p));
+  };
+
   return (
     <div className="">
       {/* Sorting Tabs */}
@@ -275,8 +280,14 @@ const Home = () => {
             className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-xl shadow-sm transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
             style={{ animationDelay: `${Math.min(index, 4) * 60}ms` }}
           >
-            <p className="text-xs text-gray-500 mb-2">
-              Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white">u/{post.author?.username || 'user'}</Link>
+            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by 
+              <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
+                u/{post.author?.username || 'user'}
+                {post.authorHasVartalapBadge && (
+                  <Award size={12} className="text-blue-500 flex-shrink-0" />
+                )}
+              </Link>
             </p>
             <div className="flex justify-between items-start mb-1">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
@@ -309,6 +320,15 @@ const Home = () => {
                   Open ↗️
                 </a>
               </div>
+            )}
+
+            {/* Poll Post Rendering */}
+            {post.postType === 'poll' && (
+              <PollView 
+                post={post} 
+                currentUser={currentUser} 
+                onVoteSuccess={handlePollVoteSuccess} 
+              />
             )}
 
             {post.media && post.media.length > 0 && (

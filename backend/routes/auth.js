@@ -5,6 +5,8 @@ const Otp = require('../models/Otp');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
+const Notification = require('../models/Notification');
+const Setting = require('../models/Setting');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 
@@ -61,7 +63,7 @@ router.get('/check-username/:username', async (req, res) => {
 // GOOGLE LOGIN / REGISTER ROUTE
 router.post('/google', async (req, res) => {
   try {
-    const { access_token, username: providedUsername } = req.body;
+    const { access_token, username: providedUsername, userType } = req.body;
 
     if (!access_token) {
       return res.status(400).json({ error: "Access token is required" });
@@ -82,6 +84,20 @@ router.post('/google', async (req, res) => {
 
     // 2. Check if a user with this email already exists
     let user = await User.findOne({ email });
+
+    if (user && user.isBanned) {
+      if (user.banExpiresAt && new Date() > user.banExpiresAt) {
+        // Ban expired, unban them
+        user.isBanned = false;
+        user.banExpiresAt = null;
+        await user.save();
+      } else {
+        const banMessage = user.banExpiresAt 
+          ? `Your account is temporarily banned until ${new Date(user.banExpiresAt).toLocaleString()}.` 
+          : "Your account has been permanently banned by an administrator.";
+        return res.status(403).json({ error: banMessage });
+      }
+    }
 
     if (!user) {
       // 3. New User Flow
@@ -108,13 +124,35 @@ router.post('/google', async (req, res) => {
 
       const generatedPassword = crypto.randomBytes(16).toString('hex'); // Secure Random Password
       
+      const initialAnubhav = userType === 'professional' ? 15 : 20;
+
       const newUser = new User({ 
         username: providedUsername, 
         email, 
         password: generatedPassword,
-        profilePic: picture 
+        profilePic: picture,
+        userType: userType || 'student',
+        anubhav: initialAnubhav
       });
       user = await newUser.save();
+
+      // Dispatch Welcome Notification
+      try {
+          const superAdmin = await User.findOne({ isAdmin: true });
+          if (superAdmin) {
+              const welcomeSetting = await Setting.findOne({ key: 'welcome_message' });
+              const welcomeContent = welcomeSetting?.value || 'Welcome to Vartalap! 🎉 Dive into communities and start exploring today.';
+              
+              await new Notification({
+                  recipient: user._id,
+                  sender: superAdmin._id,
+                  type: 'welcome',
+                  content: welcomeContent
+              }).save();
+          }
+      } catch (err) {
+          console.error("Failed to generate welcome notification", err);
+      }
     }
 
     // 4. Generate Short-lived Access Token & Refresh Token
@@ -123,7 +161,7 @@ router.post('/google', async (req, res) => {
 
     res.status(200).json({
       message: "Google Login successful!",
-      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0 }
+      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0, isAdmin: user.isAdmin || false }
     });
 
   } catch (err) {
@@ -212,7 +250,7 @@ router.post('/send-otp', async (req, res) => {
 // REGISTER USER ROUTE
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, otp } = req.body;
+    const { username, email, password, otp, userType } = req.body;
 
     // 🛡️ Security: Prevent NoSQL Injection & check password strength
     if (typeof email !== 'string' || typeof password !== 'string') {
@@ -262,11 +300,36 @@ router.post('/register', async (req, res) => {
     }
 
     // 3. Create user
-    const newUser = new User({ username, email, password });
+    const initialAnubhav = userType === 'professional' ? 15 : 20;
+    const newUser = new User({ 
+      username, 
+      email, 
+      password,
+      userType: userType || 'student',
+      anubhav: initialAnubhav
+    });
     const savedUser = await newUser.save();
 
     // 4. Clear OTP
     await Otp.deleteMany({ email });
+
+    // 4.5 Dispatch Welcome Notification
+    try {
+        const superAdmin = await User.findOne({ isAdmin: true });
+        if (superAdmin) {
+            const welcomeSetting = await Setting.findOne({ key: 'welcome_message' });
+            const welcomeContent = welcomeSetting?.value || 'Welcome to Vartalap! 🎉 Dive into communities and start exploring today.';
+            
+            await new Notification({
+                recipient: savedUser._id,
+                sender: superAdmin._id,
+                type: 'welcome',
+                content: welcomeContent
+            }).save();
+        }
+    } catch (err) {
+        console.error("Failed to generate welcome notification", err);
+    }
 
     // 5. Generate Tokens
     const { accessToken, refreshToken } = generateTokens(savedUser._id);
@@ -274,12 +337,124 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ 
       message: "User registered successfully!",
-      user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null, anubhav: savedUser.anubhav || 0 } 
+      user: { id: savedUser._id, username: savedUser.username, profilePic: savedUser.profilePic || null, anubhav: savedUser.anubhav || 0, isAdmin: savedUser.isAdmin || false } 
     });
 
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
+  }
+});
+
+// FORGOT PASSWORD OTP ROUTE
+router.post('/forgot-password-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: "A valid email is required!" });
+    }
+
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email adddress!" });
+    }
+
+    // 2. Generate exactly 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    // 3. Clear existing OTPs for this email
+    await Otp.deleteMany({ email });
+
+    // 4. Hash OTP before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otp, salt);
+    const newOtp = new Otp({ email, otp: hashedOtp });
+    await newOtp.save();
+
+    // 5. Send email to user
+    const message = `You requested a password reset for Vartalap. Your one-time password (OTP) is: ${otp}. It will expire in 5 minutes.`;
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background-color: #f97316; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Password Reset Request</h1>
+        </div>
+        <div style="padding: 30px; text-align: center; background-color: white;">
+          <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Use the following OTP to reset your password. This OTP is valid for <strong>5 minutes</strong>.</p>
+          <div style="background-color: #f3f4f6; border-radius: 8px; display: inline-block; padding: 15px 30px; margin-bottom: 20px;">
+            <p style="font-size: 32px; font-weight: bold; color: #f97316; margin: 0; letter-spacing: 5px;">${otp}</p>
+          </div>
+          <p style="font-size: 14px; color: #666; margin-top: 20px;">If you didn't request a password reset, please ignore this email.</p>
+        </div>
+      </div>
+    `;
+
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      sendEmail({
+        email,
+        subject: 'Vartalap Password Reset OTP',
+        message,
+        html: htmlMessage
+      }).catch(err => console.error("Error sending Reset OTP email:", err));
+    } else {
+        console.log(`[TESTING] Reset OTP for ${email} is: ${otp}`);
+    }
+
+    res.status(200).json({ message: "Password reset OTP sent successfully!" });
+  } catch (err) {
+    console.error('Send reset OTP error:', err);
+    res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+  }
+});
+
+// RESET PASSWORD ROUTE
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required!" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long!" });
+    }
+
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found!" });
+    }
+
+    // 2. Validate OTP
+    const otpHolder = await Otp.find({ email });
+    if (otpHolder.length === 0) {
+      return res.status(400).json({ message: "OTP expired! Please request a new one." });
+    }
+
+    const rightOtpFind = otpHolder[otpHolder.length - 1]; // Get latest OTP
+    const validUser = await bcrypt.compare(otp.trim(), rightOtpFind.otp);
+
+    if (!validUser) {
+      return res.status(400).json({ message: "Invalid OTP! Try again." });
+    }
+
+    // 3. Hash new password and update user
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    user.password = hashedPassword;
+    await user.save();
+
+    // 4. Delete used OTPs
+    await Otp.deleteMany({ email });
+
+    res.status(200).json({ message: "Password reset successfully! You can now log in." });
+
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password. Please try again.' });
   }
 });
 
@@ -299,6 +474,21 @@ router.post('/login', async (req, res) => {
       return res.status(404).json({ message: "User not found!" });
     }
 
+    // 1.5. Check if user is banned
+    if (user.isBanned) {
+      if (user.banExpiresAt && new Date() > user.banExpiresAt) {
+        // Ban expired, unban them
+        user.isBanned = false;
+        user.banExpiresAt = null;
+        await user.save();
+      } else {
+        const banMessage = user.banExpiresAt 
+          ? `Your account is temporarily banned until ${new Date(user.banExpiresAt).toLocaleString()}.` 
+          : "Your account has been permanently banned by an administrator.";
+        return res.status(403).json({ message: banMessage });
+      }
+    }
+
     // 2. Password verify karo (Bcrypt use karke)
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -312,7 +502,7 @@ router.post('/login', async (req, res) => {
     // 4. Success response
     res.status(200).json({
       message: "Login successful!",
-      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0 }
+      user: { id: user._id, username: user.username, profilePic: user.profilePic || null, anubhav: user.anubhav || 0, isAdmin: user.isAdmin || false }
     });
 
   } catch (err) {

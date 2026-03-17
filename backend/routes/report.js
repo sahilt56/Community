@@ -45,7 +45,30 @@ router.post('/', verifyToken, async (req, res) => {
       description: description || ''
     });
 
-    await newReport.save();
+    const savedReport = await newReport.save();
+
+    // Notify all Admins
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+    const admins = await User.find({ isAdmin: true }).select('_id');
+    
+    if (admins.length > 0) {
+      const notifications = admins.map(admin => ({
+        recipient: admin._id,
+        sender: req.user.id,
+        type: 'report',
+        reportId: savedReport._id,
+        content: `reported a ${targetType}`
+      }));
+      await Notification.insertMany(notifications);
+      
+      // Also emit via socket if available
+      if (req.io) {
+          admins.forEach(admin => {
+              req.io.to(admin._id.toString()).emit('new_notification');
+          });
+      }
+    }
 
     res.status(201).json({ message: 'Report submitted successfully. Our team will review it. 🛡️' });
 

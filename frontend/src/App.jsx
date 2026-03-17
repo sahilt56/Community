@@ -1,10 +1,13 @@
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import PostPage from './pages/PostPage';
 import CreateCommunity from './pages/CreateCommunity';
 import CommunityPage from './pages/CommunityPage';
+import AdminDashboard from './pages/AdminDashboard'; // Admin Dashboard
+import AdminUserSupervision from './pages/AdminUserSupervision';
 import UserProfile from './pages/UserProfile';
 import CreatePostPage from './pages/CreatePostPage';
 import Explore from './pages/Explore';
@@ -12,10 +15,51 @@ import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import { SocketProvider } from './context/SocketContext';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
+import ChatRooms from './pages/ChatRooms';
+import ChatRoom from './pages/ChatRoom';
 
 function App() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let inactivityTimer;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      // 2 hours = 2 * 60 * 60 * 1000 = 7200000 ms
+      inactivityTimer = setTimeout(() => {
+        if (localStorage.getItem('token')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          toast.error('Session expired due to inactivity. Please log in again.', { duration: 5000 });
+          navigate('/login');
+          window.dispatchEvent(new Event('auth-change'));
+        }
+      }, 7200000); 
+    };
+
+    // Track common user interactions
+    const activityEvents = [
+      'mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'
+    ];
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Start timer on mount
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [navigate]);
+
   return (
     <ThemeProvider>
       <SocketProvider>
@@ -23,10 +67,7 @@ function App() {
         <Toaster 
           position="bottom-center"
           toastOptions={{
-            style: {
-              background: '#333',
-              color: '#fff',
-            },
+            className: 'custom-toast-style border border-gray-200 dark:border-[#343536] shadow-lg',
           }}
         />
         <Navbar />
@@ -44,6 +85,11 @@ function App() {
               <Route path="/u/:username" element={<UserProfile />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/reports" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUserSupervision />} />
+              <Route path="/chat" element={<ChatRooms />} />
+              <Route path="/chat/:id" element={<ChatRoom />} />
             </Routes>
           </div>
 

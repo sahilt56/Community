@@ -18,9 +18,11 @@ router.post('/', verifyToken, upload.single('media'), (req, res) => {
     
     // Determine the URL depending on local disk (uses filename) or Cloudinary
     const url = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
+    // Extract the public_id for Cloudinary destruction, or use the filename for local disk
+    const public_id = file.filename || req.file.public_id || fileUrl.split('/').pop().split('.')[0];
     const mimetype = file.mimetype;
 
-    res.status(200).json({ url, mimetype });
+    res.status(200).json({ url, mimetype, public_id });
   } catch (error) {
     console.error("Upload route error:", error);
     // Send specific error message sent by Multer FileFilter

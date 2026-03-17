@@ -11,6 +11,19 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
   try {
     const { name, description, minAnubhav = 0, minAgeDays = 0 } = req.body;
 
+    // 🛡️ FEATURE FLAG CHECK: Is user allowed    // Feature flag / privilege check
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+    if (user?.disabledFeatures?.includes('community')) {
+      return res.status(403).json({ message: "Your community creation privileges have been temporarily disabled by admins." });
+    }
+
+    const Setting = require('../models/Setting');
+    const globalCommSetting = await Setting.findOne({ key: 'global_disable_community' });
+    if (globalCommSetting && globalCommSetting.value === 'true' && !(user && user.isAdmin)) {
+      return res.status(403).json({ message: "Community creation is currently disabled platform-wide by admins." });
+    }
+
     // Check karo ki is naam ki community pehle se toh nahi hai
     const existingCommunity = await Community.findOne({ name });
     if (existingCommunity) {
@@ -48,7 +61,11 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { sort } = req.query;
-    let communities = await Community.find().populate('creator', 'username profilePic');
+    // Hide banned communities
+    let communities = await Community.find({ isBanned: { $ne: true } }).populate('creator', 'username profilePic');
+
+    // Hide zombie communities (where creator account was deleted)
+    communities = communities.filter(c => c.creator != null);
 
     if (sort === 'popular') {
       // Sort by member count descending
@@ -102,6 +119,26 @@ router.get('/:id', async (req, res) => {
     if (!community) {
       return res.status(404).json({ message: "Community not found!" });
     }
+
+    // Check ban status
+    const token = req.headers.authorization?.split(' ')[1];
+    let isAdmin = false;
+    if (token) {
+      const jwt = require('jsonwebtoken');
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const User = require('../models/User');
+        const requester = await User.findById(decoded.id);
+        isAdmin = requester?.isAdmin || false;
+      } catch (e) { /* ignore */ }
+    }
+
+    if (community.isBanned && !isAdmin) {
+      if (!community.banExpiresAt || new Date() <= community.banExpiresAt) {
+          return res.status(404).json({ message: "This community is currently unavailable." });
+      }
+    }
+
     res.json(community);
   } catch (err) {
     console.error(err);
@@ -314,7 +351,7 @@ router.post('/:id/join', verifyToken, async (req, res) => {
 
     // Calculate Anubhav (logic from user.js, excluding self-votes)
     const userPosts = await Post.find({ author: userId, isDeleted: { $ne: true } });
-    let totalAnubhav = 0;
+    let totalAnubhav = user.anubhav || 0;
     userPosts.forEach(post => {
       const otherUpvotes = post.upvotes?.filter(id => id && id.toString() !== userId.toString()).length || 0;
       const otherDownvotes = post.downvotes?.filter(id => id && id.toString() !== userId.toString()).length || 0;
@@ -326,6 +363,9 @@ router.post('/:id/join', verifyToken, async (req, res) => {
     const accountAgeDays = Math.floor((Date.now() - user.createdAt.getTime()) / msPerDay);
 
     // Validate Constraints
+    if (community.bannedUsers?.includes(userId)) {
+      return res.status(403).json({ message: "You have been banned from this community." });
+    }
     if (community.minAnubhav > 0 && totalAnubhav < community.minAnubhav) {
       return res.status(403).json({ message: `Need at least ${community.minAnubhav} Anubhav to join. You have ${totalAnubhav}.` });
     }
@@ -413,6 +453,85 @@ router.post('/:id/remove-mod', verifyToken, async (req, res) => {
     community.moderators = community.moderators.filter(id => id.toString() !== userId);
     await community.save();
     res.json({ message: "Moderator removed successfully", community });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// REMOVE MEMBER (Creator/Mod only)
+router.put('/:id/members/:userId/remove', verifyToken, async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const community = await Community.findById(id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+
+    // Ensure action user is creator or mod
+    const isCreator = community.creator.toString() === req.user.id;
+    const isMod = community.moderators?.some(modId => modId.toString() === req.user.id);
+    if (!isCreator && !isMod) {
+      return res.status(403).json({ message: "Only creators and moderators can remove members." });
+    }
+
+    // Cannot remove creator
+    if (community.creator.toString() === userId) {
+      return res.status(400).json({ message: "Cannot remove the community creator." });
+    }
+
+    // Remove from members
+    community.members.pull(userId);
+    // Remove from mods just in case
+    if (community.moderators.includes(userId)) {
+        community.moderators.pull(userId);
+    }
+    
+    await community.save();
+
+    res.status(200).json({ message: "User removed from community." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// BAN MEMBER (Creator/Mod only)
+router.put('/:id/members/:userId/ban', verifyToken, async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const community = await Community.findById(id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+
+    // Ensure action user is creator or mod
+    const isCreator = community.creator.toString() === req.user.id;
+    const isMod = community.moderators?.some(modId => modId.toString() === req.user.id);
+    if (!isCreator && !isMod) {
+      return res.status(403).json({ message: "Only creators and moderators can ban members." });
+    }
+
+    // Cannot ban creator
+    if (community.creator.toString() === userId) {
+      return res.status(400).json({ message: "Cannot ban the community creator." });
+    }
+
+    // Remove from members & mods
+    community.members.pull(userId);
+    if (community.moderators.includes(userId)) {
+        community.moderators.pull(userId);
+    }
+
+    // Ensure bannedUsers array exists
+    if (!community.bannedUsers) {
+        community.bannedUsers = [];
+    }
+
+    // Add to banned array if not already there
+    if (!community.bannedUsers.includes(userId)) {
+        community.bannedUsers.push(userId);
+    }
+    
+    await community.save();
+
+    res.status(200).json({ message: "User permanently banned from community." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });

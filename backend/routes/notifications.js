@@ -58,4 +58,14 @@ router.put('/mark-all-read', verifyToken, async (req, res) => {
   }
 });
 
+// CLEAR ALL notifications
+router.delete('/clear-all', verifyToken, async (req, res) => {
+  try {
+    await Notification.deleteMany({ recipient: req.user.id });
+    res.json({ message: "All notifications cleared" });
+  } catch (err) {
+    res.status(500).json({ error: 'An error occurred while clearing notifications.' });
+  }
+});
+
 module.exports = router;

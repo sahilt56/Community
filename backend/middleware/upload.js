@@ -23,7 +23,7 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
     storage = new multerCloudinary.CloudinaryStorage({
       cloudinary: cloudinary,
       params: {
-        folder: 'reddit_clone',
+        folder: 'vartalap',
         allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi','webp'],
         resource_type: "auto",
         public_id: (req, file) => {
@@ -36,7 +36,7 @@ if (process.env.STORAGE_TYPE === 'cloudinary') {
     // Version 2.x / 3.x Syntax (Fallback)
     storage = multerCloudinary({
       cloudinary: require('cloudinary'), // pass the root module, since v2 is accessed inside
-      folder: 'reddit_clone',
+      folder: 'vartalap',
       allowedFormats: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'mov', 'avi', 'webp'],
       params: {
         resource_type: 'auto'

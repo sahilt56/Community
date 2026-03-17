@@ -16,6 +16,11 @@ const helmet = require('helmet');
 const http = require('http');
 const { Server } = require('socket.io');
 
+// Share online users map across the app
+app.set('onlineUsers', new Map());
+
+const chatCleanup = require('./services/chatCleanup'); // Auto-Destruct Service
+
 // 🔒 Security: Use Helmet to set secure HTTP headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -74,9 +79,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Online user tracking
-const onlineUsers = new Map(); // userId -> socketId
-
 // 🔒 Security: Verify JWT token before allowing Socket.IO connections
 io.use((socket, next) => {
   // Extract token from HttpOnly cookie
@@ -110,6 +112,8 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  const onlineUsers = app.get('onlineUsers');
+
   socket.on('join_personal_room', (userId) => {
     // 🔒 Security: Only allow joining your OWN room
     if (socket.userId && socket.userId === userId) {
@@ -121,18 +125,112 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    let disconnectedUserId = null;
-    for (const [userId, socketId] of onlineUsers.entries()) {
-      if (socketId === socket.id) {
-        disconnectedUserId = userId;
-        break;
+    // O(1) Check: Sirf tabhi delete karo jab current socket ID Map me ho
+    // (Yeh multiple tabs wale bug ko bhi rokkega)
+    if (socket.userId && onlineUsers.get(socket.userId) === socket.id) {
+      onlineUsers.delete(socket.userId);
+      io.emit('user_offline', socket.userId);
+    }
+  });
+
+  // ==========================================
+  // 💬 CHAT ROOM SOCKET LOGIC
+  // ==========================================
+  socket.on('join_chat_room', (roomId) => {
+    socket.join(`room_${roomId}`);
+    console.log(`User ${socket.userId} joined Chat Room: ${roomId}`);
+  });
+
+  socket.on('leave_chat_room', (roomId) => {
+    socket.leave(`room_${roomId}`);
+    console.log(`User ${socket.userId} left Chat Room: ${roomId}`);
+  });
+
+  socket.on('send_chat_message', async (data) => {
+    try {
+        // data contains: roomId, text, codeSnippet, media (array), senderId
+        const ChatMessage = require('./models/ChatMessage');
+        const ChatRoom = require('./models/ChatRoom');
+
+        // 🛡️ SECURITY Check before accepting message
+        const room = await ChatRoom.findById(data.roomId);
+        if (!room) return;
+
+        // Is the socket sender actually part of this room?
+        const isParticipant = room.participants.some(p => p.toString() === socket.userId);
+        if (!isParticipant) {
+            console.log(`[SECURITY] Blocked unauthorized socket message attempt from user ${socket.userId} in room ${data.roomId}`);
+            return;
+        }
+        
+        const newMessage = new ChatMessage({
+            room: data.roomId,
+            sender: socket.userId,
+            text: data.text || '',
+            codeSnippet: data.codeSnippet || '',
+            media: data.media || [],
+            replyTo: data.replyToId || null
+        });
+
+        await newMessage.save();
+
+        // Populate sender info before emitting to everyone in the room
+        await newMessage.populate('sender', 'username profilePic');
+        if (newMessage.replyTo) {
+            await newMessage.populate({ path: 'replyTo', populate: { path: 'sender', select: 'username profilePic' } });
+        }
+
+        // Broadcast the message to the specific room
+        io.to(`room_${data.roomId}`).emit('receive_chat_message', newMessage);
+
+    } catch (err) {
+        console.error("Socket error saving chat message:", err);
+    }
+  });
+
+  // ==========================================
+  // 🎤 VOICE PARTY WEBRTC SIGNALING
+  // ==========================================
+  socket.on('join-voice-room', (roomId, userId) => {
+    socket.join(`voice-${roomId}`);
+    // Notify others in the room that a new user connected so they can initiate a WebRTC offer
+    socket.to(`voice-${roomId}`).emit('user-connected-voice', { socketId: socket.id, userId });
+  });
+
+  socket.on('voice-offer', (payload) => {
+    io.to(payload.targetSocketId).emit('voice-offer', {
+      callerSocketId: socket.id,
+      sdp: payload.sdp
+    });
+  });
+
+  socket.on('voice-answer', (payload) => {
+    io.to(payload.callerSocketId).emit('voice-answer', {
+      answererSocketId: socket.id,
+      sdp: payload.sdp
+    });
+  });
+
+  socket.on('voice-candidate', (payload) => {
+    io.to(payload.targetSocketId).emit('voice-candidate', {
+      senderSocketId: socket.id,
+      candidate: payload.candidate
+    });
+  });
+
+  socket.on('leave-voice-room', (roomId) => {
+    socket.leave(`voice-${roomId}`);
+    socket.to(`voice-${roomId}`).emit('user-disconnected-voice', socket.id);
+  });
+
+  // Handle sudden disconnect for voice rooms
+  socket.on('disconnecting', () => {
+    const rooms = Array.from(socket.rooms);
+    rooms.forEach(room => {
+      if (room.startsWith('voice-')) {
+        socket.to(room).emit('user-disconnected-voice', socket.id);
       }
-    }
-    
-    if (disconnectedUserId) {
-      onlineUsers.delete(disconnectedUserId);
-      io.emit('user_offline', disconnectedUserId);
-    }
+    });
   });
 });
 
@@ -158,23 +256,34 @@ const commentRoute = require('./routes/Comment');
 const userRoute = require('./routes/user');
 const searchRoute = require('./routes/search');
 const notificationRoute = require('./routes/notifications');
-const reportRoute = require('./routes/report');
+const reportRoutes = require('./routes/report');
+const adminRoutes = require('./routes/admin'); // Import Admin router
 const uploadRoute = require('./routes/upload');
+const chatRoute = require('./routes/chat'); // Temporary Chat Rooms
+const eventRoute = require('./routes/event');
+const voiceRoute = require('./routes/voice');
+const systemMessageRoute = require('./routes/systemMessages');
 
 // API Routes ko use karna
 app.use('/api/auth', authLimiter, authRoute); // 🔒 Rate limited
 app.use('/api/communities', communityRoute);
+app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes); // Mount Admin Router
 app.use('/api/posts', postRoute);
 app.use('/api/comments', commentRoute);
 app.use('/api/users', userRoute);
 app.use('/api/search', searchRoute);
 app.use('/api/notifications', notificationRoute);
-app.use('/api/reports', reportRoute);
+app.use('/api/reports', reportRoutes);
 app.use('/api/upload', uploadRoute);
+app.use('/api/chat', chatRoute);
+app.use('/api/events', eventRoute);
+app.use('/api/voice', voiceRoute);
+app.use('/api/system-messages', systemMessageRoute);
 
 // Basic Route
 app.get('/', (req, res) => {
-    res.send('Reddit Clone API is running!');
+    res.send('Vartalap API is running!');
 });
 
 // 🚨 404 Not Found Middleware (Catch-all for invalid routes)
@@ -197,14 +306,34 @@ app.use((err, req, res, next) => {
   });
 });
 
-// MongoDB Connection (Yeh block sabse important hai database ke liye)
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB successfully connected! 🚀'))
-  .catch((err) => console.log('Database connection error:', err));
-
+// MongoDB Connection
 const PORT = process.env.PORT || 5000;
+mongoose.connect(process.env.MONGO_URI)
+  .then(async () => {
+    console.log('MongoDB successfully connected! 🚀');
 
-// Server Start karna
-server.listen(PORT, () => {
-    console.log(`Server & Socket.IO running on port ${PORT} ⚡`);
-});
+    // Seed Default System Message if none exist
+    const SystemMessage = require('./models/SystemMessage');
+    const User = require('./models/User');
+    const msgCount = await SystemMessage.countDocuments();
+    if (msgCount === 0) {
+      let admin = await User.findOne({ isAdmin: true });
+      if (!admin) admin = await User.findOne();
+      
+      if (admin) {
+        await SystemMessage.create({
+          title: "Welcome to Vartalap! 🎉",
+          content: "Welcome to our new community platform! This is the global inbox where you will receive important updates, feature announcements, and news directly from the admins. Enjoy your stay!",
+          createdBy: admin._id
+        });
+        console.log("Seeded default System Message.");
+      }
+    }
+
+    server.listen(PORT, () => {
+      console.log(`Server & Socket.IO running on port ${PORT} ⚡`);
+      // 🧹 Initialize the Auto-Destruct Sweeper
+      chatCleanup.initializeCleanupSweep();
+    });
+  })
+  .catch((err) => console.log('Database connection error:', err));

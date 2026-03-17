@@ -14,7 +14,11 @@ const CommentSchema = new mongoose.Schema({
   parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
   
   // 🏆 Anubhav Bounty Winner check
-  isAccepted: { type: Boolean, default: false }
+  isAccepted: { type: Boolean, default: false },
+
+  // Vote system
+  upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  downvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   
 }, { timestamps: true });
 

@@ -5,12 +5,13 @@ import toast from 'react-hot-toast';
 import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
+import PollView from '../components/PollView';
 import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import TipTapEditor from '../components/TipTapEditor';
-import { Scale, Trophy, ExternalLink, ArrowUp, ArrowDown, MessageCircle, Share, Bookmark, BookmarkCheck, Trash2, ThumbsUp, ThumbsDown, ArrowLeft, Flag, AlertTriangle } from 'lucide-react';
+import { Scale, Trophy, ExternalLink, ArrowUp, ArrowDown, MessageCircle, Share, Bookmark, BookmarkCheck, Trash2, ThumbsUp, ThumbsDown, ArrowLeft, Flag, AlertTriangle, ShieldAlert, Award } from 'lucide-react';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -27,6 +28,7 @@ const PostPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [stance, setStance] = useState('neutral'); // ⚖️ For Debate Mode
   const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
@@ -40,10 +42,25 @@ const PostPage = () => {
       setPost(res.data);
     } catch (err) {
       console.error("Error fetching post", err);
+      if (err.response && err.response.status === 404) {
+        toast.error("Post not found or has been deleted.");
+        navigate('/'); // Redirect user back to feed
+      }
     }
   };
+
+  const fetchComments = async () => {
+    try {
+      const res = await api.get(`/api/comments/post/${id}`);
+      setComments(res.data);
+    } catch (err) {
+      console.error("Error fetching comments", err);
+    }
+  };
+
   useEffect(() => {
     fetchSinglePost();
+    fetchComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -54,6 +71,7 @@ const PostPage = () => {
     const handlePostUpdate = (updatedPostId) => {
       if (updatedPostId === id) {
         fetchSinglePost(); // Reload data silently without refreshing page
+        fetchComments();
       }
     };
 
@@ -95,18 +113,18 @@ const PostPage = () => {
     }
 
     try {
-      await api.post(`/api/posts/${id}/comment`, { 
-        text: finalContent, parentId: parentId, stance: parentId ? 'neutral' : stance 
+      await api.post(`/api/comments/add`, { 
+        content: finalContent, postId: id, parentCommentId: parentId, stance: parentId ? 'neutral' : stance 
       });
       if (!parentId) {
         setCommentText(''); // Sirf main dabba khali karo agar root comment hai
         setStance('neutral'); // Stance reset karo
         setPendingEditorFiles([]);
       }
-      fetchSinglePost();  // Post ko refresh karo taaki naya comment dikhe
+      fetchComments();  // Naye comment ko list me laane ke liye bas comments ko refresh karo
     } catch (err) {
       console.error("Comment submit error:", err);
-      toast.error("Comment post nahi hua!");
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Comment post nahi hua!");
     }
   };
 
@@ -121,18 +139,19 @@ const PostPage = () => {
 
     // Har comment ka ek map entity bana lo jisme empty children array ho
     commentsFlatArray.forEach(c => {
-      commentMap[c._id] = { ...c, children: [] };
+      // CommentThread component ko purane format ki aadat hai isliye naye backend response ko map kar rahe hain
+      commentMap[c._id] = { ...c, text: c.content, user: c.author, children: [] };
     });
 
     // Har comment ko uske parent ke children array mein ghusao
     commentsFlatArray.forEach(c => {
-      if (c.parentId) {
+      if (c.parentComment) {
         // Agar uska parent map mein majood hai toh usme dal do
-        if (commentMap[c.parentId]) {
-          commentMap[c.parentId].children.push(commentMap[c._id]);
+        if (commentMap[c.parentComment]) {
+          commentMap[c.parentComment].children.push(commentMap[c._id]);
         }
       } else {
-        // Agar parentId null hai, matlab ye pakka Root comment hai
+        // Agar parentComment null hai, matlab ye pakka Root comment hai
         roots.push(commentMap[c._id]);
       }
     });
@@ -140,7 +159,7 @@ const PostPage = () => {
     return roots;
   };
 
-  const rootComments = buildCommentTree(post?.comments);
+  const rootComments = buildCommentTree(comments);
 
   // VOTING LOGIC
   const handleUpvote = async () => {
@@ -178,9 +197,9 @@ const PostPage = () => {
   const handleCommentEdit = async (commentId, newText) => {
     if (!currentUser) return;
     try {
-      await api.put(`/api/posts/${id}/comment/${commentId}`, { text: newText });
+      await api.put(`/api/comments/${commentId}`, { content: newText });
       toast.success("Comment updated! ✨");
-      fetchSinglePost();
+      fetchComments();
     } catch (err) {
       console.error("Comment edit error:", err);
       toast.error("Error updating comment");
@@ -190,9 +209,9 @@ const PostPage = () => {
   const handleCommentDelete = async (commentId) => {
     if (!currentUser) return;
     try {
-      await api.delete(`/api/posts/${id}/comment/${commentId}`);
+      await api.delete(`/api/comments/${commentId}`);
       toast.success("Comment deleted! 🗑️");
-      fetchSinglePost();
+      fetchComments();
     } catch (err) {
       console.error("Comment delete error:", err);
       toast.error("Error deleting comment");
@@ -205,8 +224,8 @@ const PostPage = () => {
       return;
     }
     try {
-      await api.put(`/api/posts/${id}/comment/${commentId}/${type}`);
-      fetchSinglePost();
+      await api.put(`/api/comments/${commentId}/${type}`);
+      fetchComments();
     } catch (err) {
       console.error("Comment voting error:", err);
     }
@@ -280,9 +299,10 @@ const PostPage = () => {
 
   const handleAcceptBounty = async (commentId) => {
     try {
-      await api.put(`/api/posts/${id}/comment/${commentId}/accept-bounty`);
+      await api.put(`/api/comments/${commentId}/accept-bounty`);
       toast.success("Bounty awarded! 🏆");
       fetchSinglePost();
+      fetchComments();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to award bounty");
     }
@@ -343,12 +363,24 @@ const PostPage = () => {
 
       <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-6 rounded-md shadow-sm transition-colors overflow-visible relative">
         <div className="flex justify-between items-start mb-2">
-          <p className="text-xs text-gray-500 mb-2">
-            Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white">u/{post.author?.username || 'user'}</Link>
+          <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+            Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by 
+            <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
+              u/{post.author?.username || 'user'}
+              {post.authorHasVartalapBadge && (
+                <Award size={12} className="text-blue-500 flex-shrink-0" />
+              )}
+            </Link>
+            {post.author?.accountType === 'bot' && (
+              <span className="ml-1.5 text-xs font-bold text-blue-500 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-400 px-1.5 py-0.5 rounded-sm">
+                BOT
+              </span>
+            )}
           </p>
           <PostMenu 
             post={post}
             currentUser={currentUser}
+            isMod={canDelete}
             onSave={() => handleSave()}
             onHide={() => handleHide()}
             onReport={() => handleReport()}
@@ -385,6 +417,14 @@ const PostPage = () => {
               Open <ExternalLink size={14} />
             </a>
           </div>
+        )}
+
+        {post.postType === 'poll' && (
+          <PollView 
+            post={post} 
+            currentUser={currentUser} 
+            onVoteSuccess={(postId, updatedPost) => setPost(updatedPost)} 
+          />
         )}
 
         {post.media && post.media.length > 0 && (
@@ -446,7 +486,7 @@ const PostPage = () => {
            {/* Comments Count Indicator */}
            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full transition-colors">
               <MessageCircle size={14} />
-              <span className="text-[11px] sm:text-xs pt-0.5">{post.comments?.length || 0} <span className="hidden sm:inline">Comments</span></span>
+              <span className="text-[11px] sm:text-xs pt-0.5">{comments.length} <span className="hidden sm:inline">Comments</span></span>
            </div>
 
             <div 
@@ -482,44 +522,52 @@ const PostPage = () => {
       </div>
 
       {/* Comment Bhejne ka Dabba */}
-      <div className="mt-6 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md transition-colors">
-        <p className="text-gray-800 dark:text-white mb-2 text-sm font-bold">
-          Comment as <span className="text-blue-600 dark:text-cyan-400">u/{currentUser?.username || 'Anonymous'}</span>
-        </p>
-      {/* ⚖️ Debate Mode Stance Selector */}
-      {post.postType === 'debate' && (
-        <div className="flex gap-3 mb-3">
-          <button 
-            onClick={() => setStance('agree')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'agree' ? 'bg-green-500 border-green-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-green-500 hover:text-green-500'}`}
-          ><ThumbsUp size={14} /> I Agree</button>
-          <button 
-            onClick={() => setStance('disagree')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'disagree' ? 'bg-red-500 border-red-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-red-500 hover:text-red-500'}`}
-          ><ThumbsDown size={14} /> I Disagree</button>
+      {currentUser?.disabledFeatures?.includes('comment') ? (
+        <div className="mt-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-6 rounded-xl flex flex-col items-center justify-center text-center transition-colors">
+          <ShieldAlert size={32} className="text-red-500 mb-3" />
+          <h3 className="text-lg font-bold text-red-700 dark:text-red-400">Commenting Restricted</h3>
+          <p className="text-sm text-red-600 dark:text-red-300/80 mt-1 max-w-md">Your commenting privileges have been temporarily disabled by an administrator. You can still read the discussion.</p>
         </div>
-      )}
-        <div className="mb-3">
-          <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[6rem] sm:min-h-[8rem] h-auto resize-none sm:resize-y flex flex-col">
-            <TipTapEditor
-              value={commentText}
-              onChange={setCommentText}
-              onPendingFile={(file, url) => setPendingEditorFiles(prev => [...prev, { file, url }])}
-              placeholder="What are your thoughts? (Markdown supported ✨)"
-              minHeight="100%"
-              variant="comment"
-            />
+      ) : (
+        <div className="mt-6 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md transition-colors">
+          <p className="text-gray-800 dark:text-white mb-2 text-sm font-bold">
+            Comment as <span className="text-blue-600 dark:text-cyan-400">u/{currentUser?.username || 'Anonymous'}</span>
+          </p>
+        {/* ⚖️ Debate Mode Stance Selector */}
+        {post.postType === 'debate' && (
+          <div className="flex gap-3 mb-3">
+            <button 
+              onClick={() => setStance('agree')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'agree' ? 'bg-green-500 border-green-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-green-500 hover:text-green-500'}`}
+            ><ThumbsUp size={14} /> I Agree</button>
+            <button 
+              onClick={() => setStance('disagree')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${stance === 'disagree' ? 'bg-red-500 border-red-500 text-white' : 'bg-transparent border-gray-300 dark:border-[#343536] text-gray-500 hover:border-red-500 hover:text-red-500'}`}
+            ><ThumbsDown size={14} /> I Disagree</button>
+          </div>
+        )}
+          <div className="mb-3">
+            <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[6rem] sm:min-h-[8rem] h-auto resize-none sm:resize-y flex flex-col">
+              <TipTapEditor
+                value={commentText}
+                onChange={setCommentText}
+                onPendingFile={(file, url) => setPendingEditorFiles(prev => [...prev, { file, url }])}
+                placeholder="What are your thoughts? (Markdown supported ✨)"
+                minHeight="100%"
+                variant="comment"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button 
+              onClick={() => handleCommentSubmit(null, commentText)}
+              className="bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-1.5 px-6 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-all shadow-sm"
+            >
+              Comment
+            </button>
           </div>
         </div>
-        <div className="flex justify-end">
-          <button 
-            onClick={() => handleCommentSubmit(null, commentText)}
-            className="bg-gray-900 dark:bg-white text-white dark:text-black font-bold py-1.5 px-6 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-all shadow-sm"
-          >
-            Comment
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* ⚖️ Comments Display Section */}
       {post.postType === 'debate' ? (
@@ -529,7 +577,7 @@ const PostPage = () => {
             <h3 className="text-green-600 dark:text-green-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsUp size={18} strokeWidth={2.5} /> For / Agree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'agree').map((rootComment) => (
-                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} />
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={canDelete} />
               ))}
               {rootComments.filter(c => c.stance === 'agree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
             </div>
@@ -539,7 +587,7 @@ const PostPage = () => {
             <h3 className="text-red-600 dark:text-red-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsDown size={18} strokeWidth={2.5} /> Against / Disagree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'disagree').map((rootComment) => (
-                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} />
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={canDelete} />
               ))}
               {rootComments.filter(c => c.stance === 'disagree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
             </div>
@@ -560,6 +608,7 @@ const PostPage = () => {
                 currentUser={currentUser}
                 onAcceptBounty={handleAcceptBounty}
                 post={post}
+                isMod={canDelete}
               />
             ))
           ) : (

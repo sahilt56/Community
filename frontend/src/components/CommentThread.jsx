@@ -6,7 +6,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import TipTapEditor from './TipTapEditor';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { ArrowUp, ArrowDown, MessageCircle, Share, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageCircle, Share, Pencil, Trash2, Award } from 'lucide-react';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -27,7 +27,8 @@ const CommentThread = ({
   onShare, 
   onEdit,
   onDelete,
-  currentUser 
+  currentUser,
+  isMod
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -132,8 +133,11 @@ const CommentThread = ({
               {isDeleted ? (
                 <span className="font-bold italic text-gray-400 dark:text-gray-500">[deleted]</span>
               ) : (
-                <Link to={`/u/${comment.user?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-gray-300 font-bold">
+                <Link to={`/u/${comment.user?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-gray-300 font-bold flex items-center gap-1">
                   u/{comment.user?.username || 'user'}
+                  {comment.user?.hasVartalapBadge && (
+                    <Award size={12} className="text-blue-500 flex-shrink-0" />
+                  )}
                 </Link>
               )}
             </p>
@@ -227,17 +231,18 @@ const CommentThread = ({
             )}
 
             {/* Author/Mod can delete (Delete handler handles permissions) */}
-            <button 
-              onClick={() => {
-                // Ensure a nice modern UI if possible in the future, otherwise base confirm works
-                if (window.confirm("Are you sure you want to delete this comment?")) {
-                  onDelete(comment._id);
-                }
-              }}
-              className="hover:text-red-500 px-2 py-1.5 rounded transition-colors flex items-center gap-1.5 ml-auto"
-            >
-              <Trash2 size={14} /> <span>Delete</span>
-            </button>
+            {(isAuthor || isMod) && (
+              <button 
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this comment?")) {
+                    onDelete(comment._id);
+                  }
+                }}
+                className="hover:text-red-500 px-2 py-1.5 rounded transition-colors flex items-center gap-1.5 ml-auto"
+              >
+                <Trash2 size={14} /> <span>Delete</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -286,6 +291,7 @@ const CommentThread = ({
               onEdit={onEdit}
               onDelete={onDelete}
               currentUser={currentUser}
+              isMod={isMod}
             />
           ))}
         </div>

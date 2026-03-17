@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom'; // FIX: Removed unused useNavigate
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
 import OnlineIndicator from '../components/OnlineIndicator';
@@ -9,7 +9,7 @@ import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { ArrowUp, ArrowDown, MessageCircle, Camera, Trash2, Pencil, ShieldAlert } from 'lucide-react';
+import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil } from 'lucide-react';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -24,7 +24,7 @@ const sanitizeOptions = {
 
 const UserProfile = () => {
   const { username } = useParams();
-  // FIX: Removed unused 'navigate' variable
+  const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const [posts, setPosts] = useState([]); // Currently viewed list of posts based on activeTab
   const [allTabsData, setAllTabsData] = useState({}); // Stores all fetched arrays
@@ -34,6 +34,7 @@ const UserProfile = () => {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [description, setDescription] = useState('');
   const [uploadModal, setUploadModal] = useState({ isOpen: false, type: '', file: null, previewUrl: '' });
+  const [followersModal, setFollowersModal] = useState({ isOpen: false, type: 'followers', list: [] });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
     const { socket } = useContext(SocketContext);
@@ -65,7 +66,10 @@ const UserProfile = () => {
 
     } catch (err) {
       console.error("Error fetching user profile", err);
-      // alert("User nahi mila! 🛑");
+      if (err.response && err.response.status === 404) {
+        toast.error(err.response.data?.message || "User not found or unavailable.");
+        navigate('/'); // Redirect user back to feed
+      }
     }
   };
 
@@ -411,6 +415,11 @@ const UserProfile = () => {
     else setPosts(allTabsData[tabName] || []);
   };
 
+  const openFollowersModal = (type) => {
+    const list = type === 'followers' ? profileData.profile.followers : profileData.profile.following;
+    setFollowersModal({ isOpen: true, type, list: list || [] });
+  };
+
   const handleSave = async (postId) => {
     if (!token) return toast.error("Log in to save posts!");
     try {
@@ -490,6 +499,44 @@ const UserProfile = () => {
   return (
     <div className="dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
       
+      {/* FOLLOWERS/FOLLOWING MODAL */}
+      {followersModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm" onClick={(e) => { if(e.target === e.currentTarget) setFollowersModal({ isOpen: false, type: '', list: [] }); }}>
+            <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in flex flex-col max-h-[80vh]">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]/50 shrink-0">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white capitalize">
+                        {followersModal.type}
+                    </h3>
+                    <button onClick={() => setFollowersModal({ isOpen: false, type: '', list: [] })} className="text-gray-500 hover:text-red-500 transition-colors">
+                        ✕
+                    </button>
+                </div>
+                <div className="p-2 overflow-y-auto">
+                    {followersModal.list.length === 0 ? (
+                        <div className="text-center text-gray-500 py-10">No users to display.</div>
+                    ) : (
+                        followersModal.list.map(user => (
+                            <Link 
+                                key={user._id} 
+                                to={`/u/${user.username}`} 
+                                onClick={() => setFollowersModal({ isOpen: false, type: '', list: [] })}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors"
+                            >
+                                <div className="w-10 h-10 bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0 relative">
+                                    {user.username.charAt(0).toUpperCase()}
+                                    {getImageUrl(user.profilePic) && (
+                                        <img src={getImageUrl(user.profilePic)} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                                    )}
+                                </div>
+                                <span className="font-bold text-gray-900 dark:text-white">u/{user.username}</span>
+                            </Link>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+      )}
+      
       {/* MODERN UPLOAD MODAL */}
       {uploadModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
@@ -560,11 +607,22 @@ const UserProfile = () => {
           {isOwner && (
             <div className="absolute bottom-3 right-3 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
               <label 
-                className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 relative"
                 title="Edit Banner"
               >
-                <input type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'bannerPic')} />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept={(profileData.profile.canUseGifBanner || profileData.profile.isAdmin) ? "image/jpeg, image/png, image/webp, image/gif" : "image/jpeg, image/png, image/webp"}
+                  onChange={(e) => handleImageUpload(e, 'bannerPic')} 
+                />
                 <Camera size={18} strokeWidth={2.5} />
+                {(profileData.profile.canUseGifBanner || profileData.profile.isAdmin) && (
+                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span>
+                   </span>
+                )}
               </label>
               {profileData.profile.bannerPic && (
                 <button 
@@ -581,47 +639,69 @@ const UserProfile = () => {
         
         {/* Profile Info Row */}
         <div className="px-4 md:px-6 pb-2 flex flex-col relative">
-          {/* Overlapping Avatar */}
-          <div className="-mt-12 md:-mt-16 w-24 h-24 md:w-32 md:h-32 relative shrink-0 z-20">
-            <div className="w-full h-full bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full border-4 border-white dark:border-[#1a1a1b] flex items-center justify-center text-4xl font-bold text-white shadow-xl group overflow-hidden relative transition-colors">
-              {profileData.profile.username.charAt(0).toUpperCase()}
-              {profileData.profile.profilePic && (
-                <img 
-                  src={getImageUrl(profileData.profile.profilePic)} 
-                  alt="" 
-                  className="absolute inset-0 w-full h-full object-cover" 
-                  onError={(e) => { e.target.style.display = 'none'; }} 
-                />
-              )}
-              
-              {isOwner && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <label className="cursor-pointer p-2 bg-black/40 hover:bg-black/60 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
-                    <input type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
-                    <Camera size={20} strokeWidth={2.5} className="text-white" />
-                  </label>
+          {/* Overlapping Avatar AND Info row Wrapper */}
+          <div className="mt-4 flex flex-col items-start gap-4 w-full">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start w-full md:w-auto md:flex-1 min-w-0">
+              {/* Overlapping Avatar */}
+              <div className="-mt-12 md:-mt-16 w-24 h-24 md:w-32 md:h-32 relative shrink-0 z-20">
+                <div className="w-full h-full bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full border-4 border-white dark:border-[#1a1a1b] flex items-center justify-center text-4xl font-bold text-white shadow-xl group overflow-hidden relative transition-colors">
+                  {profileData.profile.username.charAt(0).toUpperCase()}
                   {profileData.profile.profilePic && (
-                    <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/60 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
-                      <Trash2 size={20} strokeWidth={2.5} />
-                    </button>
+                    <img 
+                      src={getImageUrl(profileData.profile.profilePic)} 
+                      alt="" 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                      onError={(e) => { e.target.style.display = 'none'; }} 
+                    />
+                  )}
+                  
+                  {isOwner && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <label className="cursor-pointer p-2 bg-black/40 hover:bg-black/60 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
+                        <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
+                        <Camera size={20} strokeWidth={2.5} className="text-white" />
+                      </label>
+                      {profileData.profile.profilePic && (
+                        <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/60 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
+                          <Trash2 size={20} strokeWidth={2.5} />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+                <OnlineIndicator userId={profileData.profile._id} size="w-6 h-6 md:w-8 md:h-8" border="border-[3px] md:border-4 border-white dark:border-[#1a1a1b]" />
+              </div>
+              
+              <div className="flex flex-col items-start justify-between w-full md:w-auto gap-4 md:mt-4">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight break-all">u/{profileData.profile.username}</h1>
+                    {profileData.profile.hasVartalapBadge && (
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] border border-blue-400/50" title="Official Vartalap Badge">
+                        <Award size={16} strokeWidth={2.5} />
+                        <span className="text-[10px] font-extrabold tracking-wider uppercase">Vartalap Badge</span>
+                      </div>
+                    )}
+                    {(profileData.totalAnubhav || 0) >= 100 && (
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-orange-400 to-yellow-500 text-white px-2 py-0.5 rounded-full shadow-sm" title="Vartalap Centurion (100+ Anubhav)">
+                        <BadgeCheck size={16} strokeWidth={2.5} />
+                        <span className="text-[10px] font-extrabold tracking-wider uppercase">Centurion</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm break-all">u/{profileData.profile.username}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                    <span onClick={() => openFollowersModal('followers')} className="cursor-pointer hover:underline hover:text-gray-900 dark:hover:text-white">{profileData.profile.followers?.length || 0} Followers</span>
+                     • 
+                    <span onClick={() => openFollowersModal('following')} className="cursor-pointer hover:underline hover:text-gray-900 dark:hover:text-white"> {profileData.profile.following?.length || 0} Following</span>
+                    <span className="md:hidden"> • {accountAgeText}</span>
+                  </p>
+                </div>
+              </div>
             </div>
-            <OnlineIndicator userId={profileData.profile._id} size="w-6 h-6 md:w-8 md:h-8" border="border-[3px] md:border-4 border-white dark:border-[#1a1a1b]" />
-          </div>
-          
-          <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight">u/{profileData.profile.username}</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">u/{profileData.profile.username}</p>
-              <p className="text-gray-600 dark:text-gray-500 text-xs mt-1">
-                {profileData.profile.followers?.length || 0} Followers • {profileData.profile.following?.length || 0} Following
-                <span className="md:hidden"> • {accountAgeText}</span>
-              </p>
-            </div>
+
             {/* Action Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full md:w-auto md:absolute md:right-6 md:top-24">
               {!isOwner && (
                 <button 
                   onClick={handleFollow}
@@ -712,8 +792,14 @@ const UserProfile = () => {
 
               return (
                 <div key={post._id} className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Posted in <span className="text-gray-900 dark:text-white font-bold hover:underline">c/{post.community?.name || 'general'}</span>
+                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                    Posted in <span className="text-gray-900 dark:text-white font-bold hover:underline">c/{post.community?.name || 'general'}</span> • by 
+                    <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
+                      u/{post.author?.username || 'user'}
+                      {post.authorHasVartalapBadge && (
+                        <Award size={12} className="text-blue-500 flex-shrink-0" />
+                      )}
+                    </Link>
                   </p>
                     <div className="flex justify-between items-start mb-1">
                       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
@@ -855,14 +941,14 @@ const UserProfile = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-[#343536] transition-colors">
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{profileData.totalAnubhav || 0}</span>
-                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Anubhav</span>
+              <div className="grid grid-cols-2 gap-2 pt-4 border-t border-gray-200 dark:border-[#343536] transition-colors">
+                <div onClick={() => openFollowersModal('followers')} className="flex flex-col p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] cursor-pointer transition-colors">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{profileData.profile.followers?.length || 0}</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Followers</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{posts.length}</span>
-                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Posts</span>
+                <div onClick={() => openFollowersModal('following')} className="flex flex-col p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] cursor-pointer transition-colors">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{profileData.profile.following?.length || 0}</span>
+                  <span className="text-xs text-gray-500 font-medium uppercase tracking-tighter">Following</span>
                 </div>
               </div>
             </div>

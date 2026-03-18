@@ -186,7 +186,7 @@ const CommentThread = ({
         
         {/* Actions bar */}
         {!isDeleted && (
-          <div className="flex items-center gap-3 text-xs text-gray-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-1">
             {/* Comment Voting */}
             <div className="flex items-center bg-gray-200 dark:bg-[#272729] rounded-full overflow-hidden transition-colors">
                <button 

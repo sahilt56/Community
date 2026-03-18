@@ -365,30 +365,30 @@ const Home = () => {
             </div>
             
             {/* Post Actions */}
-            <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm mt-3">
                 
                 {/* Voting UI */}
               <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors border border-transparent dark:border-[#343536]">
                   <div
                     onClick={() => handleUpvote(post._id)}
-                    className={`btn-press flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                    className={`btn-press flex items-center gap-1 px-2 pb-2 pt-2.5 sm:px-3 sm:py-2 cursor-pointer transition-all ${
                       hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                     }`}
                   >
                   <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
-                    <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
+                    <span className="text-xs font-bold pt-0.5">{post.upvotes?.length || 0}</span>
                   </div>
                   
                   <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
                   <div
                     onClick={() => handleDownvote(post._id)}
-                    className={`btn-press flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                    className={`btn-press flex items-center gap-1 px-2 pb-2 pt-2.5 sm:px-3 sm:py-2 cursor-pointer transition-all ${
                       hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                     }`}
                   >
                   <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
-                    <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
+                    <span className="text-xs font-bold pt-0.5">{post.downvotes?.length || 0}</span>
                   </div>
                 </div>
  

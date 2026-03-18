@@ -378,7 +378,7 @@ const PostPage = () => {
         <ArrowLeft size={16} /> Back to Feed
       </button>
 
-      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-6 rounded-md shadow-sm transition-colors overflow-visible relative">
+      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 sm:p-6 rounded-md shadow-sm transition-colors overflow-visible relative">
         <div className="flex justify-between items-start mb-2">
           <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
             Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by 
@@ -472,18 +472,18 @@ const PostPage = () => {
         </div>
 
         {/* Post Actions */}
-        <div className="flex items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm mt-3">
            
             <div className="flex items-center bg-gray-100 dark:bg-[#272729] rounded-full overflow-hidden transition-colors border border-transparent dark:border-[#343536]">
               {/* ⬆️ Upvote Button */}
               <div 
                 onClick={() => handleUpvote()}
-                className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                className={`flex items-center gap-1 px-2 pb-2 pt-2.5 sm:px-3 sm:py-2 cursor-pointer transition-all ${
                   hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                 }`}
               >
                  <ArrowUp size={18} strokeWidth={hasUpvoted ? 3 : 2} />
-                 <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
+                 <span className="text-xs font-bold pt-0.5">{post.upvotes?.length || 0}</span>
               </div>
               
               <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
@@ -491,24 +491,24 @@ const PostPage = () => {
               {/* ⬇️ Downvote Button */}
               <div 
                 onClick={() => handleDownvote()}
-                className={`flex items-center gap-1 px-3 py-2 cursor-pointer transition-all ${
+                className={`flex items-center gap-1 px-2 pb-2 pt-2.5 sm:px-3 sm:py-2 cursor-pointer transition-all ${
                   hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'hover:bg-gray-200 dark:hover:bg-[#343536]'
                 }`}
               >
                  <ArrowDown size={18} strokeWidth={hasDownvoted ? 3 : 2} />
-                 <span className="text-xs font-bold">{post.downvotes?.length || 0}</span>
+                 <span className="text-xs font-bold pt-0.5">{post.downvotes?.length || 0}</span>
               </div>
             </div>
 
            {/* Comments Count Indicator */}
-           <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full transition-colors">
+           <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-2.5 py-1.5 sm:px-3 rounded-full transition-colors">
               <MessageCircle size={14} />
               <span className="text-[11px] sm:text-xs pt-0.5">{comments.length} <span className="hidden sm:inline">Comments</span></span>
            </div>
 
             <div 
               onClick={() => handleShare()}
-              className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-3 py-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-[#343536] cursor-pointer transition-all"
+              className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-2.5 py-1.5 sm:px-3 rounded-full hover:bg-gray-200 dark:hover:bg-[#343536] cursor-pointer transition-all"
             >
                <Share size={14} />
                <span className="text-[11px] sm:text-xs pt-0.5">Share</span>
@@ -517,7 +517,7 @@ const PostPage = () => {
             {/* Save Button */}
             <div 
               onClick={handleSave}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-full cursor-pointer transition-all ${
                 post.savedBy?.includes(currentUser?.id) ? 'bg-yellow-50 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-500/50' : 'bg-gray-100 dark:bg-[#272729] text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#343536]'
               }`}
             >

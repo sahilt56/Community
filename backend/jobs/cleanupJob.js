@@ -60,7 +60,7 @@ const runCleanup = async () => {
         await Setting.findOneAndUpdate(
             { key: 'auto_cleanup_last_run' },
             { value: now.toISOString(), description: `Last run removed ${totalDeleted} records.` },
-            { upsert: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
     } catch (err) {

@@ -412,7 +412,7 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
     const post = await Post.findByIdAndUpdate(
       req.params.id,
       update,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     // Create Notification (if not already upvoted by this user before)
@@ -485,7 +485,7 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
     const post = await Post.findByIdAndUpdate(
       req.params.id,
       update,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (post.author.toString() !== userId) {

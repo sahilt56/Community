@@ -508,6 +508,27 @@ router.delete('/posts/:id', async (req, res) => {
     }
 });
 
+router.put('/users/:id/vartalap-badge', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        user.hasVartalapBadge = !user.hasVartalapBadge;
+        await user.save();
+        
+        const actionMessage = user.hasVartalapBadge ? 'Vartalap Badge Awarded!' : 'Vartalap Badge Revoked!';
+        res.status(200).json({ 
+            message: actionMessage, 
+            hasVartalapBadge: user.hasVartalapBadge 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to toggle Vartalap Badge' });
+    }
+});
+
 // ==========================================
 // 🚨 5. MANAGE REPORTS
 // ==========================================

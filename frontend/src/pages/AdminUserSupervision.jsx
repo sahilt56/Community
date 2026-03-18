@@ -226,6 +226,16 @@ const AdminUserSupervision = () => {
         }
     };
 
+    const handleToggleVartalapBadge = async (userId) => {
+        try {
+            const res = await api.put(`/api/admin/users/${userId}/vartalap-badge`);
+            toast.success(res.data.message);
+            fetchUsers();
+        } catch (err) {
+            toast.error("Failed to update Vartalap Badge.");
+        }
+    };
+
     const handleSendMessageClick = (userId, username) => {
         setMessageModal({ isOpen: true, userId, username, content: '' });
     };
@@ -434,6 +444,14 @@ const AdminUserSupervision = () => {
                                                         <span>Ban</span>
                                                     </button>
                                                 )}
+                                                
+                                                <button 
+                                                    onClick={() => handleToggleVartalapBadge(u._id)} 
+                                                    className={`flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-purple-50 dark:bg-[#272729] dark:hover:bg-purple-500/10 text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 border border-gray-300 hover:border-purple-300 dark:border-[#343536] dark:hover:border-purple-500/40 rounded-lg text-sm font-semibold transition-all shadow-sm ${u.hasVartalapBadge ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-500/20 border-purple-400 dark:border-purple-500 text-purple-600 dark:text-purple-400' : ''}`}
+                                                >
+                                                    <Award size={16} className={u.hasVartalapBadge ? "text-purple-600 dark:text-purple-400" : "text-gray-400"}/> 
+                                                    <span>Badge</span>
+                                                </button>
                                                 
                                                 <button 
                                                     onClick={() => handleDeleteUser(u._id)} 

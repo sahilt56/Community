@@ -44,8 +44,24 @@ const CustomVideo = Node.create({
 
   parseHTML() {
     return [
-      { tag: 'figure.video-figure' },
-      { tag: 'video[src]' }
+      {
+        tag: 'figure.video-figure',
+        getAttrs: (dom) => {
+          const videoElement = dom.querySelector('video');
+          const figcaptionElement = dom.querySelector('figcaption');
+          return {
+            src: videoElement ? videoElement.getAttribute('src') : null,
+            caption: figcaptionElement ? figcaptionElement.innerText : '',
+          };
+        },
+      },
+      {
+        tag: 'video[src]',
+        getAttrs: (dom) => ({
+          src: dom.getAttribute('src'),
+          caption: '',
+        }),
+      }
     ];
   },
 

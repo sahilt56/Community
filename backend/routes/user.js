@@ -64,15 +64,38 @@ router.get('/:username', async (req, res) => {
       postsQuery._id = { $nin: user.hiddenPosts };
     }
 
-    const userPosts = await Post.find(postsQuery)
-      .populate('community', 'name')
-      .sort({ createdAt: -1 });
+    const userPosts = await Post.aggregate([
+      { $match: postsQuery },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "post",
+          as: "comments"
+        }
+      }
+    ]);
+    await Post.populate(userPosts, { path: 'community', select: 'name' });
 
     // 3. Comments (Posts where this user has commented)
-    const commentedPosts = await Post.find({
-      'comments.user': user._id,
-      isDeleted: { $ne: true }
-    }).populate('community', 'name').sort({ createdAt: -1 });
+    // First find all distinct posts the user commented on
+    const Comment = require('../models/Comment');
+    const userCommentedPostIds = await Comment.distinct('post', { author: user._id });
+
+    const commentedPosts = await Post.aggregate([
+      { $match: { _id: { $in: userCommentedPostIds }, isDeleted: { $ne: true } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "post",
+          as: "comments"
+        }
+      }
+    ]);
+    await Post.populate(commentedPosts, { path: 'community', select: 'name' });
 
     // 4. Private Tabs (Only fetched if the requester IS the owner)
     let savedPosts = [];
@@ -81,17 +104,33 @@ router.get('/:username', async (req, res) => {
     let downvotedPosts = [];
 
     if (isOwner) {
-      savedPosts = await Post.find({ _id: { $in: user.savedPosts }, isDeleted: { $ne: true } })
-        .populate('community', 'name').sort({ createdAt: -1 });
+      savedPosts = await Post.aggregate([
+        { $match: { _id: { $in: user.savedPosts }, isDeleted: { $ne: true } } },
+        { $sort: { createdAt: -1 } },
+        { $lookup: { from: "comments", localField: "_id", foreignField: "post", as: "comments" } }
+      ]);
+      await Post.populate(savedPosts, { path: 'community', select: 'name' });
       
-      hiddenPosts = await Post.find({ _id: { $in: user.hiddenPosts }, isDeleted: { $ne: true } })
-        .populate('community', 'name').sort({ createdAt: -1 });
+      hiddenPosts = await Post.aggregate([
+        { $match: { _id: { $in: user.hiddenPosts }, isDeleted: { $ne: true } } },
+        { $sort: { createdAt: -1 } },
+        { $lookup: { from: "comments", localField: "_id", foreignField: "post", as: "comments" } }
+      ]);
+      await Post.populate(hiddenPosts, { path: 'community', select: 'name' });
 
-      upvotedPosts = await Post.find({ upvotes: user._id, isDeleted: { $ne: true } })
-        .populate('community', 'name').sort({ createdAt: -1 });
+      upvotedPosts = await Post.aggregate([
+        { $match: { upvotes: user._id, isDeleted: { $ne: true } } },
+        { $sort: { createdAt: -1 } },
+        { $lookup: { from: "comments", localField: "_id", foreignField: "post", as: "comments" } }
+      ]);
+      await Post.populate(upvotedPosts, { path: 'community', select: 'name' });
 
-      downvotedPosts = await Post.find({ downvotes: user._id, isDeleted: { $ne: true } })
-        .populate('community', 'name').sort({ createdAt: -1 });
+      downvotedPosts = await Post.aggregate([
+        { $match: { downvotes: user._id, isDeleted: { $ne: true } } },
+        { $sort: { createdAt: -1 } },
+        { $lookup: { from: "comments", localField: "_id", foreignField: "post", as: "comments" } }
+      ]);
+      await Post.populate(downvotedPosts, { path: 'community', select: 'name' });
     }
 
     // Calculate total Anubhav (exclude self-votes)

@@ -29,21 +29,45 @@ router.get('/', async (req, res) => {
     totalDocs = await Post.countDocuments(matchQuery);
 
     if (sort === 'new') {
-      // OPTIMIZED: Database level sorting and pagination
-      posts = await Post.find(matchQuery)
-        .sort({ authorHasVartalapBadge: -1, createdAt: -1 })
-        .skip(startIndex)
-        .limit(limitNum)
-        .populate('author', 'username')
-        .populate('community', 'name');
+      const pipeline = [
+        { $match: matchQuery },
+        { $sort: { authorHasVartalapBadge: -1, createdAt: -1 } },
+        { $skip: startIndex },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
+      ];
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
     } else if (sort === 'hot') {
-      // OPTIMIZED: Use pre-calculated hotScore field
-      posts = await Post.find(matchQuery)
-        .sort({ authorHasVartalapBadge: -1, hotScore: -1, createdAt: -1 })
-        .skip(startIndex)
-        .limit(limitNum)
-        .populate('author', 'username')
-        .populate('community', 'name');
+      const pipeline = [
+        { $match: matchQuery },
+        { $sort: { authorHasVartalapBadge: -1, hotScore: -1, createdAt: -1 } },
+        { $skip: startIndex },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
+      ];
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
     } else {
       // 'top' sort using Aggregation Pipeline for netVotes
       const pipeline = [
@@ -55,7 +79,15 @@ router.get('/', async (req, res) => {
         },
         { $sort: { authorHasVartalapBadge: -1, netVotes: -1, createdAt: -1 } },
         { $skip: startIndex }, 
-        { $limit: limitNum }
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
       ];
       
       const aggregatedPosts = await Post.aggregate(pipeline);
@@ -139,21 +171,45 @@ router.get('/community/:communityId', async (req, res) => {
     totalDocs = await Post.countDocuments(matchQuery);
 
     if (sort === 'new') {
-      // OPTIMIZED: Database level sorting for 'new'
-      posts = await Post.find(matchQuery)
-        .sort({ authorHasVartalapBadge: -1, createdAt: -1 })
-        .skip(startIndex)
-        .limit(limitNum)
-        .populate('author', 'username')
-        .populate('community', 'name');
+      const pipeline = [
+        { $match: matchQuery },
+        { $sort: { authorHasVartalapBadge: -1, createdAt: -1 } },
+        { $skip: startIndex },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
+      ];
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
     } else if (sort === 'hot') {
-      // OPTIMIZED: Use pre-calculated hotScore field
-      posts = await Post.find(matchQuery)
-        .sort({ authorHasVartalapBadge: -1, hotScore: -1, createdAt: -1 })
-        .skip(startIndex)
-        .limit(limitNum)
-        .populate('author', 'username')
-        .populate('community', 'name');
+      const pipeline = [
+        { $match: matchQuery },
+        { $sort: { authorHasVartalapBadge: -1, hotScore: -1, createdAt: -1 } },
+        { $skip: startIndex },
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
+      ];
+      const aggregatedPosts = await Post.aggregate(pipeline);
+      posts = await Post.populate(aggregatedPosts, [
+        { path: 'author', select: 'username' },
+        { path: 'community', select: 'name' }
+      ]);
     } else {
       // 'top' sort using Aggregation Pipeline for netVotes
       const pipeline = [
@@ -165,7 +221,15 @@ router.get('/community/:communityId', async (req, res) => {
         },
         { $sort: { authorHasVartalapBadge: -1, netVotes: -1, createdAt: -1 } },
         { $skip: startIndex }, 
-        { $limit: limitNum }
+        { $limit: limitNum },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "post",
+            as: "comments"
+          }
+        }
       ];
       
       const aggregatedPosts = await Post.aggregate(pipeline);

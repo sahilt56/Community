@@ -325,7 +325,7 @@ const AdminDashboard = () => {
 
   const handleUnbanUser = (id) => {
     toast.promise(
-      executeBanUser(id, 0), // 0 days means unban
+      api.post(`/api/admin/users/${id}/unban`).then(() => fetchData()),
       {
         loading: 'Unbanning user...',
         success: 'User unbanned successfully!',

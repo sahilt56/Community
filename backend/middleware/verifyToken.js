@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const BlacklistToken = require('../models/BlacklistToken');
+const User = require('../models/User');
 
 const verifyToken = async (req, res, next) => {
   try {
@@ -25,7 +26,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     // 3. Token ko apni secret key se verify karna
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
       if (err) {
         if (err.name === 'TokenExpiredError') {
           // 🛡️ Frontend ko batane ke liye ki token refresh karna hai
@@ -34,9 +35,21 @@ const verifyToken = async (req, res, next) => {
         return res.status(401).json({ message: "Token is not valid! Please log in again.", code: "TOKEN_INVALID" });
       }
       
-      // 4. Agar token ekdum sahi hai, toh user ki details request mein save karke aage jane do
-      req.user = user;
-      next(); 
+      try {
+        const userDoc = await User.findById(user.id);
+        if (!userDoc) {
+          return res.status(401).json({ message: "User not found! Please log in again.", code: "USER_NOT_FOUND" });
+        }
+        if (userDoc.isBanned) {
+          return res.status(403).json({ message: "Your account has been temporarily or permanently banned.", code: "USER_BANNED" });
+        }
+        
+        // 4. Agar token ekdum sahi hai, toh user ki details request mein save karke aage jane do
+        req.user = user;
+        next(); 
+      } catch (dbErr) {
+        return res.status(500).json({ message: "Internal server error connecting to DB." });
+      }
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error during authentication." });

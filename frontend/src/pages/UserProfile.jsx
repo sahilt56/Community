@@ -502,6 +502,38 @@ const UserProfile = () => {
     }
   };
 
+  const handleUserReport = () => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1">
+        <p className="font-bold text-red-600">🚩 Report User</p>
+        <p className="text-xs text-gray-500">Select a reason for reporting u/{profileData.profile.username}:</p>
+        <div className="flex flex-col gap-1">
+          {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
+            <button
+              key={reason}
+              onClick={() => { toast.dismiss(t.id); submitUserReport(reason); }}
+              className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
+            >
+              {reason.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
+      </div>
+    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+  };
+
+  const submitUserReport = async (reason) => {
+    try {
+      await api.post(`/api/reports`, 
+        { targetType: 'user', targetId: profileData.profile._id, reason }
+      );
+      toast.success('User reported! Our team will review it.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit report.');
+    }
+  };
+
   return (
     <div className="dark:bg-black min-h-screen text-gray-900 dark:text-white transition-colors">
       <Helmet>
@@ -733,6 +765,14 @@ const UserProfile = () => {
                   className="flex-1 md:flex-none justify-center bg-transparent border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white font-bold px-6 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-sm"
                 >
                   Chat
+                </button>
+              )}
+              {!isOwner && (
+                <button 
+                  onClick={handleUserReport}
+                  className="flex-1 md:flex-none justify-center bg-transparent border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400 font-bold px-6 py-2 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-all text-sm"
+                >
+                  Report
                 </button>
               )}
             </div>

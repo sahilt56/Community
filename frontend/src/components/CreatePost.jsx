@@ -84,6 +84,14 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
       return;
     }
 
+    // Image size check: Max 5MB per image
+    const oversizedImage = selectedFiles.find(f => !isVideoFile(f) && f.size > 5 * 1024 * 1024);
+    if (oversizedImage) {
+      toast.error(`Image "${oversizedImage.name}" is too large. Max 5MB allowed!`);
+      setFileInputKey(prev => prev + 1);
+      return;
+    }
+
     // Build previews — store name too for fallback detection
     const newPreviews = [...previews, ...selectedFiles.map(file => ({
       url: URL.createObjectURL(file),

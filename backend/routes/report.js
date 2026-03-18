@@ -25,6 +25,10 @@ router.post('/', verifyToken, async (req, res) => {
       if (community && community.creator.toString() === req.user.id) {
         return res.status(400).json({ message: "You cannot report your own community! 🛑" });
       }
+    } else if (targetType === 'user') {
+      if (targetId.toString() === req.user.id.toString()) {
+        return res.status(400).json({ message: "You cannot report yourself! 🛑" });
+      }
     }
     // Check if this user already reported this content
     const existingReport = await Report.findOne({ 

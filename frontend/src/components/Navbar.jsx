@@ -485,6 +485,10 @@ const Navbar = () => {
                         <p className="text-gray-900 dark:text-white font-bold text-sm">u/{user?.username}</p>
                         <p className="text-green-500 text-[11px] font-medium mb-0.5">Online</p>
                         {accountAgeText && <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{accountAgeText}</p>}
+                        <div className="flex items-center gap-1 mt-1 text-orange-600 dark:text-orange-400">
+                          <Flame size={12} strokeWidth={2.5} />
+                          <span className="text-xs font-bold">{user?.anubhav || 0} Anubhav</span>
+                        </div>
                       </div>
                     </div>
 

@@ -6,6 +6,7 @@ import CommentThread from '../components/CommentThread';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
 import PollView from '../components/PollView';
+import TipTapEditor from '../components/TipTapEditor';
 import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';

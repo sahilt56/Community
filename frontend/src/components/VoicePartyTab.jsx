@@ -53,7 +53,7 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
         userStream.current = stream;
         
         // Add self to participants
-        setParticipants([{ id: curUserId, isSelf: true }]);
+        setParticipants([{ id: curUserId, socketId: socket.id, isSelf: true }]);
         
         // Tell server we joined
         socket.emit('join-voice-room', { roomId: activeRoomId, userId: curUserId });
@@ -68,16 +68,16 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
     startLocalStream();
 
     // 1. A new user joined, I should call them (I am the caller)
-    socket.on('user-connected-voice', async (newUserId) => {
-      console.log('User connected:', newUserId);
-      const peer = createPeer(newUserId, true);
-      peers.current[newUserId] = peer;
+    socket.on('user-connected-voice', async ({ socketId, userId }) => {
+      console.log('User connected:', socketId, userId);
+      const peer = createPeer(socketId, userId, true);
+      peers.current[socketId] = peer;
     });
 
     // 2. Incoming call offer from someone
-    socket.on('voice-offer', async ({ offer, fromUserId }) => {
-      const peer = createPeer(fromUserId, false);
-      peers.current[fromUserId] = peer;
+    socket.on('voice-offer', async ({ offer, callerSocketId, userId }) => {
+      const peer = createPeer(callerSocketId, userId, false);
+      peers.current[callerSocketId] = peer;
       
       await peer.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peer.createAnswer();
@@ -85,39 +85,35 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
       
       socket.emit('voice-answer', {
         answer,
-        toUserId: fromUserId,
-        fromUserId: curUserId,
-        roomId: activeRoomId
+        targetSocketId: callerSocketId,
+        answererSocketId: socket.id
       });
     });
 
     // 3. Answer received from my offer
-    socket.on('voice-answer', async ({ answer, fromUserId }) => {
-      const peer = peers.current[fromUserId];
+    socket.on('voice-answer', async ({ answer, answererSocketId }) => {
+      const peer = peers.current[answererSocketId];
       if (peer) {
         await peer.setRemoteDescription(new RTCSessionDescription(answer));
       }
     });
 
     // 4. ICE Candidates
-    socket.on('voice-candidate', async ({ candidate, fromUserId }) => {
-      const peer = peers.current[fromUserId];
+    socket.on('voice-candidate', async ({ candidate, senderSocketId }) => {
+      const peer = peers.current[senderSocketId];
       if (peer) {
         await peer.addIceCandidate(new RTCIceCandidate(candidate));
       }
     });
 
     // 5. User disconnected
-    socket.on('user-disconnected-voice', (disconnectedUserId) => {
-      console.log('User disconnected:', disconnectedUserId);
-      if (peers.current[disconnectedUserId]) {
-        peers.current[disconnectedUserId].close();
-        delete peers.current[disconnectedUserId];
+    socket.on('user-disconnected-voice', (disconnectedSocketId) => {
+      console.log('User disconnected:', disconnectedSocketId);
+      if (peers.current[disconnectedSocketId]) {
+        peers.current[disconnectedSocketId].close();
+        delete peers.current[disconnectedSocketId];
       }
-      if (audioRefs.current[disconnectedUserId]) {
-        delete audioRefs.current[disconnectedUserId];
-      }
-      setParticipants(prev => prev.filter(p => !p.id.includes(disconnectedUserId)));
+      setParticipants(prev => prev.filter(p => p.socketId !== disconnectedSocketId));
     });
 
     return () => {
@@ -130,7 +126,7 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, activeRoomId]);
 
-  const createPeer = (targetUserId, isInitiator) => {
+  const createPeer = (targetSocketId, targetUserId, isInitiator) => {
     const peer = new RTCPeerConnection(rtcConfig);
 
     // Add local tracks
@@ -145,9 +141,8 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
       if (event.candidate) {
         socket.emit('voice-candidate', {
           candidate: event.candidate,
-          toUserId: targetUserId,
-          fromUserId: curUserId,
-          roomId: activeRoomId
+          targetSocketId: targetSocketId,
+          senderSocketId: socket.id
         });
       }
     };
@@ -156,8 +151,8 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
     peer.ontrack = (event) => {
       setParticipants(prev => {
         // Only add if not already in list to avoid duplicates
-        if (!prev.find(p => p.id === targetUserId)) {
-          return [...prev, { id: targetUserId, stream: event.streams[0] }];
+        if (!prev.find(p => p.socketId === targetSocketId)) {
+          return [...prev, { id: targetUserId || targetSocketId, socketId: targetSocketId, stream: event.streams[0] }];
         }
         return prev;
       });
@@ -168,9 +163,9 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
         peer.setLocalDescription(offer);
         socket.emit('voice-offer', {
           offer,
-          toUserId: targetUserId,
-          fromUserId: curUserId,
-          roomId: activeRoomId
+          targetSocketId: targetSocketId,
+          callerSocketId: socket.id,
+          userId: curUserId // Pass our user ID so receiver knows who called
         });
       });
     }

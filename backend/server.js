@@ -232,7 +232,7 @@ io.on('connection', (socket) => {
   });
 
   // Voice WebRTC Logic
-  socket.on('join-voice-room', async (roomId, userId) => {
+  socket.on('join-voice-room', async ({ roomId, userId }) => {
     try {
       const VoiceRoom = require('./models/VoiceRoom');
       const room = await VoiceRoom.findById(roomId);
@@ -243,18 +243,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('voice-offer', (payload) => {
-    io.to(payload.targetSocketId).emit('voice-offer', { callerSocketId: socket.id, sdp: payload.sdp });
+    io.to(payload.targetSocketId).emit('voice-offer', payload);
   });
 
   socket.on('voice-answer', (payload) => {
-    io.to(payload.callerSocketId).emit('voice-answer', { answererSocketId: socket.id, sdp: payload.sdp });
+    io.to(payload.targetSocketId).emit('voice-answer', payload);
   });
 
   socket.on('voice-candidate', (payload) => {
-    io.to(payload.targetSocketId).emit('voice-candidate', { senderSocketId: socket.id, candidate: payload.candidate });
+    io.to(payload.targetSocketId).emit('voice-candidate', payload);
   });
 
-  socket.on('leave-voice-room', (roomId) => {
+  socket.on('leave-voice-room', ({ roomId, userId }) => {
     socket.leave(`voice-${roomId}`);
     socket.to(`voice-${roomId}`).emit('user-disconnected-voice', socket.id);
   });

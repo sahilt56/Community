@@ -268,14 +268,14 @@ const PostPage = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitReport(reason); }}
+              onClick={() => { toast.remove(t.id); submitReport(reason); }}
               className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
@@ -330,13 +330,13 @@ const PostPage = () => {
         <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
            <button 
-             onClick={() => { toast.dismiss(t.id); executeDeletePost(); }} 
+             onClick={() => { toast.remove(t.id); executeDeletePost(); }} 
              className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold"
            >
              Delete
            </button>
            <button 
-             onClick={() => toast.dismiss(t.id)} 
+             onClick={() => toast.remove(t.id)} 
              className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold"
            >
              Cancel
@@ -465,7 +465,7 @@ const PostPage = () => {
             ))}
           </div>
         )}
-        <div className="text-gray-800 dark:text-gray-300 text-base leading-relaxed whitespace-pre-wrap mb-4">
+        <div className="text-gray-800 dark:text-gray-200 text-sm md:text-base leading-relaxed mb-6 prose prose-sm md:prose-base dark:prose-invert max-w-none break-words">
           <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
             {post.content || ''}
           </ReactMarkdown>

@@ -180,13 +180,13 @@ const CommunityPage = () => {
         <p className="text-sm font-bold text-white flex items-center gap-2"><LogOut size={16} /> Are you sure you want to leave?</p>
         <div className="flex gap-2 justify-end">
           <button 
-            onClick={() => { toast.dismiss(t.id); executeLeave(); }}
+            onClick={() => { toast.remove(t.id); executeLeave(); }}
             className="bg-red-500 text-white px-3 py-1 rounded text-xs font-bold"
           >
             Yes, Leave
           </button>
           <button 
-            onClick={() => toast.dismiss(t.id)}
+            onClick={() => toast.remove(t.id)}
             className="bg-gray-500 text-white px-3 py-1 rounded text-xs font-bold"
           >
             Cancel
@@ -248,8 +248,8 @@ const CommunityPage = () => {
       <div>
         <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><Ban size={18} className="text-red-500" /> Really PERMANENTLY BAN this user from the community?</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={() => { toast.dismiss(t.id); executeBanMember(userId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Ban User</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeBanMember(userId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Ban User</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity, position: 'top-center' });
@@ -314,8 +314,8 @@ const CommunityPage = () => {
       <div>
         <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you extremely sure you want to PERMANENTLY delete v/{community.name}?</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={() => { toast.dismiss(t.id); executeDeleteCommunity(); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Delete</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeDeleteCommunity(); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Delete</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity });
@@ -341,14 +341,14 @@ const CommunityPage = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation', 'illegal_content'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitCommunityReport(reason); }}
+              onClick={() => { toast.remove(t.id); submitCommunityReport(reason); }}
               className="text-left px-3 py-1.5 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
@@ -402,14 +402,14 @@ const CommunityPage = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitPostReport(postId, reason); }}
+              onClick={() => { toast.remove(t.id); submitPostReport(postId, reason); }}
               className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
@@ -430,8 +430,8 @@ const CommunityPage = () => {
       <div>
         <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100"><AlertTriangle size={18} className="text-red-500" /> Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={() => { toast.dismiss(t.id); executeDeletePost(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeDeletePost(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity });
@@ -900,7 +900,7 @@ const CommunityPage = () => {
                         ))}
                       </div>
                     )}
-                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none">
+                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none break-words">
                       <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
                         {post.content || ''}
                       </ReactMarkdown>

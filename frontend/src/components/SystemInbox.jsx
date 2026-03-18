@@ -48,14 +48,14 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                 <p className="text-sm text-gray-600 dark:text-gray-400">All users will permanently lose access.</p>
                 <div className="flex gap-2 justify-end mt-1">
                     <button 
-                        onClick={() => toast.dismiss(t.id)} 
+                        onClick={() => toast.remove(t.id)} 
                         className="px-3 py-1.5 text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-[#343536] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md transition"
                     >
                         Cancel
                     </button>
                     <button 
                         onClick={async () => {
-                            toast.dismiss(t.id);
+                            toast.remove(t.id);
                             try {
                                 setExpandedMsgId(null);
                                 await api.delete(`/api/system-messages/${id}`);

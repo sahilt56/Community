@@ -100,8 +100,8 @@ const AdminUserSupervision = () => {
                     WARNING: Permanently delete this user and ALL their posts/communities?
                 </p>
                 <div className="flex gap-2 justify-end mt-1">
-                    <button onClick={() => { toast.dismiss(t.id); executeDeleteUser(userId); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete User</button>
-                    <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+                    <button onClick={() => { toast.remove(t.id); executeDeleteUser(userId); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete User</button>
+                    <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
         ), { duration: Infinity, position: 'top-center' });
@@ -129,8 +129,8 @@ const AdminUserSupervision = () => {
                     <input type="number" min="1" defaultValue="7" onChange={(e) => { days = parseInt(e.target.value) || 7; }} className="px-3 py-1.5 bg-white dark:bg-[#272729] border border-gray-300 dark:border-[#343536] rounded text-sm text-gray-900 dark:text-white font-mono" />
                 </label>
                 <div className="flex gap-2 justify-end mt-1">
-                    <button onClick={() => { toast.dismiss(t.id); executeBanUser(id, days); }} className="bg-orange-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-600">Ban User</button>
-                    <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+                    <button onClick={() => { toast.remove(t.id); executeBanUser(id, days); }} className="bg-orange-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-600">Ban User</button>
+                    <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
         ), { duration: Infinity, position: 'top-center' });
@@ -169,8 +169,8 @@ const AdminUserSupervision = () => {
                 </label>
                 <p className="text-xs text-gray-600 dark:text-gray-400">Current: {current} XP → New: {current + amount} XP</p>
                 <div className="flex gap-2 justify-end mt-1">
-                    <button onClick={() => { toast.dismiss(t.id); executeAddAnubhav(id, amount); }} className="bg-green-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-green-600">Add XP</button>
-                    <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+                    <button onClick={() => { toast.remove(t.id); executeAddAnubhav(id, amount); }} className="bg-green-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-green-600">Add XP</button>
+                    <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
         ), { duration: Infinity, position: 'top-center' });
@@ -199,8 +199,8 @@ const AdminUserSupervision = () => {
                 </label>
                 <p className="text-xs text-gray-600 dark:text-gray-400">Current: {current} XP → New: {Math.max(0, current - amount)} XP</p>
                 <div className="flex gap-2 justify-end mt-1">
-                    <button onClick={() => { toast.dismiss(t.id); executeDeductAnubhav(id, amount); }} className="bg-amber-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-amber-600">Deduct XP</button>
-                    <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+                    <button onClick={() => { toast.remove(t.id); executeDeductAnubhav(id, amount); }} className="bg-amber-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-amber-600">Deduct XP</button>
+                    <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
         ), { duration: Infinity, position: 'top-center' });

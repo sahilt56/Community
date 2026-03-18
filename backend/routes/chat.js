@@ -123,17 +123,7 @@ router.post('/:id/add-member', verifyToken, async (req, res) => {
             return res.status(400).json({ message: "User is already a member of this room." });
         }
 
-        // Add to participants array
-        room.participants.push(userId);
-        await room.save();
-        
-        // Return updated participants list
-        await room.populate('participants', 'username profilePic _id');
-
-        // Alert the room that someone was added
-        req.io.to(`room_${room._id}`).emit('member_added', { roomId: room._id, participants: room.participants, newMemberId: userId });
-        
-        // Also alert the specific user globally so they know they got invited via ephemeral toast
+        // Alert the specific user globally so they know they got invited via ephemeral toast
         req.io.emit('room_invite', { roomId: room._id, roomName: room.name, invitedUserId: userId });
 
         // Database Notification Tracking
@@ -156,10 +146,67 @@ router.post('/:id/add-member', verifyToken, async (req, res) => {
             if (req.io) req.io.to(userId.toString()).emit('new_notification', newNotif);
         }
 
-        res.status(200).json({ message: "Member added successfully.", participants: room.participants });
+        res.status(200).json({ message: "Invitation sent successfully." });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error adding member." });
+        res.status(500).json({ message: "Server error sending invitation." });
+    }
+});
+
+// Route: POST /api/chat/invite/accept
+// Desc: Accept a chat room invitation
+router.post('/invite/accept', verifyToken, async (req, res) => {
+    try {
+        const { notificationId } = req.body;
+        if (!notificationId) return res.status(400).json({ message: "Notification ID is required." });
+
+        const notification = await Notification.findById(notificationId);
+        if (!notification || notification.recipient.toString() !== req.user.id) {
+            return res.status(404).json({ message: "Invitation not found." });
+        }
+
+        const room = await ChatRoom.findById(notification.roomId);
+        if (!room) {
+            await Notification.findByIdAndDelete(notificationId);
+            return res.status(404).json({ message: "Room no longer exists." });
+        }
+
+        if (room.status === 'closed') {
+            await Notification.findByIdAndDelete(notificationId);
+            return res.status(400).json({ message: "Cannot join a closed room." });
+        }
+
+        if (!room.participants.includes(req.user.id)) {
+            room.participants.push(req.user.id);
+            await room.save();
+            await room.populate('participants', 'username profilePic _id');
+            req.io.to(`room_${room._id}`).emit('member_added', { roomId: room._id, participants: room.participants, newMemberId: req.user.id });
+        }
+
+        await Notification.findByIdAndDelete(notificationId);
+        res.status(200).json({ message: "Joined room successfully." });
+    } catch (err) {
+        console.error("Accept invite error:", err);
+        res.status(500).json({ message: "Server error accepting invitation." });
+    }
+});
+
+// Route: POST /api/chat/invite/decline
+// Desc: Decline a chat room invitation
+router.post('/invite/decline', verifyToken, async (req, res) => {
+    try {
+        const { notificationId } = req.body;
+        if (!notificationId) return res.status(400).json({ message: "Notification ID is required." });
+
+        const notification = await Notification.findById(notificationId);
+        if (notification && notification.recipient.toString() === req.user.id) {
+            await Notification.findByIdAndDelete(notificationId);
+        }
+
+        res.status(200).json({ message: "Invitation declined." });
+    } catch (err) {
+        console.error("Decline invite error:", err);
+        res.status(500).json({ message: "Server error declining invitation." });
     }
 });
 

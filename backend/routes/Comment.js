@@ -48,12 +48,12 @@ router.post('/add', verifyToken, contentFilter, async (req, res) => {
     // Create Notification for the Post Author
     const post = await Post.findById(postId);
     
-    if (post && post.author.toString() !== req.user.id) {
+    if (post && post.author && post.author.toString() !== req.user.id) {
       const newNotif = await Notification.create({
         recipient: post.author,
         sender: req.user.id,
         type: 'comment',
-        post: post._id,
+        post: post._id || postId,
         content: 'commented on your post'
       });
       await newNotif.populate('sender', 'username profilePic');
@@ -77,12 +77,12 @@ router.post('/add', verifyToken, contentFilter, async (req, res) => {
       
       for (const mUser of mentionedUsers) {
         // Khud ko mention karne par notification mat bhejo
-        if (mUser._id.toString() !== req.user.id) {
+        if (mUser && mUser._id && mUser._id.toString() !== req.user.id) {
           const mentionNotif = await Notification.create({
             recipient: mUser._id,
             sender: req.user.id,
             type: 'mention',
-            post: post._id,
+            post: post ? post._id : postId,
             content: 'mentioned you in a comment'
           });
           await mentionNotif.populate('sender', 'username profilePic');
@@ -95,12 +95,12 @@ router.post('/add', verifyToken, contentFilter, async (req, res) => {
     // 💬 REPLY SYSTEM: Notify parent comment author if it's a reply
     if (parentCommentId) {
       const parentCommentDoc = await Comment.findById(parentCommentId);
-      if (parentCommentDoc && parentCommentDoc.author.toString() !== req.user.id) {
+      if (parentCommentDoc && parentCommentDoc.author && parentCommentDoc.author.toString() !== req.user.id) {
         const replyNotif = await Notification.create({
           recipient: parentCommentDoc.author,
           sender: req.user.id,
           type: 'reply',
-          post: post._id,
+          post: post ? post._id : postId,
           content: 'replied to your comment'
         });
         await replyNotif.populate('sender', 'username profilePic');
@@ -119,6 +119,7 @@ router.post('/add', verifyToken, contentFilter, async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Comment Add Error:", err);
     res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });
@@ -198,16 +199,26 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
 
         const userId = req.user.id;
 
+        const User = require('../models/User');
+        let anubhavChange = 0;
+
         // Toggle logic
         const hasUpvoted = comment.upvotes.includes(userId);
+        const hasDownvoted = comment.downvotes.includes(userId);
         if (hasUpvoted) {
             comment.upvotes.pull(userId);
+            anubhavChange = -1;
         } else {
             comment.upvotes.addToSet(userId);
             comment.downvotes.pull(userId);
+            anubhavChange = hasDownvoted ? 2 : 1;
         }
 
         await comment.save();
+        
+        if (comment.author.toString() !== userId && anubhavChange !== 0) {
+            await User.findByIdAndUpdate(comment.author, { $inc: { anubhav: anubhavChange } });
+        }
         
         // TODO: Create Notification for Comment Author
 
@@ -225,16 +236,26 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
 
         const userId = req.user.id;
 
+        const User = require('../models/User');
+        let anubhavChange = 0;
+
         // Toggle logic
         const hasDownvoted = comment.downvotes.includes(userId);
+        const hasUpvoted = comment.upvotes.includes(userId);
         if (hasDownvoted) {
             comment.downvotes.pull(userId);
+            anubhavChange = 1;
         } else {
             comment.downvotes.addToSet(userId);
             comment.upvotes.pull(userId);
+            anubhavChange = hasUpvoted ? -2 : -1;
         }
 
         await comment.save();
+        
+        if (comment.author.toString() !== userId && anubhavChange !== 0) {
+            await User.findByIdAndUpdate(comment.author, { $inc: { anubhav: anubhavChange } });
+        }
 
         res.json({ message: "Vote updated", comment });
     } catch (err) {

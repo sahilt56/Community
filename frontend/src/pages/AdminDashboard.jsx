@@ -137,8 +137,8 @@ const AdminDashboard = () => {
           WARNING: Permanently delete this user and ALL their posts/communities?
         </p>
         <div className="flex gap-2 justify-end mt-1">
-          <button onClick={() => { toast.dismiss(t.id); executeDeleteUser(userId); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete User</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeDeleteUser(userId); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete User</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity, position: 'top-center' });
@@ -184,8 +184,8 @@ const AdminDashboard = () => {
               toast.error("Days must be greater than 0.");
               return;
             }
-            toast.dismiss(t.id); executeBanUser(id, parsedDays); }} className="bg-orange-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-600">Confirm Ban</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            toast.remove(t.id); executeBanUser(id, parsedDays); }} className="bg-orange-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-600">Confirm Ban</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity, position: 'top-center' });
@@ -224,8 +224,8 @@ const AdminDashboard = () => {
               toast.error("Amount must be greater than 0.");
               return;
             }
-            toast.dismiss(t.id); executeDeductAnubhav(id, parsedAmount); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Deduct</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            toast.remove(t.id); executeDeductAnubhav(id, parsedAmount); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Deduct</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity, position: 'top-center' });
@@ -285,8 +285,8 @@ const AdminDashboard = () => {
               toast.error("Amount must be greater than 0.");
               return;
             }
-            toast.dismiss(t.id); executeAddAnubhav(id, parsedAmount); }} className="bg-green-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-green-600">Add XP</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            toast.remove(t.id); executeAddAnubhav(id, parsedAmount); }} className="bg-green-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-green-600">Add XP</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity, position: 'top-center' });
@@ -342,8 +342,8 @@ const AdminDashboard = () => {
             Permanently delete this community?
           </p>
           <div className="flex gap-2 justify-end mt-1">
-            <button onClick={() => { toast.dismiss(t.id); executeDeleteCommunity(id); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete</button>
-            <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            <button onClick={() => { toast.remove(t.id); executeDeleteCommunity(id); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete</button>
+            <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
       ), { duration: Infinity, position: 'top-center' });
@@ -415,9 +415,9 @@ const AdminDashboard = () => {
                 toast.error("Days must be greater than 0.");
                 return;
               }
-              toast.dismiss(t.id); executeBanCommunity(id, parsedDays);
+              toast.remove(t.id); executeBanCommunity(id, parsedDays);
             }} className="bg-orange-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-600">Confirm Ban</button>
-            <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
       ), { duration: Infinity, position: 'top-center' });
@@ -489,8 +489,8 @@ const AdminDashboard = () => {
             Force delete this post globally?
           </p>
           <div className="flex gap-2 justify-end mt-1">
-            <button onClick={() => { toast.dismiss(t.id); executeDeletePost(id); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete</button>
-            <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            <button onClick={() => { toast.remove(t.id); executeDeletePost(id); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete</button>
+            <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
       ), { duration: Infinity, position: 'top-center' });
@@ -543,8 +543,8 @@ const AdminDashboard = () => {
                 This will DELETE the reported content. Proceed?
               </p>
               <div className="flex gap-2 justify-end mt-1">
-                <button onClick={() => { toast.dismiss(t.id); executeResolveReport(reportId, action); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete Content</button>
-                <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+                <button onClick={() => { toast.remove(t.id); executeResolveReport(reportId, action); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete Content</button>
+                <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
               </div>
             </div>
           ), { duration: Infinity, position: 'top-center' });
@@ -699,8 +699,8 @@ const AdminDashboard = () => {
             {message}
           </p>
           <div className="flex gap-2 justify-end mt-1">
-            <button onClick={() => { toast.dismiss(t.id); executeClearCollection(colName, filterType); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete Data</button>
-            <button onClick={() => toast.dismiss(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
+            <button onClick={() => { toast.remove(t.id); executeClearCollection(colName, filterType); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete Data</button>
+            <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
       ), { duration: Infinity, position: 'top-center' });

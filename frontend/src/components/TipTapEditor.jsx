@@ -179,6 +179,12 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
       return;
     }
 
+    if (type === 'image' && file.size > 5 * 1024 * 1024) {
+      toast.error(`Image "${file.name}" is too large. Max 5MB allowed! 🖼️🛑`);
+      event.target.value = null;
+      return;
+    }
+
     if (type === 'video' && file.size > 10 * 1024 * 1024) {
       toast.error(`Video "${file.name}" is too large. Max 10MB allowed! 🎬🛑`);
       event.target.value = null;

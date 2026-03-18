@@ -43,14 +43,14 @@ const Explore = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation', 'illegal_content'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitCommunityReport(communityId, reason); }}
+              onClick={() => { toast.remove(t.id); submitCommunityReport(communityId, reason); }}
               className="text-left px-3 py-1.5 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-700 dark:text-gray-300 capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };

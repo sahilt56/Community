@@ -350,15 +350,15 @@ router.post('/create', verifyToken, upload.array('media', 16), contentFilter, as
 
     const newPost = new Post({
       title,
-      content: content || "",
-      media,
+      content: (postType === 'text' || postType === 'poll') ? (content || "") : "",
+      media: postType === 'media' ? media : [],
       community: communityId,
       author: req.user.id,
       postType: postType || 'text',
-      link: link || "",
+      link: postType === 'link' ? (link || "") : "",
       bountyAmount: bounty,
-      pollOptions: parsedPollOptions,
-      pollEndsAt: pollEndsAt
+      pollOptions: postType === 'poll' ? parsedPollOptions : [],
+      pollEndsAt: postType === 'poll' ? pollEndsAt : null
     });
 
     const savedPost = await newPost.save();
@@ -398,15 +398,20 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
     const hasUpvoted = postCheck.upvotes.includes(userId);
     let update = {};
 
+    const User = require('../models/User');
+    let anubhavChange = 0;
+
     if (hasUpvoted) {
       // Toggle off: Remove from upvotes
       update = { $pull: { upvotes: userId } };
+      anubhavChange = -1;
     } else {
       // Toggle on: Add to upvotes, Remove from downvotes
       update = { 
         $addToSet: { upvotes: userId },
         $pull: { downvotes: userId }
       };
+      anubhavChange = hasDownvoted ? 2 : 1;
     }
 
     const post = await Post.findByIdAndUpdate(
@@ -415,10 +420,15 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
       { returnDocument: 'after' }
     );
 
+    // Apply Anubhav change to author
+    if (post.author.toString() !== userId && anubhavChange !== 0) {
+      await User.findByIdAndUpdate(post.author, { $inc: { anubhav: anubhavChange } });
+    }
+
     // Create Notification (if not already upvoted by this user before)
     // Note: Since we use findByIdAndUpdate, we check if user was already in upvotes list
     // But for simplicity and to avoid race conditions, we'll just check if the author is different
-    if (post.author.toString() !== userId) {
+    if (post.author.toString() !== userId && anubhavChange > 0) {
       // Check if notification already exists to avoid spamming
       const existingNotif = await Notification.findOne({
         recipient: post.author,
@@ -471,15 +481,20 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
     const hasDownvoted = postCheck.downvotes.includes(userId);
     let update = {};
 
+    const User = require('../models/User');
+    let anubhavChange = 0;
+
     if (hasDownvoted) {
       // Toggle off: Remove from downvotes
       update = { $pull: { downvotes: userId } };
+      anubhavChange = 1;
     } else {
       // Toggle on: Add to downvotes, Remove from upvotes
       update = { 
         $addToSet: { downvotes: userId },
         $pull: { upvotes: userId }
       };
+      anubhavChange = hasUpvoted ? -2 : -1;
     }
 
     const post = await Post.findByIdAndUpdate(
@@ -487,6 +502,11 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
       update,
       { returnDocument: 'after' }
     );
+
+    // Apply Anubhav change to author
+    if (post.author.toString() !== userId && anubhavChange !== 0) {
+      await User.findByIdAndUpdate(post.author, { $inc: { anubhav: anubhavChange } });
+    }
 
     if (post.author.toString() !== userId) {
       const existingNotif = await Notification.findOne({

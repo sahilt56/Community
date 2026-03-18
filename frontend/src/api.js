@@ -32,9 +32,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Agar token completely invalid ya corrupt ho gaya (jaise "undefined" string ban jana localstorage me)
-    if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID') {
-      console.error("Invalid token detected. Clearing session...");
+    // Clear session and redirect on 403 Forbidden (e.g., when a user is banned) or invalid token
+    if (
+      (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID') ||
+      error.response?.status === 403
+    ) {
+      console.error("Session invalid or forbidden. Clearing session...");
       localStorage.removeItem('user'); 
       localStorage.removeItem('token'); 
       if (window.location.pathname !== '/login') {

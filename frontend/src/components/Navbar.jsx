@@ -343,6 +343,37 @@ const Navbar = () => {
     }
   };
 
+  const acceptChatInvite = async (notifId) => {
+    // Optimistic UI update for immediate disappearance
+    setNotifications(prev => prev.filter(n => n._id !== notifId));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifOpen(false);
+
+    try {
+      await api.post(`/api/chat/invite/accept`, { notificationId: notifId });
+      toast.success("Joined chat room!");
+      navigate('/chat');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to join room.");
+      // Note: If it fails, we typically don't revert the UI here to prevent the popup from reappearing confusingly
+      // but we could call fetchNotifications() if strict consistency is needed.
+    }
+  };
+
+  const declineChatInvite = async (notifId) => {
+    // Optimistic UI update for immediate disappearance
+    setNotifications(prev => prev.filter(n => n._id !== notifId));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    try {
+      await api.post(`/api/chat/invite/decline`, { notificationId: notifId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to decline.");
+    }
+  };
+
   useEffect(() => {
     const sync = () => {
       setToken(localStorage.getItem('token'));
@@ -774,6 +805,12 @@ const Navbar = () => {
                               <p className="text-[10px] text-gray-500 mt-1">
                                 {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
+                              {n.type === 'chat_invite' && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  <button onClick={(e) => { e.stopPropagation(); acceptChatInvite(n._id); }} className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer relative z-10 btn-press">Accept</button>
+                                  <button onClick={(e) => { e.stopPropagation(); declineChatInvite(n._id); }} className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-[#343536] dark:hover:bg-[#404142] text-gray-800 dark:text-gray-200 text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer relative z-10 btn-press">Decline</button>
+                                </div>
+                              )}
                             </div>
                             <button 
                                 onClick={(e) => deleteNotification(n._id, e)} 

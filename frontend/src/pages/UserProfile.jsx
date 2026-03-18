@@ -264,8 +264,8 @@ const UserProfile = () => {
       <div>
         <p className="mb-2">{`Are you sure you want to delete ${type === 'profilePic' ? 'Profile Picture' : 'Banner'}?`}</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={() => { toast.dismiss(t.id); executeImageDelete(type); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeImageDelete(type); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity });
@@ -319,8 +319,8 @@ const UserProfile = () => {
       <div>
         <p className="mb-2">Are you sure you want to delete this post?</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={() => { toast.dismiss(t.id); executeDelete(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
-          <button onClick={() => toast.dismiss(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+          <button onClick={() => { toast.remove(t.id); executeDelete(postId); }} className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
         </div>
       </div>
     ), { duration: Infinity });
@@ -378,13 +378,13 @@ const UserProfile = () => {
         <p className="text-xs text-gray-500">Aapka saara data (posts, comments, profile) hamesha ke liye mit jayega. Yeh action undo nahi ho sakta.</p>
         <div className="flex gap-2 justify-end">
           <button 
-            onClick={() => { toast.dismiss(t.id); executeAccountDeletion(); }} 
+            onClick={() => { toast.remove(t.id); executeAccountDeletion(); }} 
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
           >
             Yes, Delete Permanently
           </button>
           <button 
-            onClick={() => toast.dismiss(t.id)} 
+            onClick={() => toast.remove(t.id)} 
             className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
           >
             Cancel
@@ -479,14 +479,14 @@ const UserProfile = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitReport(postId, reason); }}
+              onClick={() => { toast.remove(t.id); submitReport(postId, reason); }}
               className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
@@ -511,14 +511,14 @@ const UserProfile = () => {
           {['spam', 'abuse', 'harassment', 'hate_speech', 'misinformation'].map(reason => (
             <button
               key={reason}
-              onClick={() => { toast.dismiss(t.id); submitUserReport(reason); }}
+              onClick={() => { toast.remove(t.id); submitUserReport(reason); }}
               className="text-left px-3 py-2 text-xs font-bold rounded hover:bg-gray-100 dark:hover:bg-[#272729] capitalize transition-colors"
             >
               {reason.replace('_', ' ')}
             </button>
           ))}
         </div>
-        <button onClick={() => toast.dismiss(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
+        <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
       </div>
     ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
@@ -890,7 +890,7 @@ const UserProfile = () => {
                       ))}
                     </div>
                   )}
-                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none line-clamp-3">
+                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none line-clamp-3 break-words">
                     <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
                       {post.content || ''}
                     </ReactMarkdown>

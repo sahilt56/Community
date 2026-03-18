@@ -133,13 +133,8 @@ router.get('/:username', async (req, res) => {
       await Post.populate(downvotedPosts, { path: 'community', select: 'name' });
     }
 
-    // Calculate total Anubhav (exclude self-votes)
+    // Removed dynamic loop to prevent double-counting as Anubhav is now incremented natively per-vote.
     let totalAnubhav = user.anubhav || 0;
-    userPosts.forEach(post => {
-      const otherUpvotes = post.upvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
-      const otherDownvotes = post.downvotes?.filter(id => id && id.toString() !== user._id.toString()).length || 0;
-      totalAnubhav += (otherUpvotes - otherDownvotes);
-    });
 
     // 5. Send all data
     res.status(200).json({ 

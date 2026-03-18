@@ -523,7 +523,7 @@ router.post('/login', async (req, res) => {
         const banMessage = user.banExpiresAt 
           ? `Your account is temporarily banned until ${new Date(user.banExpiresAt).toLocaleString()}.` 
           : "Your account has been permanently banned by an administrator.";
-        return res.status(403).json({ message: banMessage });
+        return res.status(403).json({ error: banMessage });
       }
     }
 

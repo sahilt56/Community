@@ -169,10 +169,10 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
 
     const formData = new FormData();
     formData.append('title', title);
-    formData.append('content', finalContent);
+    formData.append('content', (postType === 'text' || postType === 'poll') ? finalContent : '');
     formData.append('communityId', selectedCommunity);
     formData.append('postType', postType);
-    formData.append('link', link);
+    formData.append('link', postType === 'link' ? link : '');
     
     if (postType === 'poll') {
       const validOptions = pollOptions.filter(opt => opt.trim());

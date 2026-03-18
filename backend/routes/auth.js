@@ -10,6 +10,7 @@ const Setting = require('../models/Setting');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const BlacklistToken = require('../models/BlacklistToken');
+const verifyToken = require('../middleware/verifyToken');
 
 // Initialize Google Auth Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -608,6 +609,30 @@ router.post('/logout', async (req, res) => {
   res.clearCookie('token');
   res.clearCookie('refreshToken');
   res.status(200).json({ message: "Logged out successfully!" });
+});
+
+// GET CURRENT LOGGED IN USER DATA (FOR UPDATING CACHED ANUBHAV ETC)
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // We only send the basic data stored in localStorage so frontend can refresh silently
+    res.status(200).json({
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        profilePic: user.profilePic || null, 
+        anubhav: user.anubhav || 0, 
+        isAdmin: user.isAdmin || false 
+      }
+    });
+  } catch (err) {
+    console.error("Auth /me error:", err);
+    res.status(500).json({ error: "Failed to fetch user data." });
+  }
 });
 
 module.exports = router;

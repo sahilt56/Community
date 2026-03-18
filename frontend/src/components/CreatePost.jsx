@@ -227,21 +227,36 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
       <div className="flex border-b border-gray-200 dark:border-[#343536] transition-colors overflow-x-auto no-scrollbar">
         <button 
           type="button"
-          onClick={() => setPostType('text')}
+          onClick={() => {
+            if (postType !== 'text') {
+              setFiles([]); setPreviews([]); setLink(''); setPollOptions(['', '']);
+              setPostType('text');
+            }
+          }}
           className={`flex-1 min-w-20 py-3 text-xs md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-all ${postType === 'text' ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white bg-gray-50 dark:bg-white/5' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
         >
           <FileText size={18} /> <span className="whitespace-nowrap">Post</span>
         </button>
         <button 
           type="button"
-          onClick={() => setPostType('media')}
+          onClick={() => {
+            if (postType !== 'media') {
+              setContent(''); setLink(''); setPollOptions(['', '']);
+              setPostType('media');
+            }
+          }}
           className={`flex-1 min-w-30 py-3 text-xs md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-all ${postType === 'media' ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white bg-gray-50 dark:bg-white/5' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
         >
-          <Image size={18} /> <span className="whitespace-nowrap">Images & Video</span>
+          <Image size={18} /> <span className="whitespace-nowrap">Images &amp; Video</span>
         </button>
         <button 
           type="button"
-          onClick={() => setPostType('link')}
+          onClick={() => {
+            if (postType !== 'link') {
+              setContent(''); setFiles([]); setPreviews([]); setPollOptions(['', '']);
+              setPostType('link');
+            }
+          }}
           className={`flex-1 min-w-20 py-3 text-xs md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-all ${postType === 'link' ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white bg-gray-50 dark:bg-white/5' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
         >
           <LinkIcon size={18} /> <span className="whitespace-nowrap">Link</span>
@@ -256,7 +271,12 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
           return (
             <button 
               type="button"
-              onClick={() => setPostType('poll')}
+              onClick={() => {
+                if (postType !== 'poll') {
+                  setContent(''); setFiles([]); setPreviews([]); setLink('');
+                  setPostType('poll');
+                }
+              }}
               className={`flex-1 min-w-20 py-3 text-xs md:text-sm font-bold flex items-center justify-center gap-1 md:gap-2 transition-all ${postType === 'poll' ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white bg-gray-50 dark:bg-white/5' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
             >
               <BarChart2 size={18} /> <span className="whitespace-nowrap">Poll</span>
@@ -414,7 +434,7 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
               )}
 
               {previews.length > 0 && (
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-3 w-full mt-4">
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-3 w-full mt-4 relative z-20">
                   {previews.map((prev, index) => {
                     const isVideo = isVideoFile(prev);
                     return (

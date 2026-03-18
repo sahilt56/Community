@@ -396,6 +396,7 @@ router.put('/:id/upvote', verifyToken, async (req, res) => {
     if (!postCheck) return res.status(404).json({ message: "Post not found" });
 
     const hasUpvoted = postCheck.upvotes.includes(userId);
+    const hasDownvoted = postCheck.downvotes.includes(userId);
     let update = {};
 
     const User = require('../models/User');
@@ -479,6 +480,7 @@ router.put('/:id/downvote', verifyToken, async (req, res) => {
     if (!postCheck) return res.status(404).json({ message: "Post not found" });
 
     const hasDownvoted = postCheck.downvotes.includes(userId);
+    const hasUpvoted = postCheck.upvotes.includes(userId);
     let update = {};
 
     const User = require('../models/User');

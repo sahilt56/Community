@@ -290,6 +290,34 @@ const Navbar = () => {
     }
   }, [socket]);
 
+  // Fetch updated user stats (like Anubhav) periodically or on mount
+  const fetchCurrentUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await api.get('/api/auth/me');
+      if (res.data?.user) {
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        setUser(res.data.user);
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (err) {
+      // Silently fail if auth error, app router handles actual logouts
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  // Optionally listen to post_interaction to silently refresh Anubhav
+  useEffect(() => {
+    if (socket) {
+      const handleInteraction = () => fetchCurrentUser();
+      socket.on('post_interaction', handleInteraction);
+      return () => socket.off('post_interaction', handleInteraction);
+    }
+  }, [socket, fetchCurrentUser]);
+
   const markAsRead = async (id) => {
     setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));

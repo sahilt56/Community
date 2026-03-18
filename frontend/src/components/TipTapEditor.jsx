@@ -119,7 +119,7 @@ const MediaFloatingDelete = ({ editor }) => {
     if (!editor) return;
     const update = () => {
       const { selection } = editor.state;
-      if (selection && selection.node && selection.node.type.name === 'imageResize') {
+      if (selection && selection.node && selection.node.type.name === 'image') {
         const domNode = editor.view.nodeDOM(selection.from);
         if (domNode && domNode instanceof HTMLElement) {
           if (getComputedStyle(domNode).position === 'static') {
@@ -214,7 +214,7 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
 
     // Smart insertion: if an image or video is already selected, move cursor AFTER it so it doesn't get overwritten
     const { selection } = editor.state;
-    if (selection.node && (selection.node.type.name === 'imageResize' || selection.node.type.name === 'customVideo')) {
+    if (selection.node && (selection.node.type.name === 'image' || selection.node.type.name === 'customVideo')) {
       editor.chain().setTextSelection(selection.to).run();
     }
 
@@ -226,7 +226,7 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
        ]).run();
     } else {
        editor.chain().focus().insertContent([
-         { type: 'imageResize', attrs: { src: objectUrl } },
+         { type: 'image', attrs: { src: objectUrl } },
          { type: 'paragraph', content: [] }
        ]).run();
     }
@@ -442,7 +442,7 @@ const TipTapEditor = ({ value, onChange, placeholder, minHeight = "150px", onPen
         openOnClick: false,
         autolink: true,
       }),
-      ResizeImage,
+      ResizeImage.extend({ name: 'image' }),
       Youtube.configure({
         controls: true,
         allowFullscreen: true,

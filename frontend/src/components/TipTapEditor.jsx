@@ -63,6 +63,18 @@ const CustomVideo = Node.create({
     return ReactNodeViewRenderer((props) => (
       <NodeViewWrapper className="my-4 relative group inline-block w-full">
         <div className={`relative border-2 rounded-xl overflow-hidden bg-black/5 dark:bg-black/20 transition-colors ${props.selected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent dark:border-transparent'}`}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              props.deleteNode();
+            }}
+            className="absolute top-2 right-2 bg-black/60 text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center z-[100] cursor-pointer shadow-md backdrop-blur-sm transition-colors border border-white/20"
+            title="Remove Video"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
           <video 
             controls 
             src={props.node.attrs.src} 
@@ -107,7 +119,7 @@ const MediaFloatingDelete = ({ editor }) => {
     if (!editor) return;
     const update = () => {
       const { selection } = editor.state;
-      if (selection && selection.node && (selection.node.type.name === 'imageResize' || selection.node.type.name === 'customVideo')) {
+      if (selection && selection.node && selection.node.type.name === 'imageResize') {
         const domNode = editor.view.nodeDOM(selection.from);
         if (domNode && domNode instanceof HTMLElement) {
           if (getComputedStyle(domNode).position === 'static') {

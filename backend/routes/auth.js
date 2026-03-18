@@ -67,20 +67,36 @@ router.get('/check-username/:username', async (req, res) => {
 // GOOGLE LOGIN / REGISTER ROUTE
 router.post('/google', async (req, res) => {
   try {
-    const { access_token, username: providedUsername, userType } = req.body;
+    const { access_token, credential, username: providedUsername, userType } = req.body;
 
-    if (!access_token) {
-      return res.status(400).json({ error: "Access token is required" });
+    const tokenToVerify = credential || access_token;
+
+    if (!tokenToVerify) {
+      return res.status(400).json({ error: "Google token is required" });
     }
 
-    // 1. Verify the Access Token by fetching user info from Google
-    const googleResponse = await axios.get(
-      `https://www.googleapis.com/oauth2/v3/userinfo`,
-      { headers: { Authorization: `Bearer ${access_token}` } }
-    );
-    
-    const payload = googleResponse.data;
-    const { email, picture } = payload;
+    let email, picture;
+
+    if (credential) {
+      // 1. Verify the ID Token using OAuth2Client
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      picture = payload.picture;
+    } else {
+      // Fallback for older access_token method
+      // 1. Verify the Access Token by fetching user info from Google
+      const googleResponse = await axios.get(
+        `https://www.googleapis.com/oauth2/v3/userinfo`,
+        { headers: { Authorization: `Bearer ${access_token}` } }
+      );
+      const payload = googleResponse.data;
+      email = payload.email;
+      picture = payload.picture;
+    }
 
     if (!email) {
       return res.status(400).json({ error: "Invalid token: Email not found" });

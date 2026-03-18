@@ -38,6 +38,7 @@ const UserProfile = () => {
   const [followersModal, setFollowersModal] = useState({ isOpen: false, type: 'followers', list: [] });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
     const { socket } = useContext(SocketContext);
 
   const fetchUserProfile = async () => {
@@ -231,7 +232,11 @@ const UserProfile = () => {
       fetchUserProfile();
       closeUploadModal();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Upload failed");
+      if (err.response?.status === 413 || err.response?.data?.message?.toLowerCase().includes("too large")) {
+        toast.error("File is too large completely! Please select a file under 5MB.");
+      } else {
+        toast.error(err.response?.data?.message || "Upload failed. File might be too large or invalid.");
+      }
     } finally {
       setIsUploadingImage(false);
     }
@@ -612,7 +617,7 @@ const UserProfile = () => {
           )}
           
           {isOwner && (
-            <div className="absolute bottom-3 right-3 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
+            <div className="absolute bottom-3 right-3 flex gap-3 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-all duration-300 z-30">
               <label 
                 className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 relative"
                 title="Edit Banner"
@@ -663,7 +668,7 @@ const UserProfile = () => {
                   )}
                   
                   {isOwner && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-all duration-300">
                       <label className="cursor-pointer p-2 bg-black/40 hover:bg-black/60 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
                         <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
                         <Camera size={20} strokeWidth={2.5} className="text-white" />

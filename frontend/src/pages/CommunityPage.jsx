@@ -11,6 +11,7 @@ import VoicePartyTab from '../components/VoicePartyTab';
 import CreatePost from '../components/CreatePost';
 import { SocketContext } from '../context/SocketContext';
 import PollView from '../components/PollView';
+import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle, Calendar, Mic, BarChart2, ExternalLink, Users, Ban, Award } from 'lucide-react';
@@ -298,7 +299,11 @@ const CommunityPage = () => {
       fetchCommunityInfo();
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error updating community");
+      if (err.response?.status === 413 || err.response?.data?.message?.toLowerCase().includes("too large")) {
+        toast.error("File is too large completely! Please select a file under 5MB.");
+      } else {
+        toast.error(err.response?.data?.message || "Error updating community. File might be too large or invalid.");
+      }
     } finally {
       setIsSaving(false);
     }

@@ -322,7 +322,8 @@ const PostPage = () => {
     (typeof m === 'object' ? m._id === currentUser.id : m === currentUser.id)
   );
 
-  const canDelete = isAuthor || isCreator || isMod;
+  const canDeletePost = isAuthor || isCreator || isMod;
+  const isCommunityAdmin = isCreator || isMod;
 
   const handleDeletePost = () => {
     toast((t) => (
@@ -397,7 +398,7 @@ const PostPage = () => {
           <PostMenu 
             post={post}
             currentUser={currentUser}
-            isMod={canDelete}
+            isMod={canDeletePost}
             onSave={() => handleSave()}
             onHide={() => handleHide()}
             onReport={() => handleReport()}
@@ -526,7 +527,7 @@ const PostPage = () => {
             </div>
 
             {/* Delete Button (Author/Mod only) */}
-            {canDelete && (
+            {canDeletePost && (
               <div 
                 onClick={handleDeletePost}
                 className="flex items-center gap-1.5 bg-red-600/10 text-red-500 border border-red-500 px-3 py-1.5 rounded-full hover:bg-red-500 hover:text-white cursor-pointer transition-all ml-auto"
@@ -594,7 +595,7 @@ const PostPage = () => {
             <h3 className="text-green-600 dark:text-green-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsUp size={18} strokeWidth={2.5} /> For / Agree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'agree').map((rootComment) => (
-                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={canDelete} />
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={isCommunityAdmin} />
               ))}
               {rootComments.filter(c => c.stance === 'agree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
             </div>
@@ -604,7 +605,7 @@ const PostPage = () => {
             <h3 className="text-red-600 dark:text-red-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsDown size={18} strokeWidth={2.5} /> Against / Disagree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'disagree').map((rootComment) => (
-                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={canDelete} />
+                <CommentThread key={rootComment._id} comment={rootComment} onReply={handleCommentSubmit} onVote={handleCommentVote} onShare={handleShare} onEdit={handleCommentEdit} onDelete={handleCommentDelete} currentUser={currentUser} onAcceptBounty={handleAcceptBounty} post={post} isMod={isCommunityAdmin} />
               ))}
               {rootComments.filter(c => c.stance === 'disagree').length === 0 && <p className="text-gray-400 text-sm text-center py-4">No arguments for this side yet.</p>}
             </div>
@@ -625,7 +626,7 @@ const PostPage = () => {
                 currentUser={currentUser}
                 onAcceptBounty={handleAcceptBounty}
                 post={post}
-                isMod={canDelete}
+                isMod={isCommunityAdmin}
               />
             ))
           ) : (

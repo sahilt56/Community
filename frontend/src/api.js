@@ -32,12 +32,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Clear session and redirect on 403 Forbidden (e.g., when a user is banned) or invalid token
+    // Clear session and redirect on invalid token
     if (
-      (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID') ||
-      error.response?.status === 403
+      (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID')
     ) {
-      console.error("Session invalid or forbidden. Clearing session...");
+      console.error("Session invalid. Clearing session...");
       localStorage.removeItem('user'); 
       localStorage.removeItem('token'); 
       if (window.location.pathname !== '/login') {

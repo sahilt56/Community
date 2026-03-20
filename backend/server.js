@@ -70,7 +70,7 @@ app.use(cors({
 // 🔒 Security: Use Helmet with pop-up support
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+  crossOriginOpenerPolicy: false // Google Auth popup/iframe block hone se rokne ke liye
 }));
 app.disable('x-powered-by'); 
 

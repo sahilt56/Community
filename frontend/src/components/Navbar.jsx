@@ -46,8 +46,16 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
               onClick={() => { setShowResults(false); setSearchTerm(''); }}
               className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+              <div className="w-8 h-8 bg-blue-600 rounded-full overflow-hidden flex items-center justify-center text-white font-bold text-xs relative">
                 v/
+                {community.profilePic && (
+                  <img 
+                    src={getAvatarUrl(community.profilePic)} 
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-900 dark:text-white text-sm font-medium">v/{community.name}</span>

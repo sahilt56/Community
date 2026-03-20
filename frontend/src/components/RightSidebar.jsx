@@ -242,6 +242,30 @@ const [currentTime] = useState(() => Date.now());
         </div>
       </div>
 
+      {/* Partner/Sponsor Banner */}
+      <div className="card-hover bg-linear-to-br from-orange-50 to-orange-100 dark:from-[#272729] dark:to-[#1a1a1b] border border-orange-200 dark:border-[#343536] rounded-xl p-5 shadow-sm transition-all animate-fade-up stagger-3 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider shadow-sm z-10">
+          Partner
+        </div>
+        <div className="mt-2 mb-3">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            Techerax
+            <span className="bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">SERVICES</span>
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+            Need a stunning website or app? Hire <span className="font-bold text-gray-800 dark:text-gray-200">Techerax</span> for fast & premium web solutions.
+          </p>
+        </div>
+        <a 
+          href="https://tech-era-x.vercel.app" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="btn-press block w-full text-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm group-hover:shadow-md"
+        >
+          Explore Services
+        </a>
+      </div>
+
     </div>
   );
 };

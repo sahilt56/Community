@@ -498,6 +498,12 @@ const Login = () => {
                   </span>
                 </p>
               )}
+
+              {isLogin && !isForgotPassword && (
+                <p className="mt-4 text-[11px] text-gray-400 dark:text-gray-500 italic px-4">
+                  Note: Agar app login nahi kar pa rahe hai to page ko 3 se 4 baar refresh kijiye, login ho jayega.
+                </p>
+              )}
             </div>
           </>
         )}

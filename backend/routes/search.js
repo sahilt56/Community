@@ -10,6 +10,7 @@ router.get('/', async (req, res) => {
     if (!q || q.trim().length === 0) {
       return res.json({ communities: [], users: [] });
     }
+    //fix
 
     const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escaped, 'i');

@@ -96,6 +96,11 @@ const CommentThread = ({
   const isAuthor = currentUser && comment.user?._id === currentUser.id;
   const isDeleted = comment.text === "[deleted]";
 
+  // Agar comment deleted hai aur uske aage koi replies (children) nahi hain, toh usko UI se completely hata do
+  if (isDeleted && (!comment.children || comment.children.length === 0)) {
+    return null;
+  }
+
   // Actions
   const netVotes = (comment.upvotes?.length || 0) - (comment.downvotes?.length || 0);
   const hasUpvoted = comment.upvotes?.includes(currentUser?.id);

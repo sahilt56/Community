@@ -260,11 +260,19 @@ const Login = () => {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Join Vartalap')}
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               {isForgotPassword 
                 ? (otpSent ? 'Enter OTP and your new password' : 'Enter your email to receive a reset code')
                 : (isLogin ? 'Login to continue your conversation' : (otpSent ? 'Enter the security code to verify your email' : 'Create an account and dive in'))}
             </p>
+
+            {isLogin && !isForgotPassword && (
+              <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 p-3 mb-6 rounded-lg text-center animate-fade-in">
+                <p className="text-xs text-orange-800 dark:text-orange-300 font-bold">
+                  Note: Agar app login nahi kar pa rahe hai to page ko 3 se 4 baar refresh kijiye, login ho jayega.
+                </p>
+              </div>
+            )}
 
             {/* Google Login Button */}
             {(!otpSent && !isForgotPassword) && (
@@ -496,12 +504,6 @@ const Login = () => {
                   >
                     {isLogin ? 'Sign Up' : 'Log In'}
                   </span>
-                </p>
-              )}
-
-              {isLogin && !isForgotPassword && (
-                <p className="mt-4 text-[11px] text-gray-400 dark:text-gray-500 italic px-4">
-                  Note: Agar app login nahi kar pa rahe hai to page ko 3 se 4 baar refresh kijiye, login ho jayega.
                 </p>
               )}
             </div>

@@ -121,7 +121,7 @@ const [currentTime] = useState(() => Date.now());
     <div className="w-80 shrink-0 hidden xl:flex flex-col gap-4 sticky top-5 max-h-[calc(100vh-88px)] overflow-y-auto no-scrollbar pb-4">
 
       {token ? (
-        <div className="card-hover bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm relative text-center transition-all animate-fade-up">
+        <div className="card-hover bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm relative text-center transition-all animate-fade-up shrink-0">
           {loadingProfile ? (
             <div className="p-4"><SkeletonLoader /></div>
           ) : (
@@ -185,7 +185,7 @@ const [currentTime] = useState(() => Date.now());
           )}
         </div>
       ) : (
-        <div className="card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-5 shadow-sm text-center transition-all animate-fade-up">
+        <div className="card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-5 shadow-sm text-center transition-all animate-fade-up shrink-0">
           <div className="flex justify-center mb-3 text-orange-500">
             <Hand size={36} strokeWidth={2} />
           </div>
@@ -201,7 +201,7 @@ const [currentTime] = useState(() => Date.now());
       )}
 
       {/* Popular Communities */}
-      <div className="card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-4 shadow-sm transition-all animate-fade-up stagger-2">
+      <div className="card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-4 shadow-sm transition-all animate-fade-up stagger-2 shrink-0">
         <h3 className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-4">
           <Flame size={14} strokeWidth={2.5} className="text-orange-500" /> Popular Communities
         </h3>
@@ -243,7 +243,7 @@ const [currentTime] = useState(() => Date.now());
       </div>
 
       {/* Partner/Sponsor Banner */}
-      <div className="card-hover bg-linear-to-br from-orange-50 to-orange-100 dark:from-[#272729] dark:to-[#1a1a1b] border border-orange-200 dark:border-[#343536] rounded-xl p-5 shadow-sm transition-all animate-fade-up stagger-3 relative overflow-hidden group">
+      <div className="card-hover bg-linear-to-br from-orange-50 to-orange-100 dark:from-[#272729] dark:to-[#1a1a1b] border border-orange-200 dark:border-[#343536] rounded-xl p-5 shadow-sm transition-all animate-fade-up stagger-3 relative overflow-hidden group shrink-0">
         <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider shadow-sm z-10">
           Partner
         </div>

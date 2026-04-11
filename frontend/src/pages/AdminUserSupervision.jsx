@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import TipTapEditor from '../components/TipTapEditor';
 import { 
   Shield, AlertTriangle, MessageSquare, Send, X, Lock,
-  Trash2, CheckCircle, Search, MoreVertical, Activity, Layers, Ban, MessageCircle, KeyRound, Award, ArrowLeft, ImagePlay, Settings2
+  Trash2, CheckCircle, Search, MoreVertical, Activity, Layers, Ban, MessageCircle, KeyRound, Award, ArrowLeft, ImagePlay, Settings2, Beaker
 } from 'lucide-react';
 
 const AdminUserSupervision = () => {
@@ -236,6 +236,16 @@ const AdminUserSupervision = () => {
         }
     };
 
+    const handleToggleBetaTester = async (userId, currentState) => {
+        try {
+            const res = await api.put(`/api/admin/users/${userId}/beta-tester`);
+            toast.success(res.data.message);
+            fetchUsers();
+        } catch (err) {
+            toast.error(err.response?.data?.error || "Failed to toggle Beta Tester.");
+        }
+    };
+
     const handleSendMessageClick = (userId, username) => {
         setMessageModal({ isOpen: true, userId, username, content: '' });
     };
@@ -354,6 +364,7 @@ const AdminUserSupervision = () => {
                                                 </h3>
                                                 {u.canUseGifBanner && <ImagePlay className="w-5 h-5 text-pink-500 flex-shrink-0" title="GIF Banner Enabled"/>}
                                                 {u.hasVartalapBadge && <Award className="w-5 h-5 text-blue-500 flex-shrink-0" title="Vartalap Badge"/>}
+                                                {u.isBetaTester && <Beaker className="w-5 h-5 text-teal-500 flex-shrink-0" title="Beta Tester"/>}
                                                 {u.isAdmin && <Shield className="w-5 h-5 text-orange-500 flex-shrink-0" title="Admin"/>}
                                             </div>
                                             {u.email && <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{u.email}</p>}
@@ -451,6 +462,14 @@ const AdminUserSupervision = () => {
                                                 >
                                                     <Award size={16} className={u.hasVartalapBadge ? "text-purple-600 dark:text-purple-400" : "text-gray-400"}/> 
                                                     <span>Badge</span>
+                                                </button>
+
+                                                <button 
+                                                    onClick={() => handleToggleBetaTester(u._id, u.isBetaTester)} 
+                                                    className={`flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-teal-50 dark:bg-[#272729] dark:hover:bg-teal-500/10 text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-400 border border-gray-300 hover:border-teal-300 dark:border-[#343536] dark:hover:border-teal-500/40 rounded-lg text-sm font-semibold transition-all shadow-sm ${u.isBetaTester ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-500/20 border-teal-400 dark:border-teal-500 text-teal-600 dark:text-teal-400' : ''}`}
+                                                >
+                                                    <Beaker size={16} className={u.isBetaTester ? "text-teal-600 dark:text-teal-400" : "text-gray-400"}/> 
+                                                    <span>Beta</span>
                                                 </button>
                                                 
                                                 <button 

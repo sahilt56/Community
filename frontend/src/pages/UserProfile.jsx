@@ -9,7 +9,7 @@ import { SocketContext } from '../context/SocketContext';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil } from 'lucide-react';
+import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil, Beaker } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
 const sanitizeOptions = {
@@ -724,6 +724,12 @@ const UserProfile = () => {
                       <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] border border-blue-400/50" title="Official Vartalap Badge">
                         <Award size={16} strokeWidth={2.5} />
                         <span className="text-[10px] font-extrabold tracking-wider uppercase">Vartalap Badge</span>
+                      </div>
+                    )}
+                    {profileData.profile.isBetaTester && (
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-teal-400 to-emerald-500 text-white px-2 py-0.5 rounded-full shadow-sm border border-teal-300/50" title="Beta Tester">
+                        <Beaker size={16} strokeWidth={2.5} />
+                        <span className="text-[10px] font-extrabold tracking-wider uppercase">Beta Tester</span>
                       </div>
                     )}
                     {(profileData.totalAnubhav || 0) >= 100 && (

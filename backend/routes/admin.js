@@ -532,6 +532,27 @@ router.put('/users/:id/vartalap-badge', async (req, res) => {
 // ==========================================
 // 🚨 5. MANAGE REPORTS
 // ==========================================
+router.put('/users/:id/beta-tester', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        user.isBetaTester = !user.isBetaTester;
+        await user.save();
+        
+        const actionMessage = user.isBetaTester ? 'Beta Tester access granted!' : 'Beta Tester access revoked!';
+        res.status(200).json({ 
+            message: actionMessage, 
+            isBetaTester: user.isBetaTester 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to toggle Beta Tester status' });
+    }
+});
+
 router.get('/reports', async (req, res) => {
     try {
       // Fetch reports, prioritizing pending

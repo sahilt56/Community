@@ -45,8 +45,8 @@ router.get('/', async (req, res) => {
       ];
       const aggregatedPosts = await Post.aggregate(pipeline);
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     } else if (sort === 'hot') {
       const pipeline = [
@@ -65,8 +65,8 @@ router.get('/', async (req, res) => {
       ];
       const aggregatedPosts = await Post.aggregate(pipeline);
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     } else {
       // 'top' sort using Aggregation Pipeline for netVotes
@@ -93,8 +93,8 @@ router.get('/', async (req, res) => {
       const aggregatedPosts = await Post.aggregate(pipeline);
       
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     }
     
@@ -187,8 +187,8 @@ router.get('/community/:communityId', async (req, res) => {
       ];
       const aggregatedPosts = await Post.aggregate(pipeline);
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     } else if (sort === 'hot') {
       const pipeline = [
@@ -207,8 +207,8 @@ router.get('/community/:communityId', async (req, res) => {
       ];
       const aggregatedPosts = await Post.aggregate(pipeline);
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     } else {
       // 'top' sort using Aggregation Pipeline for netVotes
@@ -235,8 +235,8 @@ router.get('/community/:communityId', async (req, res) => {
       const aggregatedPosts = await Post.aggregate(pipeline);
       
       posts = await Post.populate(aggregatedPosts, [
-        { path: 'author', select: 'username' },
-        { path: 'community', select: 'name' }
+        { path: 'author', select: 'username profilePic' },
+        { path: 'community', select: 'name profilePic' }
       ]);
     }
 

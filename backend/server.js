@@ -44,6 +44,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:8081',
+  'http://192.168.1.42:8081',
   'https://vartalap.live',
   'https://www.vartalap.live',
   'https://api.vartalap.live' // API origin ko bhi safety ke liye add kar do
@@ -348,7 +350,7 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('MongoDB successfully connected! 🚀');
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server & Socket.IO running on port ${PORT} ⚡`);
       chatCleanup.initializeCleanupSweep();
       startCronJob();

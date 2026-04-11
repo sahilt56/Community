@@ -23,6 +23,7 @@ const UserSchema = new mongoose.Schema({
   profilePic: { type: String, default: '' },
   bannerPic: { type: String, default: '' },
   description: { type: String, default: '' },
+  isBetaTester: { type: Boolean, default: false },
   canUseGifBanner: { type: Boolean, default: false },
   isBanned: { type: Boolean, default: false },
   banExpiresAt: { type: Date, default: null },

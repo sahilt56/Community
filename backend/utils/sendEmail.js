@@ -7,7 +7,6 @@ const sendEmail = async (options) => {
     }
 
     const payload = {
-      // Now that the domain is verified, we can use the custom domain
       from: 'Vartalap Community <no-reply@vartalap.live>',
       to: [options.email],
       subject: options.subject,
@@ -15,8 +14,6 @@ const sendEmail = async (options) => {
       text: options.message,
     };
 
-    // 🚀 We use the native Node.js fetch (available in Node 18+) to call the REST API over HTTPS (Port 443)
-    // This entirely bypasses the SMTP Port 465/587 blocking!
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -29,14 +26,13 @@ const sendEmail = async (options) => {
     const data = await response.json();
 
     if (!response.ok) {
-      // Throw error with exact message from Resend API
       throw new Error(`Resend API Error: ${data.message || JSON.stringify(data) || 'Failed to send email via API'}`);
     }
 
     console.log(`✉️ Email sent via Resend API! ID: ${data.id}`);
   } catch (error) {
     console.error(`❌ Error sending email: ${error.message}`);
-    throw error; // 🛡️ Abhi asli error bypass hoke auth.js me jayega
+    throw error;
   }
 };
 

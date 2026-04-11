@@ -538,14 +538,14 @@ const CommunityPage = () => {
                   <div className="flex gap-2 shrink-0">
                     <button 
                       onClick={handleEditClick}
-                      className="hidden md:block px-6 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-gray-200 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] hover:bg-gray-300 dark:hover:bg-[#343536]"
+                      className="px-4 md:px-6 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-gray-200 dark:bg-[#272729] text-gray-900 dark:text-white border border-gray-300 dark:border-[#343536] hover:bg-gray-300 dark:hover:bg-[#343536]"
                     >
                       Edit
                     </button>
                     {isCreator && (
                       <button 
                         onClick={handleDeleteCommunity}
-                        className="hidden lg:block px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-red-600/10 text-red-500 border border-red-500 hover:bg-red-500 hover:text-white"
+                        className="px-3 md:px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-red-600/10 text-red-500 border border-red-500 hover:bg-red-500 hover:text-white"
                       >
                         Delete
                       </button>

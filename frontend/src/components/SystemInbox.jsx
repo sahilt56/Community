@@ -175,7 +175,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                                             </div>
                                             
                                             <div 
-                                                className={`text-sm text-gray-600 dark:text-gray-400 overflow-hidden transition-all ${isExpanded ? 'line-clamp-none mt-2 whitespace-pre-wrap' : 'line-clamp-2'}`}
+                                                className={`text-sm text-gray-600 dark:text-gray-400 overflow-hidden transition-all break-words pr-6 ${isExpanded ? 'line-clamp-none mt-2 whitespace-pre-wrap' : 'line-clamp-2'}`}
                                                 dangerouslySetInnerHTML={{ __html: msg.content }}
                                             />
                                             

@@ -82,7 +82,7 @@ function App() {
           position="bottom-center"
           toastOptions={{
             className: 'custom-toast-style border border-gray-200 dark:border-[#343536] shadow-lg',
-            duration: 3000,
+            duration: 1500,
           }}
         />
         <Navbar />

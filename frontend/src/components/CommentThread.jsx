@@ -138,12 +138,28 @@ const CommentThread = ({
               {isDeleted ? (
                 <span className="font-bold italic text-gray-400 dark:text-gray-500">[deleted]</span>
               ) : (
-                <Link to={`/u/${comment.user?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-gray-300 font-bold flex items-center gap-1">
-                  u/{comment.user?.username || 'user'}
-                  {comment.user?.hasVartalapBadge && (
-                    <Award size={12} className="text-blue-500 flex-shrink-0" />
-                  )}
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link to={`/u/${comment.user?.username}`} className="shrink-0 flex items-center">
+                    {comment.user?.profilePicture ? (
+                      <img 
+                        src={comment.user.profilePicture.startsWith('http') ? comment.user.profilePicture : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(comment.user.profilePicture.startsWith('/') ? '' : '/')}${comment.user.profilePicture}`} 
+                        alt="" 
+                        className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-200 dark:border-[#343536]" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-linear-to-tr from-orange-400 to-red-400 flex items-center justify-center text-[10px] font-bold text-white shrink-0 shadow-sm border border-orange-200 dark:border-[#343536]">
+                        {comment.user?.username?.charAt(0).toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </Link>
+                  <Link to={`/u/${comment.user?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-gray-300 font-bold flex items-center gap-1">
+                    u/{comment.user?.username || 'user'}
+                    {comment.user?.hasVartalapBadge && (
+                      <Award size={12} className="text-blue-500 flex-shrink-0" />
+                    )}
+                  </Link>
+                </div>
               )}
             </p>
           </div>

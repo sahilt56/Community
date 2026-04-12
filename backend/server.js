@@ -81,7 +81,8 @@ const server = http.createServer(app);
 app.use(morgan('combined'));
 
 // Middleware
-app.use(express.json({ limit: '1mb' })); 
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser()); 
 
 // 🔒 Security: Prevent NoSQL Injection

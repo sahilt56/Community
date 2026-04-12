@@ -3,6 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import TipTapEditor from './TipTapEditor';
 import { FileText, Image, Link as LinkIcon, UploadCloud, Camera, Film, Home, BarChart2, Plus, Trash2 } from 'lucide-react';
+import { compressImage } from '../utils/imageCompressor';
 
 const isVideoFile = (fileOrPreview) => {
   const type = fileOrPreview.type || '';
@@ -56,8 +57,10 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
     fetchCommunities();
   }, []);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const selectedFiles = Array.from(e.target.files);
+    // Reset input right away so same files can be re-selected if needed
+    e.target.value = '';
     
     // Combine existing + new files for validation
     const allFiles = [...files, ...selectedFiles];
@@ -67,12 +70,10 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
     // Max 13 images + Max 3 videos
     if (imageCount > 13) {
       toast.error("Maximum 13 images allowed per post!");
-      setFileInputKey(prev => prev + 1); // FIX: Incremented state instead of Date.now()
       return;
     }
     if (videoCount > 3) {
       toast.error("Maximum 3 videos allowed per post!");
-      setFileInputKey(prev => prev + 1);
       return;
     }
 
@@ -80,26 +81,42 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
     const oversizedVideo = selectedFiles.find(f => isVideoFile(f) && f.size > 10 * 1024 * 1024);
     if (oversizedVideo) {
       toast.error(`Video "${oversizedVideo.name}" is too large. Max 10MB allowed!`);
-      setFileInputKey(prev => prev + 1);
       return;
     }
 
-    // Image size check: Max 5MB per image
-    const oversizedImage = selectedFiles.find(f => !isVideoFile(f) && f.size > 5 * 1024 * 1024);
+    // Image size check: Max 10MB per image (before compression)
+    const oversizedImage = selectedFiles.find(f => !isVideoFile(f) && f.size > 10 * 1024 * 1024);
     if (oversizedImage) {
-      toast.error(`Image "${oversizedImage.name}" is too large. Max 5MB allowed!`);
-      setFileInputKey(prev => prev + 1);
+      toast.error(`Image "${oversizedImage.name}" is too large. Max 10MB allowed!`);
       return;
     }
 
-    // Build previews — store name too for fallback detection
-    const newPreviews = [...previews, ...selectedFiles.map(file => ({
+    // Compress images, leave videos as-is
+    const loadingId = toast.loading('Optimizing images...');
+    const processedFiles = [];
+    for (const file of selectedFiles) {
+      if (!isVideoFile(file)) {
+        try {
+          const compressed = await compressImage(file);
+          processedFiles.push(compressed);
+        } catch {
+          processedFiles.push(file); // Fallback to original
+        }
+      } else {
+        processedFiles.push(file);
+      }
+    }
+    toast.dismiss(loadingId);
+
+    // Build previews
+    const combinedFiles = [...files, ...processedFiles];
+    const newPreviews = [...previews, ...processedFiles.map(file => ({
       url: URL.createObjectURL(file),
       type: file.type || '',
       name: file.name || ''
     }))];
 
-    setFiles(allFiles);
+    setFiles(combinedFiles);
     setPreviews(newPreviews);
   };
 
@@ -438,9 +455,16 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
                   {previews.map((prev, index) => {
                     const isVideo = isVideoFile(prev);
                     return (
-                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-gray-300 dark:border-[#343536] bg-black/10 dark:bg-black/40 group">
-                        {isVideo ? (
-                          <video src={prev.url} muted playsInline className="w-full h-full object-cover" />
+                      <div key={index} className="relative rounded-md overflow-hidden border border-gray-300 dark:border-[#343536] bg-black/10 dark:bg-black/40 group" style={{ aspectRatio: isVideoFile(prev) ? '16/9' : '1/1' }}>
+                        {isVideoFile(prev) ? (
+                          <video 
+                            src={prev.url} 
+                            muted 
+                            playsInline 
+                            preload="metadata"
+                            className="w-full h-full object-cover" 
+                            onLoadedMetadata={(e) => { e.target.currentTime = 1; }}
+                          />
                         ) : (
                           <img src={prev.url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                         )}

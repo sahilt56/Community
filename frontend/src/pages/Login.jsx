@@ -126,7 +126,7 @@ const Login = () => {
 
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user)); 
-      window.location.href = '/'; 
+      window.location.replace('/'); 
     } catch (err) {
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
     }
@@ -191,7 +191,7 @@ const Login = () => {
         toast.success("Login Successful! 🎉");
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user)); 
-        window.location.href = '/'; 
+        window.location.replace('/'); 
       }
     } catch (err) {
       toast.error(err.response?.data?.error || "Google Auth Failed");

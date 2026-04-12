@@ -469,11 +469,16 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setMenuOpen(false);
-    window.location.href = '/';
+    
+    try {
+      await api.post('/api/auth/logout');
+    } catch(e) {}
+    
+    window.location.replace('/?logout=true');
   };
 
   const getAvatarUrl = (pic, fallbackToUser = false) => {

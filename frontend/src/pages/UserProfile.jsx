@@ -12,6 +12,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil, Beaker } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
+import { compressImage } from '../utils/imageCompressor';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -190,21 +191,32 @@ const UserProfile = () => {
     }
   };
 
-  const handleImageUpload = (e, type) => {
+  const handleImageUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (5MB limit)
-    const MAX_SIZE = 5 * 1024 * 1024;
+    // Check file size (10MB limit)
+    const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      toast.error("Unable to upload, please choose a file less than 5MB");
+      toast.error("Unable to upload, please choose a file less than 10MB");
       e.target.value = ''; // Reset input
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setUploadModal({ isOpen: true, type, file, previewUrl });
-    e.target.value = '';
+    try {
+      const loadingToast = toast.loading("Optimizing image... ✨");
+      const optimizedFile = await compressImage(file);
+      const previewUrl = URL.createObjectURL(optimizedFile);
+      setUploadModal({ isOpen: true, type, file: optimizedFile, previewUrl });
+      toast.dismiss(loadingToast);
+    } catch (err) {
+      console.error("Compression failed:", err);
+      // Fallback to original file if compression fails
+      const previewUrl = URL.createObjectURL(file);
+      setUploadModal({ isOpen: true, type, file, previewUrl });
+    } finally {
+      e.target.value = ''; // Reset input so the same file can be selected again
+    }
   };
 
   const closeUploadModal = () => {
@@ -234,7 +246,7 @@ const UserProfile = () => {
       closeUploadModal();
     } catch (err) {
       if (err.response?.status === 413 || err.response?.data?.message?.toLowerCase().includes("too large")) {
-        toast.error("File is too large completely! Please select a file under 5MB.");
+        toast.error("File is too large completely! Please select a file under 10MB.");
       } else {
         toast.error(err.response?.data?.message || "Upload failed. File might be too large or invalid.");
       }

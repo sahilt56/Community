@@ -17,6 +17,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle, Calendar, Mic, BarChart2, ExternalLink, Users, Ban, Award, EyeOff, Eye } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
+import { compressImage } from '../utils/imageCompressor';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -301,7 +302,7 @@ const CommunityPage = () => {
     } catch (err) {
       console.error(err);
       if (err.response?.status === 413 || err.response?.data?.message?.toLowerCase().includes("too large")) {
-        toast.error("File is too large completely! Please select a file under 5MB.");
+        toast.error("File is too large completely! Please select a file under 10MB.");
       } else {
         toast.error(err.response?.data?.message || "Error updating community. File might be too large or invalid.");
       }
@@ -645,27 +646,53 @@ const CommunityPage = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Community Icon / Profile Pic</label>
-                        <input type="file" accept="image/*" onChange={e => {
+                        <input type="file" accept="image/*" onChange={async (e) => {
                           const file = e.target.files[0];
-                          if (file && file.size > 5 * 1024 * 1024) {
-                            toast.error("Unable to upload, please choose a file less than 5MB");
+                          if (!file) return;
+                          
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast.error("Unable to upload, please choose a file less than 10MB");
                             e.target.value = null;
                             return;
                           }
-                          setProfileFile(file);
+                          
+                          try {
+                            const loadingToast = toast.loading("Optimizing Icon... ✨");
+                            const optimizedFile = await compressImage(file);
+                            setProfileFile(optimizedFile);
+                            toast.dismiss(loadingToast);
+                          } catch (err) {
+                            console.error("Compression failed:", err);
+                            setProfileFile(file); // Fallback
+                          } finally {
+                            e.target.value = ''; // Always reset
+                          }
                         }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-600/10 file:text-blue-600 dark:file:text-blue-500 hover:file:bg-blue-100 dark:hover:file:bg-blue-600/20 cursor-pointer" />
                         <p className="text-[10px] text-gray-500 mt-1">Leave empty to keep current picture.</p>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Banner Image</label>
-                        <input type="file" accept="image/*" onChange={e => {
+                        <input type="file" accept="image/*" onChange={async (e) => {
                           const file = e.target.files[0];
-                          if (file && file.size > 5 * 1024 * 1024) {
-                            toast.error("Unable to upload, please choose a file less than 5MB");
+                          if (!file) return;
+
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast.error("Unable to upload, please choose a file less than 10MB");
                             e.target.value = null;
                             return;
                           }
-                          setBannerFile(file);
+                          
+                          try {
+                            const loadingToast = toast.loading("Optimizing Banner... ✨");
+                            const optimizedFile = await compressImage(file);
+                            setBannerFile(optimizedFile);
+                            toast.dismiss(loadingToast);
+                          } catch (err) {
+                            console.error("Compression failed:", err);
+                            setBannerFile(file); // Fallback
+                          } finally {
+                            e.target.value = ''; // Always reset
+                          }
                         }} className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 dark:file:bg-orange-600/10 file:text-orange-600 dark:file:text-orange-500 hover:file:bg-orange-100 dark:hover:file:bg-orange-600/20 cursor-pointer" />
                       </div>
                     </div>

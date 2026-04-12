@@ -506,6 +506,7 @@ router.post('/reset-password', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('[Auth] Login attempt for email:', email);
 
     // 🛡️ Security: Prevent NoSQL Injection
     if (typeof email !== 'string' || typeof password !== 'string') {
@@ -513,8 +514,10 @@ router.post('/login', async (req, res) => {
     }
 
     // 1. Check karo ki user database mein hai ya nahi
+    console.log('[Auth] Checking user in DB...');
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('[Auth] User not found:', email);
       return res.status(404).json({ message: "User not found!" });
     }
 
@@ -534,16 +537,20 @@ router.post('/login', async (req, res) => {
     }
 
     // 2. Password verify karo (Bcrypt use karke)
+    console.log('[Auth] Verifying password...');
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log('[Auth] Password invalid for user:', email);
       return res.status(400).json({ message: "Wrong password!" });
     }
 
     // 3. Generate Short-lived Access Token & Refresh Token
+    console.log('[Auth] Generating tokens...');
     const { accessToken, refreshToken } = generateTokens(user._id);
     setTokenCookies(res, accessToken, refreshToken);
 
     // 4. Success response
+    console.log('[Auth] Login successful for user:', email);
     res.status(200).json({
       message: "Login successful!",
       token: accessToken, // 🛡️ FALLBACK: Return token in JSON for localStorage if cookies are dropped cross-origin
@@ -551,7 +558,7 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('[Auth] Login error:', err);
     res.status(500).json({ error: 'Login failed. Please try again.' });
   }
 });
@@ -594,24 +601,29 @@ router.post('/refresh-token', async (req, res) => {
 // LOGOUT ROUTE
 router.post('/logout', async (req, res) => {
   try {
+    console.log('[Auth] Logout request received');
     const accessToken = req.cookies?.token;
     const refreshToken = req.cookies?.refreshToken;
 
+    console.log('[Auth] Blacklisting tokens...');
     // JWT ko decode karke uski expiry date nikalenge taaki DB ko pata ho kab delete karna hai
     if (accessToken) {
       const decodedAccess = jwt.decode(accessToken);
       if (decodedAccess && decodedAccess.exp) {
         await BlacklistToken.create({ token: accessToken, expiresAt: new Date(decodedAccess.exp * 1000) });
+        console.log('[Auth] Access token blacklisted');
       }
     }
     if (refreshToken) {
       const decodedRefresh = jwt.decode(refreshToken);
       if (decodedRefresh && decodedRefresh.exp) {
         await BlacklistToken.create({ token: refreshToken, expiresAt: new Date(decodedRefresh.exp * 1000) });
+        console.log('[Auth] Refresh token blacklisted');
       }
     }
     
     // 🚀 Clear in-memory blacklist cache so new login attempt is instant
+    console.log('[Auth] Invalidating blacklist cache');
     invalidateBlacklistCache();
   } catch (err) {
     console.error("Error blacklisting token during logout:", err);
@@ -625,8 +637,10 @@ router.post('/logout', async (req, res) => {
     path: '/'
   };
   
+  console.log('[Auth] Clearing cookies');
   res.clearCookie('token', cookieOptions);
   res.clearCookie('refreshToken', cookieOptions);
+  console.log('[Auth] Logout successful');
   res.status(200).json({ message: "Logged out successfully!" });
 });
 

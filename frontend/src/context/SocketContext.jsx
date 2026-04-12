@@ -16,6 +16,7 @@ export const SocketProvider = ({ children }) => {
             if (e.key === 'token' || !e.key) {
                 // Token changed or storage was cleared
                 const newToken = localStorage.getItem('token');
+                console.log('[Socket] Storage change detected. New token:', !!newToken);
                 setAuthToken(newToken);
             }
         };
@@ -26,6 +27,7 @@ export const SocketProvider = ({ children }) => {
         // Listen for custom auth-change event (same tab)
         const handleAuthChange = () => {
             const newToken = localStorage.getItem('token');
+            console.log('[Socket] Auth-change event detected. New token:', !!newToken);
             setAuthToken(newToken);
         };
         window.addEventListener('auth-change', handleAuthChange);
@@ -38,10 +40,12 @@ export const SocketProvider = ({ children }) => {
 
     // Socket connection effect - triggered by authToken state changes
     useEffect(() => {
+        console.log('[Socket] authToken changed:', !!authToken);
+        
         if (!authToken) {
             // Token is empty/removed - disconnect socket
             if (socket) {
-                console.log("Token removed, disconnecting socket...");
+                console.log('[Socket] Disconnecting socket due to token removal');
                 socket.disconnect();
                 setSocket(null);
             }
@@ -49,11 +53,12 @@ export const SocketProvider = ({ children }) => {
         }
 
         // Token exists - connect/reconnect socket
-        console.log("Connecting socket with token...");
+        console.log('[Socket] Connecting socket with token...');
         const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
         
         // Close old socket if exists before creating new one
         if (socket) {
+            console.log('[Socket] Closing old socket before creating new one');
             socket.disconnect();
         }
 
@@ -69,14 +74,14 @@ export const SocketProvider = ({ children }) => {
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
-            console.log("Socket connected successfully");
+            console.log('[Socket] Socket connected successfully');
         });
 
         newSocket.on('connect_error', (err) => {
-            console.error("Socket Connection Error:", err.message);
+            console.error('[Socket] Connection Error:', err.message);
             // If it's an auth error, it might be due to expired token
             if (err.message.includes("Authentication error")) {
-                console.warn("Socket auth error, will reconnect when token updates");
+                console.warn('[Socket] Auth error, will reconnect when token updates');
                 setSocket(null);
             }
         });
@@ -98,6 +103,7 @@ export const SocketProvider = ({ children }) => {
         });
 
         return () => {
+            console.log('[Socket] Cleaning up socket connection');
             newSocket.close();
         };
     }, [authToken]);

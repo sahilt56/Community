@@ -22,6 +22,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import ChatRooms from './pages/ChatRooms';
 import ChatRoom from './pages/ChatRoom';
 import { cancelPendingRequests } from './api';
+import DebugConsole from './components/DebugConsole';
 
 function App() {
   const navigate = useNavigate();
@@ -129,6 +130,7 @@ function App() {
         </div>
         
         <MobileBottomNav />
+        <DebugConsole />
       </div>
       </SocketProvider>
     </ThemeProvider>

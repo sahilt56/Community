@@ -111,6 +111,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
+    console.log("[Login] Form submitted, isLogin:", isLogin);
+
     if (!isLogin && usernameStatus && !usernameStatus.available) {
       toast.error("Username is not available!");
       return;
@@ -120,17 +122,22 @@ const Login = () => {
     const payload = isLogin ? { email, password } : { username, email, password, otp, userType };
     
     try {
+      console.log("[Login] Sending request to", endpoint);
       const res = await api.post(endpoint, payload);
       
+      console.log("[Login] Response received successfully");
       toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
+      console.log("[Login] Setting localStorage...");
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
       
+      console.log("[Login] Dispatching auth-change event");
       // Dispatch auth-change event to update SocketContext immediately
       window.dispatchEvent(new Event('auth-change'));
       
+      console.log("[Login] Redirecting to home...");
       // Full clean reload
       window.location.href = '/';
     } catch (err) {

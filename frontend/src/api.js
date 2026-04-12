@@ -43,17 +43,18 @@ api.interceptors.response.use(
   async (error) => {
     // Silently ignore canceled requests (from logout or pending request cancellation)
     if (axios.isCancel(error)) {
-      console.log("Request canceled:", error.message);
+      console.log("[API] Request canceled:", error.message);
       return Promise.reject(error);
     }
 
     const originalRequest = error.config;
+    console.log("[API] Error:", error.response?.status, error.response?.statusText, originalRequest?.url);
 
     // Clear session and redirect on invalid token
     if (
       (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID')
     ) {
-      console.error("Session invalid. Clearing session...");
+      console.error("[API] Session invalid. Clearing session...");
       localStorage.removeItem('user'); 
       localStorage.removeItem('token'); 
       if (window.location.pathname !== '/login') {
@@ -64,6 +65,7 @@ api.interceptors.response.use(
 
     // Try to refresh token on ANY 401 if we have a user session active 
     if (error.response?.status === 401 && !originalRequest._retry && localStorage.getItem('user')) {
+      console.log("[API] Attempting token refresh...");
       originalRequest._retry = true;
 
       try {
@@ -77,6 +79,7 @@ api.interceptors.response.use(
 
         // Save new token to localStorage so subsequent requests use the fresh token
         if (refreshRes.data?.token) {
+          console.log("[API] Token refreshed successfully");
           localStorage.setItem('token', refreshRes.data.token);
           originalRequest.headers.Authorization = `Bearer ${refreshRes.data.token}`;
         }
@@ -86,17 +89,18 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Silently ignore if refresh request was also canceled
         if (axios.isCancel(refreshError)) {
-          console.log("Refresh request canceled");
+          console.log("[API] Refresh request canceled");
           return Promise.reject(refreshError);
         }
 
         // Agar refresh token bhi expire ho gaya (jaise 7 din pure ho gaye)
-        console.error("Session expired. Please log in again.");
+        console.error("[API] Session expired. Please log in again.");
         
         // 🛡️ Guard: Agar user abhi abhi login kiya hai (< 5 seconds ago),
         // toh purani in-flight 401 request ka redirect ignore karo
         const loginTime = localStorage.getItem('loginTime');
         if (loginTime && Date.now() - parseInt(loginTime) < 5000) {
+          console.log("[API] Recent login detected, ignoring 401 redirect");
           return Promise.reject(refreshError);
         }
         
@@ -107,6 +111,7 @@ api.interceptors.response.use(
 
         // 🛑 Prevent infinite refresh loop if already on /login
         if (window.location.pathname !== '/login') {
+          console.log("[API] Redirecting to login");
           window.location.href = '/login'; 
         }
         

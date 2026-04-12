@@ -206,6 +206,41 @@ router.post('/users/:id/features', async (req, res) => {
   }
 });
 
+// Admin Toggle Beta Features for Beta Tester
+router.get('/users/:id/beta-features', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    
+    res.json({ enabledBetaFeatures: user.enabledBetaFeatures || [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch beta features' });
+  }
+});
+
+router.post('/users/:id/beta-features', async (req, res) => {
+  try {
+    const { enabledBetaFeatures } = req.body;
+    if (!Array.isArray(enabledBetaFeatures)) {
+      return res.status(400).json({ message: "enabledBetaFeatures must be an array of strings." });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    
+    if (!user.isBetaTester) {
+      return res.status(400).json({ message: "User is not a Beta Tester. Enable Beta Tester status first." });
+    }
+    
+    user.enabledBetaFeatures = enabledBetaFeatures;
+    await user.save();
+    
+    res.json({ message: "Beta features updated successfully!", enabledBetaFeatures: user.enabledBetaFeatures });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update beta features' });
+  }
+});
+
 // Admin Toggle GIF Banner Permission
 router.post('/users/:id/toggle-gif', async (req, res) => {
   try {

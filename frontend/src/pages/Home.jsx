@@ -265,6 +265,32 @@ const Home = () => {
           </button>
         ))}
       </div>
+
+      {/* Partner/Sponsor Banner (Mobile Only) */}
+      <div className="block xl:hidden mb-4 bg-linear-to-br from-orange-50 to-orange-100 dark:from-[#272729] dark:to-[#1a1a1b] border border-orange-200 dark:border-[#343536] rounded-xl p-4 shadow-sm relative overflow-hidden animate-fade-up">
+        <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider shadow-sm z-10">
+          Partner
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
+          <div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              Techerax
+              <span className="bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm inline-block leading-none">SERVICES</span>
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed max-w-sm">
+              Need a stunning website or app? Hire <span className="font-bold text-gray-800 dark:text-gray-200">Techerax</span>.
+            </p>
+          </div>
+          <a 
+            href="https://tech-era-x.vercel.app" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="btn-press whitespace-nowrap text-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold py-2 px-6 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm shrink-0"
+          >
+            Explore
+          </a>
+        </div>
+      </div>
       
       <div className="flex flex-col gap-4">
         {posts.map((post, index) => {

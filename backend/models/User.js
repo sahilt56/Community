@@ -47,7 +47,12 @@ UserSchema.pre('save', async function() {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// 🛡️ Security Best Practice: API response se hamesha password field ko hata do
+// � Performance Indexes for faster lookups
+// Email index already created by unique: true
+// Username index for check-username route (case-insensitive)
+UserSchema.index({ username: 1 });
+
+// �🛡️ Security Best Practice: API response se hamesha password field ko hata do
 UserSchema.set('toJSON', {
   transform: function(doc, ret, options) {
     delete ret.password;

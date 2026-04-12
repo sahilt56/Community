@@ -12,6 +12,7 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const BlacklistToken = require('../models/BlacklistToken');
 const verifyToken = require('../middleware/verifyToken');
+const { invalidateBlacklistCache } = require('../middleware/verifyToken');
 
 // Initialize Google Auth Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -577,6 +578,9 @@ router.post('/refresh-token', async (req, res) => {
         await BlacklistToken.create({ token: refreshToken, expiresAt: new Date(decodedRefresh.exp * 1000) });
       }
 
+      // 🚀 Clear cache after adding token to blacklist
+      invalidateBlacklistCache();
+
       // Naya access aur refresh token issue karo
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
       setTokenCookies(res, newAccessToken, newRefreshToken);
@@ -606,6 +610,9 @@ router.post('/logout', async (req, res) => {
         await BlacklistToken.create({ token: refreshToken, expiresAt: new Date(decodedRefresh.exp * 1000) });
       }
     }
+    
+    // 🚀 Clear in-memory blacklist cache so new login attempt is instant
+    invalidateBlacklistCache();
   } catch (err) {
     console.error("Error blacklisting token during logout:", err);
   }

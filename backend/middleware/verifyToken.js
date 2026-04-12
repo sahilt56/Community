@@ -2,6 +2,15 @@ const jwt = require('jsonwebtoken');
 const BlacklistToken = require('../models/BlacklistToken');
 const User = require('../models/User');
 
+// 🚀 In-memory cache for blacklisted tokens (to avoid DB hits on every request)
+// This gets cleared every time a token is added/removed from blacklist
+const blacklistCache = new Map();
+
+// Export for backend use
+const invalidateBlacklistCache = () => {
+  blacklistCache.clear();
+};
+
 const verifyToken = async (req, res, next) => {
   try {
     // 1. Authorization header ko PEHLE check karo (always freshest token from frontend)
@@ -25,9 +34,17 @@ const verifyToken = async (req, res, next) => {
       return res.status(401).json({ message: "You are not authenticated! No token provided." });
     }
 
-    // 2. Token ko blacklist me check karna
+    // 2. Token ko blacklist me check karna (with caching to avoid DB hits)
+    // Cache hit: instant return
+    if (blacklistCache.has(token)) {
+      return res.status(401).json({ message: "Session has been invalidated. Please log in again.", code: "TOKEN_BLACKLISTED" });
+    }
+
+    // Cache miss: check DB once, then cache the result
+    // Note: We only cache "IS blacklisted" to avoid false data. Non-blacklisted tokens expire naturally.
     const isBlacklisted = await BlacklistToken.findOne({ token });
     if (isBlacklisted) {
+      blacklistCache.set(token, true);
       return res.status(401).json({ message: "Session has been invalidated. Please log in again.", code: "TOKEN_BLACKLISTED" });
     }
 
@@ -63,3 +80,4 @@ const verifyToken = async (req, res, next) => {
 };
 
 module.exports = verifyToken;
+module.exports.invalidateBlacklistCache = invalidateBlacklistCache;

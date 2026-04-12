@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
-import { UserPlus, Eye, EyeOff, Mail, Lock, User, ShieldCheck, Sparkles, MessageCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Login = () => {

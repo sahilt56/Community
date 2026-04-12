@@ -2,15 +2,6 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
-// GET TOTAL USER COUNT (PUBLIC)
-router.get('/user-count', async (req, res) => {
-  try {
-    const count = await User.countDocuments();
-    res.status(200).json({ count });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
 const Otp = require('../models/Otp');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');

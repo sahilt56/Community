@@ -20,17 +20,6 @@ dotenv.config();
 require('./utils/redisClient');
 
 const app = express();
-
-// 📊 TOTAL USER COUNT (PUBLIC) - TOP PRIORITY
-app.get('/api/v1/user-count-status', async (req, res) => {
-  try {
-    const User = require('./models/User');
-    const count = await User.countDocuments();
-    res.status(200).json({ count });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 // const xssClean = require('xss-clean'); // ❌ Is purane package ko hata diya

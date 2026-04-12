@@ -47,10 +47,8 @@ UserSchema.pre('save', async function() {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// � Performance Indexes for faster lookups
-// Email index already created by unique: true
-// Username index for check-username route (case-insensitive)
-UserSchema.index({ username: 1 });
+// 🚀 Note: Email and username fields have unique: true, which automatically creates indexes
+// No need for duplicate schema.index() calls
 
 // �🛡️ Security Best Practice: API response se hamesha password field ko hata do
 UserSchema.set('toJSON', {

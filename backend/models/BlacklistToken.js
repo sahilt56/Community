@@ -10,8 +10,6 @@ const BlacklistTokenSchema = new mongoose.Schema({
 // (Kyunki expired token ko blacklist me rakhne ka koi fayda nahi)
 BlacklistTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// 🚀 PERFORMANCE INDEX: Token field pe index taaki findOne({ token }) fast rahe!
-// Yeh sab logout/refresh requests ko 30 sec delay se bachayega
-BlacklistTokenSchema.index({ token: 1 });
+// 🚀 Token field pe unique: true already creates an index, so no duplicate needed
 
 module.exports = mongoose.model('BlacklistToken', BlacklistTokenSchema);

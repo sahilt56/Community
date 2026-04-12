@@ -127,7 +127,12 @@ const Login = () => {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
-      window.location.href = '/'; // Full clean reload
+      
+      // Dispatch auth-change event to update SocketContext immediately
+      window.dispatchEvent(new Event('auth-change'));
+      
+      // Full clean reload
+      window.location.href = '/';
     } catch (err) {
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
     }

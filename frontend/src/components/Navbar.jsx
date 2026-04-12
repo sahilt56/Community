@@ -486,6 +486,9 @@ const Navbar = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('loginTime');
     
+    // ✅ Dispatch auth-change event to update SocketContext immediately
+    window.dispatchEvent(new Event('auth-change'));
+    
     // ✅ Login page pe directly bhejo, home page avoid karo
     // (Home pe API calls hoti hain jo 401 race condition banati hain)
     window.location.replace('/login');

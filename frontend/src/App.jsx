@@ -41,9 +41,11 @@ function App() {
           await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/logout`, { method: 'POST' });
         } catch(e) {}
         
+        // Dispatch auth-change event to update SocketContext immediately
+        window.dispatchEvent(new Event('auth-change'));
+        
         toast.error('Session expired due to inactivity. Please log in again.', { duration: 5000 });
         navigate('/login');
-        window.dispatchEvent(new Event('auth-change'));
       }
     };
 

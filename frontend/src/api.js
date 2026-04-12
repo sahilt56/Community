@@ -2,6 +2,15 @@ import axios from 'axios';
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Create an AbortController to cancel pending requests on logout
+let requestAbortController = new AbortController();
+
+// Export function to cancel pending requests
+export const cancelPendingRequests = () => {
+  requestAbortController.abort();
+  requestAbortController = new AbortController(); // Create new one for future requests
+};
+
 // Ek naya Axios instance banate hain jisme by default withCredentials true rahega
 const api = axios.create({
   baseURL: apiUrl,
@@ -18,6 +27,8 @@ api.interceptors.request.use((config) => {
   if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Attach abort signal to cancel request if needed
+  config.signal = requestAbortController.signal;
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -30,6 +41,12 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Silently ignore canceled requests (from logout or pending request cancellation)
+    if (axios.isCancel(error)) {
+      console.log("Request canceled:", error.message);
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
     // Clear session and redirect on invalid token
@@ -54,7 +71,8 @@ api.interceptors.response.use(
         // 🛡️ Added CSRF header for refresh request
         const refreshRes = await axios.post(`${apiUrl}/api/auth/refresh-token`, {}, { 
           withCredentials: true,
-          headers: { 'X-CSRF-Protection': '1' }
+          headers: { 'X-CSRF-Protection': '1' },
+          signal: requestAbortController.signal // Attach abort signal here too
         });
 
         // Save new token to localStorage so subsequent requests use the fresh token
@@ -66,6 +84,12 @@ api.interceptors.response.use(
         // Token refresh success ho gaya! Ab fail hui request ko wapas attempt karo
         return api(originalRequest);
       } catch (refreshError) {
+        // Silently ignore if refresh request was also canceled
+        if (axios.isCancel(refreshError)) {
+          console.log("Refresh request canceled");
+          return Promise.reject(refreshError);
+        }
+
         // Agar refresh token bhi expire ho gaya (jaise 7 din pure ho gaye)
         console.error("Session expired. Please log in again.");
         

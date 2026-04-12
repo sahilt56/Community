@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { cancelPendingRequests } from '../api';
 import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import OnlineIndicator from './OnlineIndicator';
@@ -472,6 +472,9 @@ const Navbar = () => {
   const handleLogout = async () => {
     setMenuOpen(false);
     setMobileMenuOpen(false);
+    
+    // 🛑 Cancel all pending API requests immediately
+    cancelPendingRequests();
     
     try {
       // ✅ API call PEHLE, token localStorage mein abhi bhi hai

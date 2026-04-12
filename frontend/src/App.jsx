@@ -21,6 +21,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import ChatRooms from './pages/ChatRooms';
 import ChatRoom from './pages/ChatRoom';
+import { cancelPendingRequests } from './api';
 
 function App() {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ function App() {
 
     const handleLogout = async () => {
       if (localStorage.getItem('token') || document.cookie.includes('token')) {
+        // 🛑 Cancel all pending API requests immediately
+        cancelPendingRequests();
+        
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('loginTime');

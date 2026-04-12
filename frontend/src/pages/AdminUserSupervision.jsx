@@ -105,7 +105,7 @@ const AdminUserSupervision = () => {
                     <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
-        ), { duration: Infinity, position: 'top-center' });
+        ), { id: `delete-user-${userId}`, duration: Infinity, position: 'top-center' });
     };
 
     const executeDeleteUser = async (userId) => {
@@ -134,7 +134,7 @@ const AdminUserSupervision = () => {
                     <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
-        ), { duration: Infinity, position: 'top-center' });
+        ), { id: `ban-user-${id}`, duration: Infinity, position: 'top-center' });
     };
 
     const executeBanUser = async (userId, days) => {
@@ -174,7 +174,7 @@ const AdminUserSupervision = () => {
                     <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
-        ), { duration: Infinity, position: 'top-center' });
+        ), { id: `add-anubhav-${id}`, duration: Infinity, position: 'top-center' });
     };
 
     const executeAddAnubhav = async (userId, amount) => {
@@ -204,7 +204,7 @@ const AdminUserSupervision = () => {
                     <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
                 </div>
             </div>
-        ), { duration: Infinity, position: 'top-center' });
+        ), { id: `deduct-anubhav-${id}`, duration: Infinity, position: 'top-center' });
     };
 
     const executeDeductAnubhav = async (userId, amount) => {

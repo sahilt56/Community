@@ -13,6 +13,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Scale, Trophy, ExternalLink, ArrowUp, ArrowDown, MessageCircle, Share, Bookmark, BookmarkCheck, Trash2, ThumbsUp, ThumbsDown, ArrowLeft, Flag, AlertTriangle, ShieldAlert, Award } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -133,10 +134,11 @@ const PostPage = () => {
   // Flat comments ko Tree structure mein badlo
   // -----------------------------------------
   const buildCommentTree = (commentsFlatArray) => {
-    if (!commentsFlatArray) return [];
+    if (!commentsFlatArray) return { roots: [], totalVisible: 0 };
     
     const commentMap = {};
     const roots = [];
+    let totalVisible = 0;
 
     // Har comment ka ek map entity bana lo jisme empty children array ho
     commentsFlatArray.forEach(c => {
@@ -147,20 +149,37 @@ const PostPage = () => {
     // Har comment ko uske parent ke children array mein ghusao
     commentsFlatArray.forEach(c => {
       if (c.parentComment) {
-        // Agar uska parent map mein majood hai toh usme dal do
         if (commentMap[c.parentComment]) {
           commentMap[c.parentComment].children.push(commentMap[c._id]);
         }
       } else {
-        // Agar parentComment null hai, matlab ye pakka Root comment hai
         roots.push(commentMap[c._id]);
       }
     });
 
-    return roots;
+    // Count visible comments recursively (Logical match with CommentThread.jsx rendering)
+    const countVisible = (node) => {
+      const isDeleted = node.text === "[deleted]" || !node.user;
+      const hasChildren = node.children && node.children.length > 0;
+      
+      // If deleted and no children, it won't be rendered
+      if (isDeleted && !hasChildren) return 0;
+      
+      let count = 1; // Count this node
+      node.children.forEach(child => {
+        count += countVisible(child);
+      });
+      return count;
+    };
+
+    roots.forEach(root => {
+      totalVisible += countVisible(root);
+    });
+
+    return { roots, totalVisible };
   };
 
-  const rootComments = buildCommentTree(comments);
+  const { roots: rootComments, totalVisible: commentCount } = buildCommentTree(comments);
 
   // VOTING LOGIC
   const handleUpvote = async () => {
@@ -277,7 +296,7 @@ const PostPage = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-${id}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitReport = async (reason) => {
@@ -457,8 +476,13 @@ const PostPage = () => {
                   />
                 ) : (
                   <img 
-                    src={item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`} 
+                    src={getOptimizedUrl(
+                      item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`,
+                      IMAGE_PRESETS.POST
+                    )}
                     alt={`Attachment ${idx}`} 
+                    loading="lazy"
+                    decoding="async"
                     className="max-h-150 w-full object-contain"
                   />
                 )}
@@ -504,7 +528,7 @@ const PostPage = () => {
            {/* Comments Count Indicator */}
            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[#272729] px-2.5 py-1.5 sm:px-3 rounded-full transition-colors">
               <MessageCircle size={14} />
-              <span className="text-[11px] sm:text-xs pt-0.5">{comments.length} <span className="hidden sm:inline">Comments</span></span>
+              <span className="text-[11px] sm:text-xs pt-0.5">{commentCount} <span className="hidden sm:inline">Comments</span></span>
            </div>
 
             <div 

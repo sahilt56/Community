@@ -52,7 +52,7 @@ const Explore = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-community-${communityId}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitCommunityReport = async (communityId, reason) => {

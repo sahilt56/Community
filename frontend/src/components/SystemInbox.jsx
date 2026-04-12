@@ -93,7 +93,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                             Cancel
                      </button>
                 </div>
-            ), { duration: 5000, position: 'top-center' });
+            ), { id: `delete-announcement-${id}`, duration: 5000, position: 'top-center' });
         } else {
             // Normal user: just hide without big warnings
             toast((t) => (
@@ -117,7 +117,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                         </button>
                     </div>
                 </div>
-            ));
+            ), { id: `hide-announcement-${id}`, position: 'top-center' });
         }
     };
 

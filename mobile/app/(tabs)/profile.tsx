@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator, FlatList, useColorScheme, Platform, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, FlatList, useColorScheme, Platform, RefreshControl } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +16,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  
+
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
         await api.put(`/api/users/${pUsername}/update`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        
+
         Alert.alert('Success', 'Image updated successfully!');
         if (pUsername) fetchProfile(pUsername, true);
       }
@@ -125,7 +126,7 @@ export default function ProfileScreen() {
   // ======= Logged Out State =======
   if (!localUser) {
     return (
-      <View className="flex-1 items-center justify-center px-8" style={{ backgroundColor: c.bg }}>  
+      <View className="flex-1 items-center justify-center px-8" style={{ backgroundColor: c.bg }}>
         <View className="w-32 h-32 rounded-full items-center justify-center mb-8 bg-orange-100 dark:bg-orange-500/20">
           <Ionicons name="person" size={64} color="#f97316" />
         </View>
@@ -134,8 +135,8 @@ export default function ProfileScreen() {
         <Text className="text-base text-center leading-relaxed mb-10 px-2 font-medium" style={{ color: c.subText }}>
           Connect with communities, share ideas, and discover amazing conversations.
         </Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={() => router.push('/(auth)/login')}
           activeOpacity={0.85}
           className="w-full h-14 rounded-2xl bg-orange-500 flex-row items-center justify-center mb-4 shadow-sm shadow-orange-500/30"
@@ -144,7 +145,7 @@ export default function ProfileScreen() {
           <Text className="text-white font-black text-lg">Log In</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.push('/(auth)/register')}
           activeOpacity={0.85}
           className="w-full h-14 rounded-2xl border-2 border-orange-500 flex-row items-center justify-center mb-6 bg-transparent"
@@ -165,11 +166,11 @@ export default function ProfileScreen() {
   }
 
   const p = profileData?.profile || localUser;
-  
+
   // Tab Content Data Routing
   let feedData: any[] = [];
   if (profileData) {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'Posts': feedData = profileData.posts || []; break;
       case 'Comments': feedData = profileData.commentedPosts || []; break;
       case 'Saved': feedData = profileData.savedPosts || []; break;
@@ -182,33 +183,33 @@ export default function ProfileScreen() {
     // Shared rendering logic for both cases
     const authorPic = item.author?.profilePicture || item.author?.profilePic;
     return (
-      <TouchableOpacity 
-         key={item._id} 
-         activeOpacity={0.7} 
-         onPress={() => router.push(`/post/${item._id}`)}
-         className="bg-white dark:bg-[#1a1a1b] mx-4 mb-4 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-[#343536]"
-         style={{ elevation: 1 }}
+      <TouchableOpacity
+        key={item._id}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/post/${item._id}`)}
+        className="bg-white dark:bg-[#1a1a1b] mx-4 mb-4 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-[#343536]"
+        style={{ elevation: 1 }}
       >
         <View className="flex-row items-center mb-2">
-           <View className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-500/20 items-center justify-center mr-2 overflow-hidden">
-             {authorPic ? (
-               <Image source={{ uri: authorPic.startsWith('http') ? authorPic : `http://192.168.1.13:5000${authorPic}` }} className="w-full h-full" />
-             ) : (
-               <Text className="text-orange-500 font-bold">{item.author?.username?.charAt(0)?.toUpperCase() || 'U'}</Text>
-             )}
-           </View>
-           <View>
-             <Text className="text-xs font-bold text-gray-500 dark:text-gray-400">u/{item.author?.username || 'user'}</Text>
-             <Text className="text-[10px] text-gray-400">c/{item.community?.name || 'general'}</Text>
-           </View>
+          <View className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-500/20 items-center justify-center mr-2 overflow-hidden">
+            {authorPic ? (
+              <Image source={{ uri: authorPic.startsWith('http') ? authorPic : `http://192.168.1.13:5000${authorPic}` }} className="w-full h-full" contentFit="cover" transition={200} />
+            ) : (
+              <Text className="text-orange-500 font-bold">{item.author?.username?.charAt(0)?.toUpperCase() || 'U'}</Text>
+            )}
+          </View>
+          <View>
+            <Text className="text-xs font-bold text-gray-500 dark:text-gray-400">u/{item.author?.username || 'user'}</Text>
+            <Text className="text-[10px] text-gray-400">c/{item.community?.name || 'general'}</Text>
+          </View>
         </View>
 
         <Text className="text-base font-extrabold text-gray-900 dark:text-white mb-2 leading-tight tracking-tight">{item.title}</Text>
-        
+
         {item.content ? (
-           <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-relaxed" numberOfLines={3}>
-             {item.content.replace(/<[^>]+>/g, '')}
-           </Text>
+          <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-relaxed" numberOfLines={3}>
+            {item.content.replace(/<[^>]+>/g, '')}
+          </Text>
         ) : null}
 
         <View className="flex-row items-center justify-between border-t border-gray-50 dark:border-[#343536] pt-3 mt-1">
@@ -224,9 +225,9 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
-             className="flex-row items-center bg-gray-50 dark:bg-[#272729] rounded-full px-3 py-1.5"
-             onPress={() => router.push(`/post/${item._id}`)}
+          <TouchableOpacity
+            className="flex-row items-center bg-gray-50 dark:bg-[#272729] rounded-full px-3 py-1.5"
+            onPress={() => router.push(`/post/${item._id}`)}
           >
             <Ionicons name="chatbubble-outline" size={16} color="#6b7280" />
             <Text className="text-[13px] font-bold text-gray-600 dark:text-gray-400 ml-2">
@@ -246,26 +247,27 @@ export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* Scrollable Feed */}
-      <ScrollView 
-         className="flex-1"
-         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}
+      <ScrollView
+        className="flex-1"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}
       >
         {/* Profile Header Block */}
         <View className="bg-white dark:bg-[#1a1a1b] shadow-sm pb-5 border-b border-gray-100 dark:border-[#343536]">
           {/* Banner Image */}
           <View className="w-full h-36 bg-gray-200 dark:bg-[#272729] relative">
             {p.bannerPic ? (
-              <Image 
-                source={{ uri: p.bannerPic.startsWith('http') ? p.bannerPic : `http://192.168.1.13:5000${p.bannerPic}` }} 
+              <Image
+                source={{ uri: p.bannerPic.startsWith('http') ? p.bannerPic : `http://192.168.1.13:5000${p.bannerPic}` }}
                 className="w-full h-full"
-                resizeMode="cover"
+                contentFit="cover"
+                transition={300}
               />
             ) : (
               <View className="absolute inset-0 bg-blue-500 opacity-20" />
             )}
-            
-            <TouchableOpacity 
-              onPress={() => pickImage('bannerPic')} 
+
+            <TouchableOpacity
+              onPress={() => pickImage('bannerPic')}
               activeOpacity={0.8}
               style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 10, elevation: 5 }}
               className="w-10 h-10 bg-black/60 rounded-full items-center justify-center border border-white/40"
@@ -279,16 +281,17 @@ export default function ProfileScreen() {
             <View className="flex-row justify-between items-end -mt-10 mb-4">
               <View className="w-24 h-24 rounded-full border-4 border-white dark:border-[#1a1a1b] bg-white dark:bg-black overflow-hidden shadow-md items-center justify-center relative">
                 {p.profilePic || p.profilePicture ? (
-                  <Image 
-                    source={{ uri: (p.profilePic || p.profilePicture).startsWith('http') ? (p.profilePic || p.profilePicture) : `http://192.168.1.13:5000${p.profilePic || p.profilePicture}` }} 
+                  <Image
+                    source={{ uri: (p.profilePic || p.profilePicture).startsWith('http') ? (p.profilePic || p.profilePicture) : `http://192.168.1.13:5000${p.profilePic || p.profilePicture}` }}
                     className="w-full h-full"
+                    contentFit="cover" transition={200}
                   />
                 ) : (
                   <View className="w-full h-full bg-orange-100 dark:bg-orange-500/20 items-center justify-center">
                     <Text className="text-4xl font-black text-orange-500">{p.username?.charAt(0)?.toUpperCase() || 'U'}</Text>
                   </View>
                 )}
-                <TouchableOpacity 
+                <TouchableOpacity
                   className="absolute inset-0 bg-transparent items-center justify-center"
                   onPress={() => pickImage('profilePic')}
                 >
@@ -379,7 +382,7 @@ export default function ProfileScreen() {
             <Text className="text-base font-bold text-gray-400 dark:text-gray-500">No {activeTab.toLowerCase()} to display.</Text>
           </View>
         )}
-        
+
         <View className="h-10" />
       </ScrollView>
     </View>

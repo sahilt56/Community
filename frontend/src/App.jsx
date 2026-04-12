@@ -12,6 +12,7 @@ import AdminUserSupervision from './pages/AdminUserSupervision';
 import UserProfile from './pages/UserProfile';
 import CreatePostPage from './pages/CreatePostPage';
 import Explore from './pages/Explore';
+import About from './pages/About';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -25,42 +26,50 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let inactivityTimer;
+    // 🕒 INACTIVITY LOGIC (Robust Version)
+    // Tracks last activity and checks periodically to avoid browser throttling issues
+    let lastActivity = Date.now();
+    const INACTIVITY_LIMIT = 2 * 60 * 60 * 1000; // 2 hours
 
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      // 2 hours = 2 * 60 * 60 * 1000 = 7200000 ms
-      inactivityTimer = setTimeout(async () => {
-        if (localStorage.getItem('token') || document.cookie.includes('token')) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          try {
-            await fetch('/api/auth/logout', { method: 'POST' }); // ensure HttpOnly cookie is wiped
-          } catch(e) {}
-          
-          toast.error('Session expired due to 2 hours of inactivity. Please log in again.', { duration: 5000 });
-          navigate('/login');
-          window.dispatchEvent(new Event('auth-change'));
-        }
-      }, 7200000); 
+    const handleLogout = async () => {
+      if (localStorage.getItem('token') || document.cookie.includes('token')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        try {
+          // Attempt to wipe HttpOnly cookies on the backend
+          await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/logout`, { method: 'POST' });
+        } catch(e) {}
+        
+        toast.error('Session expired due to inactivity. Please log in again.', { duration: 5000 });
+        navigate('/login');
+        window.dispatchEvent(new Event('auth-change'));
+      }
     };
+
+    const resetActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    // Check every 1 minute if the user has been inactive for too long
+    const checkInterval = setInterval(() => {
+      if (Date.now() - lastActivity > INACTIVITY_LIMIT) {
+        handleLogout();
+      }
+    }, 60000); // 60 seconds
 
     // Track common user interactions
     const activityEvents = [
-      'mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'
+      'mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'
     ];
 
     activityEvents.forEach(event => {
-      window.addEventListener(event, resetTimer);
+      window.addEventListener(event, resetActivity);
     });
 
-    // Start timer on mount
-    resetTimer();
-
     return () => {
-      clearTimeout(inactivityTimer);
+      clearInterval(checkInterval);
       activityEvents.forEach(event => {
-        window.removeEventListener(event, resetTimer);
+        window.removeEventListener(event, resetActivity);
       });
     };
   }, [navigate]);
@@ -100,6 +109,7 @@ function App() {
               <Route path="/u/:username" element={<UserProfile />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/about" element={<About />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/reports" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUserSupervision />} />

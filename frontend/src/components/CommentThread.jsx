@@ -7,6 +7,7 @@ import TipTapEditor from './TipTapEditor';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { ArrowUp, ArrowDown, MessageCircle, Share, Pencil, Trash2, Award } from 'lucide-react';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -140,10 +141,16 @@ const CommentThread = ({
               ) : (
                 <div className="flex items-center gap-1.5">
                   <Link to={`/u/${comment.user?.username}`} className="shrink-0 flex items-center">
-                    {comment.user?.profilePicture ? (
+                    {comment.user?.profilePic ? (
                       <img 
-                        src={comment.user.profilePicture.startsWith('http') ? comment.user.profilePicture : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(comment.user.profilePicture.startsWith('/') ? '' : '/')}${comment.user.profilePicture}`} 
+                        src={getOptimizedUrl(
+                          comment.user.profilePic.startsWith('http') ? comment.user.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(comment.user.profilePic.startsWith('/') ? '' : '/')}${comment.user.profilePic}`,
+                          IMAGE_PRESETS.AVATAR
+                        )}
                         alt="" 
+                        loading="lazy"
+                    fetchpriority="auto"
+                        decoding="async"
                         className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-200 dark:border-[#343536]" 
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />

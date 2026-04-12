@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Flag, Settings, Trash2, MoreVertical } from 'lucide-react';
+import { Flag, Settings, Trash2, MoreVertical, EyeOff, Eye } from 'lucide-react';
 
-const CommunityMenu = ({ onReport, onEdit, onDelete, canEdit, isCreator, onOpenChange }) => {
+const CommunityMenu = ({ onReport, onEdit, onDelete, onHide, canEdit, isCreator, isHidden, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef();
 
@@ -36,9 +36,9 @@ const CommunityMenu = ({ onReport, onEdit, onDelete, canEdit, isCreator, onOpenC
           {/* Report Action */}
           <div 
             onClick={(e) => { e.stopPropagation(); onReport(); setIsOpen(false); }}
-          className="flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-3 py-2 cursor-pointer transition-all"
+            className="flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-3 py-2 cursor-pointer transition-all"
           >
-          <Flag size={14} className="text-gray-500 group-hover:text-orange-500" strokeWidth={2} />
+            <Flag size={14} className="text-gray-500 group-hover:text-orange-500" strokeWidth={2} />
             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Report</span>
           </div>
 
@@ -46,20 +46,31 @@ const CommunityMenu = ({ onReport, onEdit, onDelete, canEdit, isCreator, onOpenC
           {canEdit && (
             <div 
               onClick={(e) => { e.stopPropagation(); onEdit(); setIsOpen(false); }}
-            className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#272729] px-3 py-2 cursor-pointer transition-all border-t border-gray-200 dark:border-[#343536]"
+              className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#272729] px-3 py-2 cursor-pointer transition-all border-t border-gray-200 dark:border-[#343536]"
             >
-          <Settings size={14} className="text-gray-500" strokeWidth={2} />
+              <Settings size={14} className="text-gray-500" strokeWidth={2} />
               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Edit</span>
             </div>
+          )}
+
+          {/* Hide/Unhide Option (Creator Only) */}
+          {isCreator && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onHide && onHide(); setIsOpen(false); }}
+              className="flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-3 py-2 transition-all border-t border-gray-200 dark:border-[#343536] text-orange-600 dark:text-orange-400 w-full text-left"
+            >
+              {isHidden ? <Eye size={14} strokeWidth={2} /> : <EyeOff size={14} strokeWidth={2} />} 
+              <span className="text-xs font-bold">{isHidden ? 'Unhide' : 'Hide'}</span>
+            </button>
           )}
 
           {/* Delete Option (Creator Only) */}
           {isCreator && (
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(); setIsOpen(false); }}
-            className="flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 transition-all border-t border-gray-200 dark:border-[#343536] text-red-500 w-full text-left"
+              className="flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 transition-all border-t border-gray-200 dark:border-[#343536] text-red-500 w-full text-left"
             >
-          <Trash2 size={14} strokeWidth={2} /> <span className="text-xs font-bold">Delete</span>
+              <Trash2 size={14} strokeWidth={2} /> <span className="text-xs font-bold">Delete</span>
             </button>
           )}
         </div>
@@ -67,5 +78,4 @@ const CommunityMenu = ({ onReport, onEdit, onDelete, canEdit, isCreator, onOpenC
     </div>
   );
 };
-
 export default CommunityMenu;

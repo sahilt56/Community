@@ -61,8 +61,8 @@ router.post('/create', verifyToken, contentFilter, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { sort } = req.query;
-    // Hide banned communities
-    let communities = await Community.find({ isBanned: { $ne: true } }).populate('creator', 'username profilePic');
+    // Hide banned and hidden communities
+    let communities = await Community.find({ isBanned: { $ne: true }, isHidden: { $ne: true } }).populate('creator', 'username profilePic');
 
     // Hide zombie communities (where creator account was deleted)
     communities = communities.filter(c => c.creator != null);
@@ -85,8 +85,17 @@ router.get('/', async (req, res) => {
 // GET JOINED COMMUNITIES FOR CURRENT USER
 router.get('/joined', verifyToken, async (req, res) => {
   try {
-    const joinedCommunities = await Community.find({ members: req.user.id })
+    let joinedCommunities = await Community.find({ members: req.user.id })
       .sort({ createdAt: -1 });
+    
+    // Process filtering for hidden
+    joinedCommunities = joinedCommunities.filter(c => {
+      if (!c.isHidden) return true;
+      const isCreator = c.creator && c.creator.toString() === req.user.id;
+      const isMod = c.moderators && c.moderators.some(modId => modId.toString() === req.user.id);
+      return isCreator || isMod;
+    });
+
     res.json(joinedCommunities);
   } catch (err) {
     console.error("Error fetching joined communities:", err);
@@ -123,6 +132,7 @@ router.get('/:id', async (req, res) => {
     // Check ban status
     const token = req.headers.authorization?.split(' ')[1];
     let isAdmin = false;
+    let currentUserId = null;
     if (token) {
       const jwt = require('jsonwebtoken');
       try {
@@ -130,12 +140,22 @@ router.get('/:id', async (req, res) => {
         const User = require('../models/User');
         const requester = await User.findById(decoded.id);
         isAdmin = requester?.isAdmin || false;
+        currentUserId = decoded.id;
       } catch (e) { /* ignore */ }
     }
 
     if (community.isBanned && !isAdmin) {
       if (!community.banExpiresAt || new Date() <= community.banExpiresAt) {
           return res.status(404).json({ message: "This community is currently unavailable." });
+      }
+    }
+
+    // Check hidden access
+    if (community.isHidden && !isAdmin) {
+      const isCreator = community.creator && community.creator._id.toString() === currentUserId;
+      const isMod = community.moderators?.some(mod => mod._id.toString() === currentUserId);
+      if (!isCreator && !isMod) {
+        return res.status(404).json({ message: "This community is currently hidden by its creator." });
       }
     }
 
@@ -277,6 +297,35 @@ router.delete('/:id/remove-image', verifyToken, async (req, res) => {
 
     res.status(200).json({ message: `${type === 'profilePic' ? 'Profile Picture' : 'Banner'} removed!`, community });
   } catch (err) {
+    res.status(500).json({ error: 'An error occurred. Please try again.' });
+  }
+});
+
+// TOGGLE HIDE COMMUNITY
+router.put('/:id/toggle-hide', verifyToken, async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+
+    // Ensure only the creator can hide/unhide
+    if (community.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Only the creator can hide or unhide this community! 🛑" });
+    }
+
+    community.isHidden = !community.isHidden;
+    await community.save();
+
+    // Broadcast community updated event
+    if (req.io) {
+      req.io.emit('community_updated', community);
+    }
+
+    res.status(200).json({ 
+      message: community.isHidden ? "Community is now hidden! 👻" : "Community is now visible! 🌟", 
+      community 
+    });
+  } catch (err) {
+    console.error("Community hide error:", err);
     res.status(500).json({ error: 'An error occurred. Please try again.' });
   }
 });

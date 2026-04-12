@@ -4,7 +4,7 @@ import api from '../api';
 import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import OnlineIndicator from './OnlineIndicator';
-import { Search, Menu, X, Sun, Moon, LogOut, User as UserIcon, Users, Pencil, Bell, ChevronDown, AlignLeft, Shield, MessageSquare, Megaphone, Flame, AlertTriangle, Sparkles, Volume2, VolumeX, Award } from 'lucide-react';
+import { Search, Menu, X, Sun, Moon, LogOut, User as UserIcon, Users, Pencil, Bell, ChevronDown, AlignLeft, Shield, MessageSquare, Megaphone, Flame, AlertTriangle, Sparkles, Volume2, VolumeX, Award, Info } from 'lucide-react';
 import logo from '../assets/logo.png';
 import SystemInbox from './SystemInbox';
 
@@ -597,6 +597,24 @@ const Navbar = () => {
                       <MessageSquare size={20} strokeWidth={2} />
                       Chat
                     </Link>
+
+                    <Link 
+                      to="/about" 
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
+                    >
+                      <Info size={20} strokeWidth={2} />
+                      About Vartalap
+                    </Link>
+                    
+                    <a 
+                      href="mailto:vartalapsupport@gmail.com" 
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all text-sm"
+                    >
+                      <Megaphone size={20} strokeWidth={2} />
+                      Contact Developer
+                    </a>
                     
                     {/* Theme Toggle (Inside Mobile Menu) */}
                     <button 
@@ -624,6 +642,15 @@ const Navbar = () => {
                       <Link to="/login" onClick={() => setMenuOpen(false)} className="w-full text-center bg-gray-100 dark:bg-[#272729] text-gray-900 dark:text-white text-sm font-bold px-4 py-2 rounded-full transition-all">Log In</Link>
                       <Link to="/login" state={{ isSignUp: true }} onClick={() => setMenuOpen(false)} className="w-full text-center bg-linear-to-r from-teal-500 to-cyan-500 text-white text-sm font-bold px-4 py-2 rounded-full hover:opacity-90 transition-all shadow-md">Sign Up</Link>
                     </div>
+
+                    <Link 
+                      to="/about" 
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
+                    >
+                      <Info size={20} strokeWidth={2} />
+                      About Vartalap
+                    </Link>
                     
                     {/* Theme Toggle (Inside Mobile Menu for Guests) */}
                     <button 
@@ -904,6 +931,17 @@ const Navbar = () => {
                       Admin Panel
                     </Link>
                   )}
+                  <a 
+                    href="mailto:vartalapsupport@gmail.com" 
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                  >
+                    <Megaphone size={16} strokeWidth={2} />
+                    Support / Contact
+                  </a>
+                  <Link to="/about" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    <Info size={16} strokeWidth={2} />
+                    About Vartalap
+                  </Link>
                   <div className="h-px bg-gray-100 dark:bg-[#343536]"></div>
                   <button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-medium transition-colors">
                     <LogOut size={16} strokeWidth={2} />

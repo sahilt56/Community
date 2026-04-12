@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Helmet } from 'react-helmet-async';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -198,7 +199,7 @@ const Home = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-${postId}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitReport = async (postId, reason) => {
@@ -317,8 +318,15 @@ const Home = () => {
                   <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-[#272729] flex items-center justify-center border border-gray-200 dark:border-[#343536]">
                     {(post.community?.profilePic || post.author?.profilePic) ? (
                       <img 
-                        src={(post.community?.profilePic || post.author?.profilePic).startsWith('http') ? (post.community?.profilePic || post.author?.profilePic) : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(post.community?.profilePic || post.author?.profilePic).replace(/\\/g, '/')}`}
+                        src={getOptimizedUrl(
+                          (post.community?.profilePic || post.author?.profilePic).startsWith('http') 
+                            ? (post.community?.profilePic || post.author?.profilePic) 
+                            : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(post.community?.profilePic || post.author?.profilePic).replace(/\\/g, '/')}`,
+                          IMAGE_PRESETS.AVATAR
+                        )}
                         alt="avatar" 
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
@@ -412,8 +420,14 @@ const Home = () => {
                       />
                     ) : (
                       <img 
-                        src={item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`} 
+                        src={getOptimizedUrl(
+                          item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`,
+                          IMAGE_PRESETS.POST
+                        )}
                         alt={`Attachment ${idx}`} 
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchpriority={index === 0 ? "high" : "auto"}
+                        decoding="async"
                         className="max-h-96 w-full object-contain"
                       />
                     )}

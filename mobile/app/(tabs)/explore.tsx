@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Image, TextInput } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import api from '../../api';
 
@@ -23,8 +24,8 @@ export default function ExploreScreen() {
     fetchCommunities();
   }, []);
 
-  const filtered = communities.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filtered = communities.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.description && c.description.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -32,7 +33,7 @@ export default function ExploreScreen() {
     <TouchableOpacity onPress={() => router.push(`/v/${item._id}`)} className="bg-white dark:bg-[#1a1a1b] p-4 mb-3 rounded-xl border border-gray-200 dark:border-[#343536] flex-row items-center">
       <View className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center overflow-hidden mr-4">
         {item.profilePic ? (
-          <Image source={{ uri: item.profilePic.startsWith('http') ? item.profilePic : `http://192.168.1.13:5000${item.profilePic}` }} className="w-full h-full" />
+          <Image source={{ uri: item.profilePic.startsWith('http') ? item.profilePic : `http://192.168.1.13:5000${item.profilePic}` }} className="w-full h-full" contentFit="cover" transition={200} />
         ) : (
           <Text className="text-white font-bold text-xl">v/</Text>
         )}
@@ -59,7 +60,7 @@ export default function ExploreScreen() {
         value={search}
         onChangeText={setSearch}
       />
-      
+
       {loading ? (
         <ActivityIndicator size="large" color="#f97316" className="mt-10" />
       ) : (

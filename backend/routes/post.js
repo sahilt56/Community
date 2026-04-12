@@ -39,6 +39,9 @@ router.get('/', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -59,6 +62,9 @@ router.get('/', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -85,6 +91,9 @@ router.get('/', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -181,6 +190,9 @@ router.get('/community/:communityId', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -201,6 +213,9 @@ router.get('/community/:communityId', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -227,6 +242,9 @@ router.get('/community/:communityId', async (req, res) => {
             from: "comments",
             localField: "_id",
             foreignField: "post",
+            pipeline: [
+              { $match: { author: { $ne: null } } }
+            ],
             as: "comments"
           }
         }
@@ -269,7 +287,13 @@ router.post('/create', verifyToken, upload.array('media', 16), contentFilter, as
       // ... (validation remains same)
       req.files.forEach(file => {
         const fileUrl = file.path || file.secure_url || "";
-        const url = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
+        let url = fileUrl.startsWith('http') ? fileUrl : `/uploads/${file.filename}`;
+        
+        // 🔥 Cloudinary Auto-Optimization: Image size ghata dega drastically bina quality loose kiye
+        if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+          url = url.replace('/upload/', '/upload/q_auto,f_auto,w_1080/');
+        }
+
         media.push({
           url,
           mimetype: file.mimetype

@@ -11,6 +11,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Calendar, MessageCircle, MapPin, Link as LinkIcon, Edit, ShieldAlert, Trash2, Camera, UserX, UserPlus, MapPinned, Users, CheckCircle, ArrowLeft, ArrowUp, ArrowDown, Share, Bookmark, BookmarkCheck, ExternalLink, BadgeCheck, Award, Pencil, Beaker } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -488,7 +489,7 @@ const UserProfile = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-post-${postId}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitReport = async (postId, reason) => {
@@ -520,7 +521,7 @@ const UserProfile = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-user-${profileData.profile._id}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitUserReport = async (reason) => {
@@ -639,8 +640,10 @@ const UserProfile = () => {
         >
           {profileData.profile.bannerPic ? (
             <img 
-              src={getImageUrl(profileData.profile.bannerPic)} 
+              src={getOptimizedUrl(getImageUrl(profileData.profile.bannerPic), IMAGE_PRESETS.POST)} 
               alt="Banner" 
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover object-center"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
@@ -649,9 +652,9 @@ const UserProfile = () => {
           )}
           
           {isOwner && (
-            <div className="absolute bottom-3 right-3 flex gap-3 md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-all duration-300 z-30">
+            <div className="absolute bottom-3 right-3 flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
               <label 
-                className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 relative"
+                className="w-8 h-8 md:w-10 md:h-10 bg-black/50 hover:bg-black/80 backdrop-blur-md text-white rounded-full cursor-pointer shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 relative"
                 title="Edit Banner"
               >
                 <input 
@@ -660,7 +663,7 @@ const UserProfile = () => {
                   accept={(profileData.profile.canUseGifBanner || profileData.profile.isAdmin) ? "image/jpeg, image/png, image/webp, image/gif" : "image/jpeg, image/png, image/webp"}
                   onChange={(e) => handleImageUpload(e, 'bannerPic')} 
                 />
-                <Camera size={18} strokeWidth={2.5} />
+                <Camera size={18} strokeWidth={2.5} className="w-4 h-4 md:w-auto md:h-auto" />
                 {(profileData.profile.canUseGifBanner || profileData.profile.isAdmin) && (
                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
@@ -671,10 +674,10 @@ const UserProfile = () => {
               {profileData.profile.bannerPic && (
                 <button 
                   onClick={() => handleImageDelete('bannerPic')}
-                  className="w-10 h-10 bg-red-600/80 hover:bg-red-600 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                  className="w-8 h-8 md:w-10 md:h-10 bg-red-600/70 hover:bg-red-600 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
                   title="Remove Banner"
                 >
-                  <Trash2 size={18} strokeWidth={2.5} />
+                  <Trash2 size={18} strokeWidth={2.5} className="w-4 h-4 md:w-auto md:h-auto" />
                 </button>
               )}
             </div>
@@ -692,22 +695,25 @@ const UserProfile = () => {
                   {profileData.profile.username.charAt(0).toUpperCase()}
                   {profileData.profile.profilePic && (
                     <img 
-                      src={getImageUrl(profileData.profile.profilePic)} 
+                      src={getOptimizedUrl(getImageUrl(profileData.profile.profilePic), IMAGE_PRESETS.AVATAR)} 
                       alt="" 
+                      loading="eager"
+                      fetchpriority="high"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover" 
                       onError={(e) => { e.target.style.display = 'none'; }} 
                     />
                   )}
                   
                   {isOwner && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 transition-all duration-300">
-                      <label className="cursor-pointer p-2 bg-black/40 hover:bg-black/60 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
+                    <div className="absolute inset-0 bg-black/30 md:bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 group-hover:opacity-100 opacity-0 transition-all duration-300">
+                      <label className="cursor-pointer p-2 bg-black/30 hover:bg-black/50 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
                         <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
-                        <Camera size={20} strokeWidth={2.5} className="text-white" />
+                        <Camera size={20} strokeWidth={2.5} className="text-white w-4 h-4 md:w-auto md:h-auto" />
                       </label>
                       {profileData.profile.profilePic && (
-                        <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/60 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
-                          <Trash2 size={20} strokeWidth={2.5} />
+                        <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/50 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
+                          <Trash2 size={20} strokeWidth={2.5} className="w-4 h-4 md:w-auto md:h-auto" />
                         </button>
                       )}
                     </div>

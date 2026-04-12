@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, Alert, 
-  ActivityIndicator, Platform, KeyboardAvoidingView, 
-  ScrollView, Image, StyleSheet, useColorScheme
+import {
+  View, Text, TextInput, TouchableOpacity, Alert,
+  ActivityIndicator, Platform, KeyboardAvoidingView,
+  ScrollView, StyleSheet, useColorScheme
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,19 +67,20 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[s.flex1, { backgroundColor: colors.bg }]}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={s.flex1}
       >
         <ScrollView contentContainerStyle={s.scroll}>
-          
+
           {/* Logo & Welcome Header */}
           <View style={s.headerWrap}>
             <View style={[s.logoWrap, { backgroundColor: isDark ? '#1a1a1b' : '#fff' }, !isDark && s.logoShadow]}>
-              <Image 
-                source={require('../../assets/images/logo.png')} 
+              <Image
+                source={require('../../assets/images/logo.png')}
                 style={s.logoImg}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={300}
               />
             </View>
             <Text style={[s.title, { color: colors.text }]}>Welcome Back!</Text>
@@ -131,8 +133,8 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {/* Login Button */}
-            <TouchableOpacity 
-              onPress={handleLogin} 
+            <TouchableOpacity
+              onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.8}
               style={[s.primaryBtn, s.btnShadow, { backgroundColor: loading ? '#fb923c' : '#f97316' }]}
@@ -160,7 +162,7 @@ export default function LoginScreen() {
               <Text style={[s.separatorText, { color: colors.placeholder }]}>OR CONNECT VIA</Text>
               <View style={[s.separatorLine, { backgroundColor: colors.separator }]} />
             </View>
-            
+
             {/* Google Button */}
             <TouchableOpacity style={[s.googleBtn, { backgroundColor: colors.googleBg, borderColor: colors.googleBorder }, !isDark && s.cardShadow]}>
               <Ionicons name="logo-google" size={24} color={colors.googleIcon} />

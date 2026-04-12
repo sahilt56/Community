@@ -5,6 +5,7 @@ import OnlineIndicator from './OnlineIndicator';
 import SkeletonLoader from './SkeletonLoader';
 import { SocketContext } from '../context/SocketContext';
 import { Hand, Flame, Plus, Pencil } from 'lucide-react';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const RightSidebar = () => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -130,8 +131,10 @@ const [currentTime] = useState(() => Date.now());
               {profileStats?.profile?.bannerPic && (
                 <div className="h-28 overflow-hidden">
                   <img
-                    src={profileStats.profile.bannerPic.startsWith('http') ? profileStats.profile.bannerPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${profileStats.profile.bannerPic}`}
+                    src={getOptimizedUrl(profileStats.profile.bannerPic.startsWith('http') ? profileStats.profile.bannerPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${profileStats.profile.bannerPic}`, IMAGE_PRESETS.POST)}
                     alt="Banner"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={(e) => { e.target.parentElement.style.display = 'none'; }}
                   />
@@ -144,8 +147,10 @@ const [currentTime] = useState(() => Date.now());
                     {user?.username?.charAt(0).toUpperCase()}
                     {user?.profilePic && (
                       <img 
-                        src={user.profilePic.startsWith('http') ? user.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profilePic}`} 
+                        src={getOptimizedUrl(user.profilePic.startsWith('http') ? user.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profilePic}`, IMAGE_PRESETS.AVATAR)} 
                         alt="" 
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 w-full h-full object-cover" 
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
@@ -217,8 +222,10 @@ const [currentTime] = useState(() => Date.now());
                     v/
                     {c.profilePic && (
                       <img 
-                        src={c.profilePic.startsWith('http') ? c.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${c.profilePic}`} 
+                        src={getOptimizedUrl(c.profilePic.startsWith('http') ? c.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${c.profilePic}`, IMAGE_PRESETS.AVATAR)} 
                         alt="" 
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 w-full h-full object-cover" 
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />

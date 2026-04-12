@@ -1,6 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+
+// GET TOTAL USER COUNT (PUBLIC)
+router.get('/user-count', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.status(200).json({ count });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
 const Otp = require('../models/Otp');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -19,7 +29,7 @@ const axios = require('axios'); // Add axios at the top if not present, though w
 
 // Helper function to generate tokens
 const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' }); // 🛡️ Security: Short-lived access token
+  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' }); // 🛡️ Security: Increased to 1h to reduce refresh spam
   const refreshToken = jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' }); // Long-lived refresh token
   return { accessToken, refreshToken };
 };
@@ -33,7 +43,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 2 * 60 * 60 * 1000 // 2 hours
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours (frontend will handle 2h inactivity logout)
   });
   if (refreshToken) {
     res.cookie('refreshToken', refreshToken, {
@@ -44,6 +54,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     });
   }
 };
+
 
 // CHECK USERNAME AVAILABILITY
 router.get('/check-username/:username', async (req, res) => {

@@ -45,8 +45,8 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Agar 401 (Unauthorized) aaya aur backend ne 'TOKEN_EXPIRED' code bheja hai, toh token refresh karne ki koshish karo
-    if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
+    // Try to refresh token on ANY 401 if we have a user session active 
+    if (error.response?.status === 401 && !originalRequest._retry && localStorage.getItem('user')) {
       originalRequest._retry = true;
 
       try {

@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     const regex = new RegExp(escaped, 'i');
 
     // Search communities by name
-    const communities = await Community.find({ name: regex })
+    const communities = await Community.find({ name: regex, isBanned: { $ne: true }, isHidden: { $ne: true } })
       .select('name description members profilePic authorHasVartalapBadge')
       .sort({ authorHasVartalapBadge: -1, members: -1 })
       .limit(5);

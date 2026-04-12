@@ -141,7 +141,7 @@ const AdminDashboard = () => {
           <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
-    ), { duration: Infinity, position: 'top-center' });
+    ), { id: `delete-user-${userId}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeDeleteUser = async (userId) => {
@@ -188,7 +188,7 @@ const AdminDashboard = () => {
           <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
-    ), { duration: Infinity, position: 'top-center' });
+    ), { id: `ban-user-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const handleDeductAnubhav = (id, username, currentAnubhav) => {
@@ -228,7 +228,7 @@ const AdminDashboard = () => {
           <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
-    ), { duration: Infinity, position: 'top-center' });
+    ), { id: `deduct-anubhav-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeDeductAnubhav = async (id, amount) => {
@@ -289,7 +289,7 @@ const AdminDashboard = () => {
           <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
         </div>
       </div>
-    ), { duration: Infinity, position: 'top-center' });
+    ), { id: `add-anubhav-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeAddAnubhav = async (id, amount) => {
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
             <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
-      ), { duration: Infinity, position: 'top-center' });
+      ), { id: `delete-community-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeDeleteCommunity = async (id) => {
@@ -420,7 +420,7 @@ const AdminDashboard = () => {
             <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
-      ), { duration: Infinity, position: 'top-center' });
+      ), { id: `ban-community-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeBanCommunity = async (id, days) => {
@@ -493,7 +493,7 @@ const AdminDashboard = () => {
             <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
-      ), { duration: Infinity, position: 'top-center' });
+      ), { id: `delete-post-${id}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeDeletePost = async (id) => {
@@ -547,7 +547,7 @@ const AdminDashboard = () => {
                 <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
               </div>
             </div>
-          ), { duration: Infinity, position: 'top-center' });
+          ), { id: `resolve-report-${reportId}`, duration: Infinity, position: 'top-center' });
       } else {
           executeResolveReport(reportId, action);
       }
@@ -703,7 +703,7 @@ const AdminDashboard = () => {
             <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
           </div>
         </div>
-      ), { duration: Infinity, position: 'top-center' });
+      ), { id: `clear-collection-${colName}`, duration: Infinity, position: 'top-center' });
   };
 
   const executeClearCollection = async (colName, filterType) => {

@@ -77,8 +77,8 @@ const LeftSidebar = () => {
           </div>
         )}
 
-        {/* Joined Communities */}
-        {token ? (
+        {/* Joined Communities (Logged in only) */}
+        {token && (
           <div className="p-3 pl-4 border-b border-gray-200 dark:border-[#343536]">
             <h2 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-2">Your Communities</h2>
             {loading ? (
@@ -110,23 +110,41 @@ const LeftSidebar = () => {
               </div>
             )}
           </div>
-        ) : (
-          <div className="p-3 border-b border-gray-200 dark:border-[#343536]">
-            <h2 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-2">Resources</h2>
-            <div className="flex flex-col gap-0.5">
-              {[
-                { icon: Info, label: 'About Vartalap' },
-                { icon: Shield, label: 'Help / Rules' },
-                { icon: Megaphone, label: 'Advertise' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#272729] transition-all text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <Icon size={18} strokeWidth={2} className="text-gray-500" />
-                  <span className="font-semibold text-sm">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         )}
+
+        {/* Resources Section (Visible to Everyone) */}
+        <div className="p-3 border-b border-gray-200 dark:border-[#343536]">
+          <h2 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-2">Resources</h2>
+          <div className="flex flex-col gap-0.5">
+            {[
+              { icon: Info, label: 'About Vartalap', to: '/about' },
+              { icon: Shield, label: 'Help / Rules', to: '#' },
+              { icon: Megaphone, label: 'Advertise', to: '#' },
+            ].map(({ icon: Icon, label, to }) => (
+              <Link 
+                key={label} 
+                to={to}
+                className="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#272729] transition-all text-gray-700 dark:text-gray-300 group"
+              >
+                <Icon size={18} strokeWidth={2} className="text-gray-500 group-hover:text-orange-500 transition-colors" />
+                <span className="font-semibold text-sm">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Developer Contact */}
+        <div className="p-3 border-b border-gray-200 dark:border-[#343536]">
+          <h2 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-2">Developer Support</h2>
+          <div className="px-3 py-1 flex flex-col gap-1">
+             <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                Contact developer for any concern:
+             </p>
+             <a href="mailto:vartalapsupport@gmail.com" className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1.5">
+                <Megaphone size={12} /> vartalapsupport@gmail.com
+             </a>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="p-4">

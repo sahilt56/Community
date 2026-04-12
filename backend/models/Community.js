@@ -15,6 +15,7 @@ const CommunitySchema = new mongoose.Schema({
   topic: { type: String, default: "General" },
   isBanned: { type: Boolean, default: false },
   banExpiresAt: { type: Date, default: null },
+  isHidden: { type: Boolean, default: false },
   rules: [{
     title: { type: String, required: true },
     description: { type: String, required: true }

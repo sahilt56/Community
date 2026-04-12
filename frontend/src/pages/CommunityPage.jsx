@@ -14,8 +14,9 @@ import PollView from '../components/PollView';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle, Calendar, Mic, BarChart2, ExternalLink, Users, Ban, Award } from 'lucide-react';
+import { Share, MessageCircle, ArrowUp, ArrowDown, Flame, Sparkles, Shield, UserX, Crown, ScrollText, Trash2, Edit, AlertTriangle, LogOut, CheckCircle, Calendar, Mic, BarChart2, ExternalLink, Users, Ban, Award, EyeOff, Eye } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -331,6 +332,31 @@ const CommunityPage = () => {
     }
   };
 
+  const handleHideCommunity = async () => {
+    toast((t) => (
+      <div>
+        <p className="mb-2 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
+          <AlertTriangle size={18} className="text-orange-500" /> 
+          Are you sure you want to {community.isHidden ? 'unhide' : 'hide'} this community?
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => { toast.remove(t.id); executeToggleHideCommunity(); }} className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-bold">Yes</button>
+          <button onClick={() => toast.remove(t.id)} className="bg-gray-500 text-white px-3 py-1 rounded text-sm font-bold">Cancel</button>
+        </div>
+      </div>
+    ), { duration: Infinity });
+  };
+
+  const executeToggleHideCommunity = async () => {
+    try {
+      const res = await api.put(`/api/communities/${community._id}/toggle-hide`);
+      toast.success(res.data.message);
+      fetchCommunityInfo(); // Refresh to update the hidden badge
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error hiding community");
+    }
+  };
+
   const handleReportCommunity = () => {
     if (!token) return toast.error("Log in to report communities!");
     toast((t) => (
@@ -350,7 +376,7 @@ const CommunityPage = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-community-${community._id}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitCommunityReport = async (reason) => {
@@ -411,7 +437,7 @@ const CommunityPage = () => {
         </div>
         <button onClick={() => toast.remove(t.id)} className="text-xs text-gray-400 hover:text-gray-600 mt-1 text-center">Cancel</button>
       </div>
-    ), { duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
+    ), { id: `report-post-${postId}`, duration: Infinity, position: 'top-center', style: { minWidth: '280px' } });
   };
 
   const submitPostReport = async (postId, reason) => {
@@ -484,8 +510,10 @@ const CommunityPage = () => {
         {community.bannerPic ? (
           <div className="h-32 md:h-48 w-full border-b border-gray-200 dark:border-[#343536]">
             <img 
-              src={community.bannerPic.startsWith('http') ? community.bannerPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.bannerPic}`} 
+              src={getOptimizedUrl(community.bannerPic.startsWith('http') ? community.bannerPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.bannerPic}`, IMAGE_PRESETS.POST)} 
               alt="Banner" 
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover" 
             />
           </div>
@@ -502,15 +530,25 @@ const CommunityPage = () => {
                 v/
                 {community.profilePic && (
                   <img 
-                    src={community.profilePic.startsWith('http') ? community.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.profilePic}`} 
+                  src={getOptimizedUrl(community.profilePic.startsWith('http') ? community.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${community.profilePic}`, IMAGE_PRESETS.AVATAR)} 
                     alt="" 
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async"
                     className="absolute inset-0 w-full h-full object-cover" 
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 )}
               </div>
               <div className="flex-1 min-w-0 w-full">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1 break-all">v/{community.name}</h1>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white break-all">v/{community.name}</h1>
+                  {community.isHidden && (
+                    <span className="bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 text-xs font-bold px-2 py-1 rounded-full border border-orange-200 dark:border-orange-500/30 flex items-center gap-1 leading-none shadow-sm">
+                      <EyeOff size={12} strokeWidth={2.5}/> Hidden
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-700 dark:text-gray-300 text-sm mb-2 max-w-2xl break-all">{community.description}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-bold">
                   <span>Topic: <span className="text-gray-900 dark:text-white font-normal">{community.topic || 'General'}</span></span>
@@ -542,29 +580,17 @@ const CommunityPage = () => {
                     >
                       Edit
                     </button>
-                    {isCreator && (
-                      <button 
-                        onClick={handleDeleteCommunity}
-                        className="px-3 md:px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md bg-red-600/10 text-red-500 border border-red-500 hover:bg-red-500 hover:text-white"
-                      >
-                        Delete
-                      </button>
-                    )}
                   </div>
                 )}
                 
-                {/* Community Three Dot Menu (Hiding for Creator per request) */}
+                {/* Community Three Dot Menu (Visible to all, Creator has extra options) */}
                 {currentUser && community && (
-                  (() => {
-                    const creatorId = typeof community.creator === 'object' ? community.creator._id : community.creator;
-                    const curId = currentUser.id || currentUser._id;
-                    return creatorId !== curId;
-                  })()
-                ) && (
                   <CommunityMenu 
                     onReport={handleReportCommunity}
                     onEdit={handleEditClick}
                     onDelete={handleDeleteCommunity}
+                    onHide={handleHideCommunity}
+                    isHidden={community.isHidden}
                     canEdit={canEdit}
                     isCreator={isCreator}
                     onOpenChange={(isOpen) => setActiveMenuId(isOpen ? 'community' : (prev => prev === 'community' ? null : prev))}

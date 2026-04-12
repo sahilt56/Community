@@ -1,6 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { View, Image, TouchableOpacity, Platform, Text, Modal, ScrollView, Appearance } from 'react-native';
+import { View, TouchableOpacity, Platform, Text, Modal, ScrollView, Appearance } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from 'nativewind';
@@ -28,13 +29,14 @@ export default function TabLayout() {
   const CustomHeaderLeft = () => (
     <View className="flex-row items-center ml-4">
       <TouchableOpacity onPress={() => setMenuVisible(true)} className="border border-white rounded-full shadow-sm mr-3 bg-white w-[38px] h-[38px] items-center justify-center" style={{ elevation: 2 }}>
-         <Ionicons name="menu-outline" size={22} color="#1f2937" />
+        <Ionicons name="menu-outline" size={22} color="#1f2937" />
       </TouchableOpacity>
       <View className="border border-white rounded-full bg-white shadow-sm overflow-hidden items-center justify-center w-[38px] h-[38px]" style={{ elevation: 2 }}>
-        <Image 
-          source={require('../../assets/images/logo.png')} 
-          className="w-full h-full" 
-          resizeMode="cover"
+        <Image
+          source={require('../../assets/images/logo.png')}
+          className="w-full h-full"
+          contentFit="cover"
+          transition={200}
         />
       </View>
     </View>
@@ -47,12 +49,12 @@ export default function TabLayout() {
       <TouchableOpacity onPress={() => router.push('/(tabs)/explore')} className="w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
         <Ionicons name="search-outline" size={20} color="#4b5563" />
       </TouchableOpacity>
-      
+
       <TouchableOpacity className="relative w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
         <Ionicons name="megaphone-outline" size={20} color="#4b5563" />
         <View className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full" />
       </TouchableOpacity>
-      
+
       <TouchableOpacity className="relative w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
         <Ionicons name="notifications-outline" size={20} color="#4b5563" />
         <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-[16px] h-[16px] items-center justify-center shadow-sm border border-white">
@@ -60,8 +62,8 @@ export default function TabLayout() {
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        onPress={() => router.push('/create' as any)} 
+      <TouchableOpacity
+        onPress={() => router.push('/create' as any)}
         className="w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}
       >
         <Ionicons name="pencil-outline" size={20} color="#4b5563" />
@@ -128,19 +130,20 @@ export default function TabLayout() {
       {/* Hamburger Sliding Menu Modal / Dropdown */}
       <Modal visible={menuVisible} animationType="fade" transparent={true} onRequestClose={() => setMenuVisible(false)}>
         <TouchableOpacity className="flex-1 bg-blue-900/10" activeOpacity={1} onPress={() => setMenuVisible(false)}>
-          <View className="absolute top-0 left-4 bg-white rounded-b-[24px] rounded-tr-[24px] shadow-2xl p-2 w-[280px] border border-gray-100" 
-                style={{ marginTop: Platform.OS === 'ios' ? 50 : 20 }}>
-            
+          <View className="absolute top-0 left-4 bg-white rounded-b-[24px] rounded-tr-[24px] shadow-2xl p-2 w-[280px] border border-gray-100"
+            style={{ marginTop: Platform.OS === 'ios' ? 50 : 20 }}>
+
             {/* Header Mirror to align with the nav bar */}
             <View className="flex-row items-center mb-4 px-2 pt-2">
               <TouchableOpacity onPress={() => setMenuVisible(false)} className="border border-gray-200 rounded-xl mr-3 bg-gray-50/50 w-10 h-10 items-center justify-center">
-                 <Ionicons name="close" size={24} color="#1f2937" />
+                <Ionicons name="close" size={24} color="#1f2937" />
               </TouchableOpacity>
               <View className="border border-gray-100 rounded-full bg-white shadow-sm overflow-hidden items-center justify-center w-[34px] h-[34px]">
-                <Image 
-                  source={require('../../assets/images/logo.png')} 
-                  className="w-full h-full" 
-                  resizeMode="cover"
+                <Image
+                  source={require('../../assets/images/logo.png')}
+                  className="w-full h-full"
+                  contentFit="cover"
+                  transition={200}
                 />
               </View>
             </View>
@@ -168,32 +171,32 @@ export default function TabLayout() {
 
             {/* Menu Dropdown Actions */}
             <View className="px-1">
-               <TouchableOpacity onPress={() => { setMenuVisible(false); router.push('/(tabs)/profile'); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
-                 <Ionicons name="person-outline" size={20} color="#4b5563" />
-                 <Text className="text-[15px] font-medium text-gray-700 ml-4">View Profile</Text>
-               </TouchableOpacity>
-               
-               <TouchableOpacity onPress={() => { setMenuVisible(false); router.push('/(tabs)/explore'); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
-                 <Ionicons name="people-outline" size={20} color="#4b5563" />
-                 <Text className="text-[15px] font-medium text-gray-700 ml-4">Create Community</Text>
-               </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setMenuVisible(false); router.push('/(tabs)/profile'); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
+                <Ionicons name="person-outline" size={20} color="#4b5563" />
+                <Text className="text-[15px] font-medium text-gray-700 ml-4">View Profile</Text>
+              </TouchableOpacity>
 
-               <TouchableOpacity onPress={() => { setMenuVisible(false); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
-                 <Ionicons name="chatbubble-outline" size={20} color="#4b5563" />
-                 <Text className="text-[15px] font-medium text-gray-700 ml-4">Chat</Text>
-               </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setMenuVisible(false); router.push('/(tabs)/explore'); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
+                <Ionicons name="people-outline" size={20} color="#4b5563" />
+                <Text className="text-[15px] font-medium text-gray-700 ml-4">Create Community</Text>
+              </TouchableOpacity>
 
-               <TouchableOpacity onPress={toggleColorScheme} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
-                 <Ionicons name={colorScheme === 'dark' ? "moon" : "moon-outline"} size={20} color="#4b5563" />
-                 <Text className="text-[15px] font-medium text-gray-700 ml-4">Dark Mode</Text>
-               </TouchableOpacity>
-               
-               <View className="h-[1px] bg-gray-100 my-2 mx-3" />
-               
-               <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-3.5 px-3 rounded-[14px] mb-2">
-                 <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                 <Text className="text-[15px] font-medium text-red-500 ml-4">Log Out</Text>
-               </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setMenuVisible(false); }} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
+                <Ionicons name="chatbubble-outline" size={20} color="#4b5563" />
+                <Text className="text-[15px] font-medium text-gray-700 ml-4">Chat</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={toggleColorScheme} className="flex-row items-center py-3.5 px-3 rounded-[14px]">
+                <Ionicons name={colorScheme === 'dark' ? "moon" : "moon-outline"} size={20} color="#4b5563" />
+                <Text className="text-[15px] font-medium text-gray-700 ml-4">Dark Mode</Text>
+              </TouchableOpacity>
+
+              <View className="h-[1px] bg-gray-100 my-2 mx-3" />
+
+              <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-3.5 px-3 rounded-[14px] mb-2">
+                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                <Text className="text-[15px] font-medium text-red-500 ml-4">Log Out</Text>
+              </TouchableOpacity>
             </View>
 
           </View>

@@ -4,15 +4,21 @@ const User = require('../models/User');
 
 const verifyToken = async (req, res, next) => {
   try {
-    // 1. Cookie se token nikalna, ya fallback ke roop me header se
-    let token = req.cookies?.token;
+    // 1. Authorization header ko PEHLE check karo (always freshest token from frontend)
+    // Cookie ko FALLBACK ke roop me use karo (kyunki cookies stale ho sakti hain after logout)
+    let token = null;
 
-    if (!token && req.headers.authorization) {
+    if (req.headers.authorization) {
       if (req.headers.authorization.startsWith("Bearer ")) {
         token = req.headers.authorization.split(" ")[1]; 
       } else {
         token = req.headers.authorization;
       }
+    }
+
+    // Fallback to cookie only if no Authorization header
+    if (!token) {
+      token = req.cookies?.token;
     }
 
     if (!token) {

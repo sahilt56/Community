@@ -608,8 +608,16 @@ router.post('/logout', async (req, res) => {
     console.error("Error blacklisting token during logout:", err);
   }
 
-  res.clearCookie('token');
-  res.clearCookie('refreshToken');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/'
+  };
+  
+  res.clearCookie('token', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
   res.status(200).json({ message: "Logged out successfully!" });
 });
 

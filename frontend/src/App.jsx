@@ -77,7 +77,7 @@ function App() {
           <meta name="twitter:title" content="Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow" />
           <meta name="twitter:description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
         </Helmet>
-        <div className="h-screen flex flex-col bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
+        <div className="h-screen flex flex-col bg-[#f0f2f5] dark:bg-[#030303] text-gray-900 dark:text-white transition-colors duration-200 overflow-hidden">
         <Toaster 
           position="bottom-center"
           toastOptions={{

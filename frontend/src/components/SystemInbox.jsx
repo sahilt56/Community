@@ -37,41 +37,88 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
         refreshMessages();
     };
 
+    const executeHideMessage = async (id) => {
+        try {
+            setExpandedMsgId(null);
+            await api.put(`/api/system-messages/${id}/hide`);
+            toast.success("Removed from your inbox.");
+            refreshMessages();
+        } catch (err) {
+            toast.error("Failed to remove message.");
+        }
+    };
+
     const handleDeleteClick = (e, id) => {
         e.stopPropagation();
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <AlertTriangle className="text-red-500 shrink-0" size={20} />
-                    <span className="font-bold text-gray-900 dark:text-white">Delete Announcement?</span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">All users will permanently lose access.</p>
-                <div className="flex gap-2 justify-end mt-1">
+        
+        if (user?.isAdmin) {
+            toast((t) => (
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                        <span className="font-bold text-gray-900 dark:text-white">Delete Announcement?</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Choose an action for this announcement.</p>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                        <button 
+                            onClick={async () => {
+                                toast.remove(t.id);
+                                await executeHideMessage(id);
+                            }} 
+                            className="px-3 py-1.5 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-md transition"
+                        >
+                            Hide for Me
+                        </button>
+                        <button 
+                            onClick={async () => {
+                                toast.remove(t.id);
+                                try {
+                                    setExpandedMsgId(null);
+                                    await api.delete(`/api/system-messages/${id}`);
+                                    toast.success("Announcement deleted successfully!");
+                                    refreshMessages();
+                                } catch (err) {
+                                    toast.error(err.response?.data?.message || "Failed to delete announcement.");
+                                }
+                            }} 
+                            className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-md transition"
+                        >
+                            Global Delete
+                        </button>
+                    </div>
                     <button 
-                        onClick={() => toast.remove(t.id)} 
-                        className="px-3 py-1.5 text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-[#343536] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md transition"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={async () => {
-                            toast.remove(t.id);
-                            try {
-                                setExpandedMsgId(null);
-                                await api.delete(`/api/system-messages/${id}`);
-                                toast.success("Announcement deleted successfully!");
-                                refreshMessages();
-                            } catch (err) {
-                                toast.error(err.response?.data?.message || "Failed to delete announcement.");
-                            }
-                        }} 
-                        className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-md transition"
-                    >
-                        Delete
-                    </button>
+                            onClick={() => toast.remove(t.id)} 
+                            className="mt-1 px-3 py-1 text-xs font-bold text-gray-500 hover:text-gray-700 transition"
+                        >
+                            Cancel
+                     </button>
                 </div>
-            </div>
-        ), { duration: 5000, position: 'top-center' });
+            ), { duration: 5000, position: 'top-center' });
+        } else {
+            // Normal user: just hide without big warnings
+            toast((t) => (
+                <div className="flex flex-col gap-3 p-1">
+                    <span className="font-bold text-gray-900 dark:text-white">Remove from Inbox?</span>
+                    <div className="flex gap-2 justify-end">
+                        <button 
+                            onClick={() => toast.remove(t.id)} 
+                            className="px-3 py-1 text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-[#343536] rounded"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={() => {
+                                toast.remove(t.id);
+                                executeHideMessage(id);
+                            }} 
+                            className="px-3 py-1 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded"
+                        >
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            ));
+        }
     };
 
     if (!isOpen) return null;
@@ -163,11 +210,11 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                                                         {new Date(msg.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}
                                                     </span>
                                                 </div>
-                                                {user?.isAdmin && (
+                                                {user && (
                                                     <button 
                                                         onClick={(e) => handleDeleteClick(e, msg._id)} 
                                                         className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 dark:bg-red-500/10 rounded-md transition-colors shrink-0 z-10"
-                                                        title="Delete Announcement"
+                                                        title={user.isAdmin ? "Manage Announcement" : "Hide Announcement"}
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>

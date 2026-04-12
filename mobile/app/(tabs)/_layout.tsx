@@ -27,10 +27,10 @@ export default function TabLayout() {
 
   const CustomHeaderLeft = () => (
     <View className="flex-row items-center ml-4">
-      <TouchableOpacity onPress={() => setMenuVisible(true)} className="border border-gray-200 rounded-xl mr-3 bg-gray-50/50 w-10 h-10 items-center justify-center">
-         <Ionicons name="menu-outline" size={24} color="#1f2937" />
+      <TouchableOpacity onPress={() => setMenuVisible(true)} className="border border-white rounded-full shadow-sm mr-3 bg-white w-[38px] h-[38px] items-center justify-center" style={{ elevation: 2 }}>
+         <Ionicons name="menu-outline" size={22} color="#1f2937" />
       </TouchableOpacity>
-      <View className="border border-gray-100 rounded-full bg-white shadow-sm overflow-hidden items-center justify-center w-[34px] h-[34px]">
+      <View className="border border-white rounded-full bg-white shadow-sm overflow-hidden items-center justify-center w-[38px] h-[38px]" style={{ elevation: 2 }}>
         <Image 
           source={require('../../assets/images/logo.png')} 
           className="w-full h-full" 
@@ -43,29 +43,28 @@ export default function TabLayout() {
   const CustomHeaderTitle = () => null;
 
   const CustomHeaderRight = () => (
-    <View className="flex-row items-center mr-4 gap-1">
-      <TouchableOpacity onPress={() => router.push('/(tabs)/explore')} className="p-1.5">
-        <Ionicons name="search-outline" size={22} color="#4b5563" />
+    <View className="flex-row items-center mr-4 gap-2">
+      <TouchableOpacity onPress={() => router.push('/(tabs)/explore')} className="w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
+        <Ionicons name="search-outline" size={20} color="#4b5563" />
       </TouchableOpacity>
       
-      <TouchableOpacity className="p-1.5 relative">
-        <Ionicons name="megaphone-outline" size={22} color="#f97316" />
-        <View className="absolute top-1 right-1 w-2.5 h-2.5 bg-orange-200 rounded-full opacity-50" />
-        <View className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full" />
+      <TouchableOpacity className="relative w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
+        <Ionicons name="megaphone-outline" size={20} color="#4b5563" />
+        <View className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full" />
       </TouchableOpacity>
       
-      <TouchableOpacity className="p-1.5 relative mr-1">
-        <Ionicons name="notifications-outline" size={22} color="#4b5563" />
-        <View className="absolute top-0 right-0 bg-orange-500 rounded-full w-4 h-4 items-center justify-center">
-          <Text className="text-white text-[9px] font-bold">1</Text>
+      <TouchableOpacity className="relative w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}>
+        <Ionicons name="notifications-outline" size={20} color="#4b5563" />
+        <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-[16px] h-[16px] items-center justify-center shadow-sm border border-white">
+          <Text className="text-white text-[9px] font-extrabold">1</Text>
         </View>
       </TouchableOpacity>
 
       <TouchableOpacity 
         onPress={() => router.push('/create' as any)} 
-        className="p-1.5"
+        className="w-9 h-9 bg-white rounded-full items-center justify-center shadow-sm border border-white" style={{ elevation: 2 }}
       >
-        <Ionicons name="pencil-outline" size={22} color="#4b5563" />
+        <Ionicons name="pencil-outline" size={20} color="#4b5563" />
       </TouchableOpacity>
     </View>
   );
@@ -74,10 +73,10 @@ export default function TabLayout() {
     <>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#f97316',
+          tabBarActiveTintColor: '#3b82f6',
           tabBarInactiveTintColor: 'gray',
           headerShown: true,
-          headerStyle: { backgroundColor: '#ffffff', elevation: 0, shadowOpacity: 0, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+          headerStyle: { backgroundColor: '#F3F4F6', elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 },
           headerTitleAlign: 'center',
           headerLeft: () => <CustomHeaderLeft />,
           headerTitle: () => <CustomHeaderTitle />,

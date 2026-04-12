@@ -246,20 +246,19 @@ const Home = () => {
         <meta name="description" content={`Explore the ${sortBy} posts and discussions on Vartalap. Join the conversation with students and professionals.`} />
       </Helmet>
 
-      {/* Sorting Tabs */}
-      <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-2 mb-4 flex items-center gap-1 overflow-x-auto transition-colors shadow-sm animate-fade-up">
+      <div className="bg-gray-50/80 dark:bg-[#1a1a1b] border border-gray-200/60 dark:border-[#343536] rounded-[24px] p-1.5 mb-5 inline-flex items-center gap-1 shadow-sm animate-fade-up">
         {['hot', 'new', 'top'].map((sortType) => (
           <button
             key={sortType}
             onClick={() => setSortBy(sortType)}
-            className={`btn-press flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap ${
+            className={`btn-press flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap ${
               sortBy === sortType
-                ? 'bg-orange-500 text-white shadow-md scale-100'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white'
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-[#272729] hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
-            <span className={`flex items-center justify-center ${sortBy === sortType ? 'animate-bounce' : ''}`}>
-              {sortType === 'hot' ? <Flame size={18} strokeWidth={2.5} /> : sortType === 'new' ? <Sparkles size={18} strokeWidth={2.5} /> : <ArrowUp size={18} strokeWidth={2.5} />}
+            <span className="flex items-center justify-center">
+              {sortType === 'hot' ? <Flame size={18} strokeWidth={sortBy === 'hot' ? 2.5 : 2} fill={sortBy === 'hot' ? 'transparent' : 'none'} /> : sortType === 'new' ? <Sparkles size={18} strokeWidth={2} /> : <ArrowUp size={18} strokeWidth={2} />}
             </span>
             <span className="capitalize">{sortType}</span>
           </button>
@@ -309,22 +308,54 @@ const Home = () => {
           <div
             key={`${post._id}-${index}`}
             ref={isLast ? lastPostElementRef : null}
-            className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-xl shadow-sm transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
+            className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-100 dark:border-[#343536] p-4 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
             style={{ animationDelay: `${Math.min(index, 4) * 60}ms` }}
           >
-            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-              Posted in <span className="text-gray-900 dark:text-white font-bold">c/{post.community?.name || 'general'}</span> • by 
-              <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
-                u/{post.author?.username || 'user'}
-                {post.authorHasVartalapBadge && (
-                  <Award size={12} className="text-blue-500 flex-shrink-0" />
-                )}
-              </Link>
-            </p>
-            <div className="flex justify-between items-start mb-1">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
-              </h2>
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-2.5">
+                <Link to={post.community ? `/v/${post.community.name}` : `/u/${post.author?.username}`} className="shrink-0 block">
+                  <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-[#272729] flex items-center justify-center border border-gray-200 dark:border-[#343536]">
+                    {(post.community?.profilePic || post.author?.profilePic) ? (
+                      <img 
+                        src={(post.community?.profilePic || post.author?.profilePic).startsWith('http') ? (post.community?.profilePic || post.author?.profilePic) : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(post.community?.profilePic || post.author?.profilePic).replace(/\\/g, '/')}`}
+                        alt="avatar" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-gray-400 uppercase">
+                        {(post.community?.name || post.author?.username || '?').charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+                <div className="flex flex-col justify-center">
+                  {post.community ? (
+                    <Link to={`/v/${post.community.name}`} className="text-[13px] font-bold text-gray-900 dark:text-white hover:underline leading-tight">
+                      v/{post.community.name}
+                    </Link>
+                  ) : (
+                    <Link to={`/u/${post.author?.username}`} className="text-[13px] font-bold text-gray-900 dark:text-white hover:underline leading-tight flex items-center gap-1">
+                      u/{post.author?.username}
+                      {post.authorHasVartalapBadge && <Award size={12} className="text-blue-500" />}
+                    </Link>
+                  )}
+                  <span className="text-[11px] text-gray-500 font-medium flex items-center gap-1 mt-0.5">
+                    {post.community && (
+                      <>
+                        <Link to={`/u/${post.author?.username}`} className="hover:underline flex items-center gap-0.5">
+                          u/{post.author?.username}
+                          {post.authorHasVartalapBadge && <Award size={10} className="text-blue-500" />}
+                        </Link>
+                        <span>•</span>
+                      </>
+                    )}
+                    {new Date().getTime() - new Date(post.createdAt || Date.now()).getTime() < 24*60*60*1000 
+                      ? Math.floor((new Date().getTime() - new Date(post.createdAt || Date.now()).getTime()) / (60*60*1000)) + 'h ago'
+                      : new Date(post.createdAt || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric'})}
+                  </span>
+                </div>
+              </div>
               <PostMenu 
                 post={post}
                 currentUser={currentUser}
@@ -334,6 +365,12 @@ const Home = () => {
                 onDelete={handleDelete}
                 onOpenChange={(isOpen) => setActiveMenuId(isOpen ? post._id : (prev => prev === post._id ? null : prev))}
               />
+            </div>
+            
+            <div className="mb-2">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-snug">
+                <Link to={`/post/${post._id}`} className="hover:underline">{post.title}</Link>
+              </h2>
             </div>
             
             {/* Link Post Rendering - Added so links show up immediately in feed */}

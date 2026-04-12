@@ -249,16 +249,14 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #5a5a5b; }
 
-/* Premium Glassmorphism */
+/* Premium Solid Nav (formerly glass-nav) */
 .glass-nav {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  background: #ffffff !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
 .dark .glass-nav {
-  background: rgba(26, 26, 27, 0.72) !important;
+  background: #1a1a1b !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 

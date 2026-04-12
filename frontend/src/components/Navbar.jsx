@@ -52,7 +52,7 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
                   <img 
                     src={getAvatarUrl(community.profilePic)} 
                     alt="" 
-                    className="absolute inset-0 w-full h-full object-cover" 
+                    className="absolute inset-0 w-full h-full object-cover z-10 bg-white dark:bg-[#1a1a1b]" 
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 )}
@@ -83,7 +83,7 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
                   <img 
                     src={getAvatarUrl(u.profilePic)} 
                     alt="" 
-                    className="absolute inset-0 w-full h-full object-cover" 
+                    className="absolute inset-0 w-full h-full object-cover z-10 bg-white dark:bg-[#1a1a1b]" 
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 )}
@@ -476,28 +476,29 @@ const Navbar = () => {
     window.location.href = '/';
   };
 
-  const getAvatarUrl = (pic) => {
-    const targetPic = pic || user?.profilePic;
+  const getAvatarUrl = (pic, fallbackToUser = false) => {
+    const targetPic = fallbackToUser ? (pic || user?.profilePic) : pic;
     if (!targetPic) return null;
-    return targetPic.startsWith('http') ? targetPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${targetPic}`;
+    let url = targetPic.startsWith('http') ? targetPic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${targetPic}`;
+    return url.replace(/\\/g, '/');
   };
 
   return (
     <>
-      <nav className="glass-nav px-4 py-2 flex items-center justify-between sticky top-0 z-[999] h-14 transition-all duration-300">
+      <nav className="bg-white/200 dark:bg-[#1a1a1b]/70 backdrop-blur-xl border-b border-orange-200/40 dark:border-[#343536] shadow-sm px-4 py-2 flex items-center justify-between sticky top-0 z-[999] h-14 transition-all duration-300">
         
         {/* Search Overlay (Mobile Only) */}
         {mobileSearchOpen && (
           <div className="absolute inset-x-0 inset-y-0 bg-white dark:bg-[#1a1a1b] z-[1000] flex items-center px-4 gap-2 animate-in fade-in duration-200">
             <button 
               onClick={() => { setMobileSearchOpen(false); setSearchTerm(''); }}
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-400"
+              className="p-2 bg-gray-50 border border-gray-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-teal-50 hover:text-teal-600 hover:border-teal-100 dark:hover:bg-teal-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs"
             >
-              <X size={24} strokeWidth={2} />
+              <X size={20} strokeWidth={2.5} />
             </button>
             
             <div className="flex-1 relative" ref={mobileSearchRef}>
-              <div className="bg-gray-100 dark:bg-[#272729] border border-transparent dark:border-[#343536] rounded-md px-4 py-1.5 flex items-center focus-within:border-orange-500 transition-all">
+              <div className="bg-gray-50 border border-gray-200 dark:bg-[#272729]/80 dark:border-[#343536] rounded-full px-4 py-1.5 flex items-center focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all shadow-inner">
                 <input 
                   autoFocus
                   type="text" 
@@ -506,7 +507,7 @@ const Navbar = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                {isSearching && <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent animate-spin rounded-full ml-2" />}
+                {isSearching && <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent animate-spin rounded-full ml-2" />}
               </div>
 
               {showResults && (
@@ -524,7 +525,7 @@ const Navbar = () => {
           <div className="sm:hidden relative" ref={menuRef}>
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center justify-center p-1.5 bg-gray-100/50 dark:bg-[#272729]/50 hover:bg-gray-200 dark:hover:bg-[#343536] rounded-xl transition-all active:scale-95 w-9 h-9 text-gray-700 dark:text-gray-300 shadow-sm border border-gray-200/50 dark:border-[#343536]/50 btn-press"
+              className="flex items-center justify-center p-1.5 bg-white dark:bg-[#272729]/80 hover:bg-orange-100 dark:hover:bg-[#343536] rounded-xl transition-all active:scale-95 w-9 h-9 text-gray-700 hover:text-orange-600 dark:text-gray-300 shadow-sm border border-orange-100 dark:border-[#343536]/50 btn-press"
             >
               <div className={`flex items-center justify-center transition-transform duration-300 ${menuOpen ? 'rotate-90' : 'rotate-0'}`}>
                 {menuOpen ? <X size={20} strokeWidth={2.5} /> : <AlignLeft size={20} strokeWidth={2.5} />}
@@ -537,13 +538,13 @@ const Navbar = () => {
                 {token ? (
                   <>
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-[#343536] flex items-center gap-3">
-                      <div className="w-10 h-10 bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0 relative">
+                      <div className="w-10 h-10 bg-linear-to-tr from-teal-500 to-cyan-400 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0 relative shadow-sm">
                         {user?.username?.charAt(0).toUpperCase()}
-                        {getAvatarUrl() && (
+                        {getAvatarUrl(null, true) && (
                           <img 
-                            src={getAvatarUrl()} 
+                            src={getAvatarUrl(null, true)} 
                             alt="" 
-                            className="absolute inset-0 w-full h-full object-cover" 
+                            className="absolute inset-0 w-full h-full object-cover z-10 bg-white dark:bg-[#1a1a1b]" 
                             onError={(e) => { e.target.style.display = 'none'; }}
                           />
                         )}
@@ -552,7 +553,7 @@ const Navbar = () => {
                         <p className="text-gray-900 dark:text-white font-bold text-sm">u/{user?.username}</p>
                         <p className="text-green-500 text-[11px] font-medium mb-0.5">Online</p>
                         {accountAgeText && <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{accountAgeText}</p>}
-                        <div className="flex items-center gap-1 mt-1 text-orange-600 dark:text-orange-400">
+                        <div className="flex items-center gap-1 mt-1 text-teal-600 dark:text-teal-400">
                           <Flame size={12} strokeWidth={2.5} />
                           <span className="text-xs font-bold">{user?.anubhav || 0} Anubhav</span>
                         </div>
@@ -572,7 +573,7 @@ const Navbar = () => {
                       <Link 
                         to="/admin" 
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-orange-600 dark:text-orange-400 font-bold hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all text-sm"
+                        className="flex items-center gap-3 px-4 py-3 text-teal-600 dark:text-teal-400 font-bold hover:bg-teal-50 dark:hover:bg-teal-500/10 transition-all text-sm"
                       >
                         <Shield size={20} strokeWidth={2} />
                         Admin Panel
@@ -621,7 +622,7 @@ const Navbar = () => {
                     <div className="flex flex-col gap-2 px-4 py-3 border-b border-gray-200 dark:border-[#343536]">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Join Vartalap today!</p>
                       <Link to="/login" onClick={() => setMenuOpen(false)} className="w-full text-center bg-gray-100 dark:bg-[#272729] text-gray-900 dark:text-white text-sm font-bold px-4 py-2 rounded-full transition-all">Log In</Link>
-                      <Link to="/login" state={{ isSignUp: true }} onClick={() => setMenuOpen(false)} className="w-full text-center bg-orange-500 text-white text-sm font-bold px-4 py-2 rounded-full hover:bg-orange-600 transition-all">Sign Up</Link>
+                      <Link to="/login" state={{ isSignUp: true }} onClick={() => setMenuOpen(false)} className="w-full text-center bg-linear-to-r from-teal-500 to-cyan-500 text-white text-sm font-bold px-4 py-2 rounded-full hover:opacity-90 transition-all shadow-md">Sign Up</Link>
                     </div>
                     
                     {/* Theme Toggle (Inside Mobile Menu for Guests) */}
@@ -639,9 +640,9 @@ const Navbar = () => {
           </div>
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 cursor-pointer shrink-0 pill-hover pr-2 py-1 rounded-full transition-all" onClick={() => setMobileSearchOpen(false)}>
-            <img src={logo} alt="Vartalap Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-cover rounded-full border border-gray-200 dark:border-[#343536] shadow-sm" />
-            <span className="text-gray-900 dark:text-white font-bold text-lg sm:text-xl tracking-tight hidden md:block">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer shrink-0 py-1 rounded-full transition-all" onClick={() => setMobileSearchOpen(false)}>
+            <img src={logo} alt="Vartalap Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-cover rounded-full border border-orange-200 dark:border-[#343536] shadow-sm bg-white" />
+            <span className="text-gray-900 dark:text-white font-extrabold text-lg sm:text-xl tracking-tight hidden md:block">
               Vartalap
             </span>
           </Link>
@@ -649,12 +650,12 @@ const Navbar = () => {
 
         {/* Desktop Search Bar */}
         <div className="hidden sm:block flex-1 max-w-150 mx-4 relative" ref={desktopSearchRef}>
-          <div className="bg-gray-100/50 dark:bg-[#272729]/50 backdrop-blur-sm border border-transparent dark:border-[#343536] rounded-md px-4 py-1.5 flex items-center hover:border-gray-300 dark:hover:border-gray-500 transition-all focus-within:border-gray-300 dark:focus-within:border-gray-400 focus-within:bg-white dark:focus-within:bg-[#272729]">
-            <Search size={16} strokeWidth={2.5} className={isSearching ? 'text-orange-500 animate-pulse' : 'text-gray-400'} />
+          <div className="bg-white dark:bg-[#272729]/80 border border-orange-100 dark:border-[#343536] rounded-full px-4 py-1.5 flex items-center hover:border-orange-300 dark:hover:border-orange-700 transition-all focus-within:border-orange-500 dark:focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 dark:focus-within:ring-orange-500/20 focus-within:bg-white dark:focus-within:bg-[#272729] shadow-inner w-full group">
+            <Search size={16} strokeWidth={2.5} className={`transition-colors ${isSearching ? 'text-orange-500 dark:text-orange-500 animate-pulse' : 'text-gray-400 group-focus-within:text-orange-500 dark:group-focus-within:text-orange-500'}`} />
             <input 
               type="text" 
               placeholder="Search communities, users, posts..." 
-              className="bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm ml-2 w-full"
+              className="bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm ml-2 w-full placeholder-gray-400 dark:placeholder-gray-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => searchTerm.trim().length > 0 && setShowResults(true)}
@@ -669,40 +670,40 @@ const Navbar = () => {
         </div>
 
         {/* RIGHT SIDE ACTIONS */}
-        <div className="flex items-center gap-1 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Mobile Search Icon */}
           <button 
             onClick={() => setMobileSearchOpen(true)}
-            className="sm:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-300 transition-all btn-press"
+            className="sm:hidden p-2 bg-white border border-orange-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs btn-press"
           >
-            <Search size={22} strokeWidth={2} />
+            <Search size={18} strokeWidth={2.5} />
           </button>
           
           {/* Toggle Theme Button (Desktop Only, hidden on sm) */}
           <button 
             onClick={toggleTheme}
-            className="hidden sm:block p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full text-gray-600 dark:text-gray-300 transition-all btn-press"
+            className="hidden sm:flex items-center justify-center p-2 bg-white border border-orange-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs btn-press w-9 h-9"
             title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDarkMode ? <Sun size={20} strokeWidth={2} /> : <Moon size={20} strokeWidth={2} />}
+            {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
           </button>
 
           {token ? (
             <>
               {/* Desktop: Create Post (Primary Action) */}
-              <Link to="/create-post" className="hidden xl:flex bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-1.5 rounded-full transition-all shadow-sm hover:shadow-md items-center gap-1.5 btn-press">
+              <Link to="/create-post" className="hidden xl:flex bg-linear-to-r from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 hover:opacity-90 text-white text-sm font-bold px-4 py-1.5 rounded-full transition-all shadow-md items-center gap-1.5 btn-press">
                 <Pencil size={16} strokeWidth={2.5} />
                 Create Post
               </Link>
 
               {/* Desktop: Create Community (Secondary Action) */}
-              <Link to="/create-community" className="hidden xl:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-gray-200 dark:border-[#343536] items-center gap-1.5 btn-press">
+              <Link to="/create-community" className="hidden xl:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-orange-200 dark:border-[#343536] items-center gap-1.5 btn-press bg-white dark:bg-transparent">
                 <Users size={16} strokeWidth={2.5} />
                 Community
               </Link>
 
               {/* Desktop: Chat Link */}
-              <Link to="/chat" className="hidden xl:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-gray-200 dark:border-[#343536] items-center gap-1.5 btn-press">
+              <Link to="/chat" className="hidden xl:flex text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-[#272729] px-4 py-1.5 rounded-full transition-all border border-orange-200 dark:border-[#343536] items-center gap-1.5 btn-press bg-white dark:bg-transparent">
                 <MessageSquare size={16} strokeWidth={2.5} />
                 Chat
               </Link>
@@ -711,15 +712,14 @@ const Navbar = () => {
               <div className="relative" ref={desktopInboxRef}>
                 <button 
                   onClick={() => setInboxOpen(!inboxOpen)}
-                  className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all relative btn-press text-gray-600 dark:text-gray-300"
+                  className="p-2 bg-white border border-orange-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs btn-press relative flex items-center justify-center w-9 h-9"
                   title="System Announcements"
                 >
-                  <Megaphone size={24} strokeWidth={2} className="text-orange-500" />
+                  <Megaphone size={18} strokeWidth={2.5} />
                   {sysUnreadCount > 0 && (
-                    <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                    </span>
+                     <span className="absolute top-1 right-1 flex items-center justify-center min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
+                       {sysUnreadCount}
+                     </span>
                   )}
                 </button>
                 <SystemInbox 
@@ -738,11 +738,11 @@ const Navbar = () => {
               <div className="relative" ref={desktopNotifRef}>
                 <button 
                   onClick={() => setNotifOpen(!notifOpen)}
-                  className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all relative btn-press text-gray-600 dark:text-gray-300"
+                  className="p-2 bg-white border border-orange-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs btn-press relative flex items-center justify-center w-9 h-9"
                 >
-                  <Bell size={24} strokeWidth={2} />
+                  <Bell size={18} strokeWidth={2.5} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 bg-orange-600 text-white text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border-2 border-white dark:border-[#1a1a1b]">
+                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -864,15 +864,15 @@ const Navbar = () => {
               </div>
 
               {/* Mobile Create Post Icon */}
-              <Link to="/create-post" className="sm:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-full transition-all text-gray-600 dark:text-gray-300 btn-press">
-                <Pencil size={22} strokeWidth={2} />
+              <Link to="/create-post" className="sm:hidden p-2 bg-white border border-orange-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-[#343536] rounded-full transition-all text-gray-500 dark:text-gray-300 btn-press" title="Create Post">
+                <Pencil size={18} strokeWidth={2.5} />
               </Link>
 
               {/* Desktop: Modern Profile Pill */}
               <div className="hidden md:flex relative group cursor-pointer">
-                <div className="flex items-center gap-2 bg-gray-50/50 dark:bg-[#272729]/50 border border-gray-200 dark:border-[#343536] hover:border-gray-300 dark:hover:border-gray-500 pl-1 pr-3 py-1 rounded-full transition-all btn-press">
+                <div className="flex items-center gap-2 bg-white dark:bg-[#272729]/50 border border-orange-200 dark:border-[#343536] hover:border-orange-300 dark:hover:border-orange-500 pl-1 pr-3 py-1 rounded-full transition-all btn-press shadow-sm">
                   <div className="w-7 h-7 relative shrink-0">
-                    <div className="w-full h-full bg-linear-to-tr from-orange-500 to-yellow-400 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden relative">
+                    <div className="w-full h-full bg-linear-to-tr from-orange-400 to-red-400 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden relative shadow-inner">
                       {user?.username?.charAt(0).toUpperCase()}
                       {getAvatarUrl() && (
                         <img 
@@ -914,7 +914,7 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className="hidden sm:block text-gray-700 dark:text-gray-200 text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#272729] px-5 py-2 rounded-full transition-all border border-gray-200 dark:border-[#343536] btn-press">
+              <Link to="/login" className="hidden sm:block text-orange-700 dark:text-gray-200 text-sm font-bold hover:bg-orange-100 dark:hover:bg-[#272729] px-5 py-2 rounded-full transition-all border border-orange-200 dark:border-[#343536] btn-press bg-white">
                 Log In
               </Link>
               <Link to="/login" state={{ isSignUp: true }} className="hidden sm:block bg-orange-500 text-white text-sm font-bold px-5 py-2 rounded-full hover:bg-orange-600 transition-all btn-press shadow-sm hover:shadow-md">

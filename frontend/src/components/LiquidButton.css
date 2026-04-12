@@ -1,0 +1,89 @@
+.glass-capsule-wrapper {
+  width: 100%;
+}
+
+.glass-capsule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 9999px; /* Pill shape */
+  
+  /* The core translucent glass background */
+  background: linear-gradient(180deg, rgba(255, 160, 50, 0.8) 0%, rgba(240, 100, 0, 0.9) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  /* The frosty glass borders */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+  /* The 3D glossy lighting via shadows */
+  box-shadow: 
+    0 10px 25px -5px rgba(240, 100, 0, 0.4), /* Drop shadow */
+    inset 0 4px 6px rgba(255, 255, 255, 0.6), /* Top inner highlight */
+    inset 0 -4px 6px rgba(0, 0, 0, 0.15); /* Bottom inner shadow */
+    
+  color: white; 
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Make text pop on glass */
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+}
+
+/* Glass specular highlight reflection at the top */
+.glass-capsule::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 5%;
+  right: 5%;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 100px 100px 0 0;
+  pointer-events: none;
+}
+
+.glass-capsule:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, rgba(255, 170, 70, 0.9) 0%, rgba(250, 120, 20, 0.95) 100%);
+  box-shadow: 
+    0 15px 30px -5px rgba(240, 100, 0, 0.5),
+    inset 0 4px 6px rgba(255, 255, 255, 0.8), 
+    inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.glass-capsule:active {
+  transform: translateY(2px);
+  box-shadow: 
+    0 5px 15px -5px rgba(240, 100, 0, 0.4),
+    inset 0 4px 8px rgba(0, 0, 0, 0.2), 
+    inset 0 -2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.glass-capsule.disabled-state {
+  cursor: not-allowed;
+  filter: grayscale(100%);
+  opacity: 0.6;
+  box-shadow: 
+    inset 0 4px 6px rgba(255, 255, 255, 0.3), 
+    inset 0 -4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* For iOS Style Dark Mode Variants */
+.dark .glass-capsule {
+  background: linear-gradient(180deg, rgba(255, 130, 0, 0.6) 0%, rgba(200, 80, 0, 0.8) 100%);
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.5),
+    inset 0 4px 6px rgba(255, 255, 255, 0.25), 
+    inset 0 -4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dark .glass-capsule::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%);
+}

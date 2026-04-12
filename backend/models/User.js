@@ -35,7 +35,8 @@ const UserSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
   hiddenPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
-  readSystemMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SystemMessage' }]
+  readSystemMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SystemMessage' }],
+  hiddenSystemMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SystemMessage' }]
 }, { timestamps: true });
 
 // Password ko database mein save hone se pehle encrypt (hash) karna

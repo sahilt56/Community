@@ -12,24 +12,30 @@ router.get('/', async (req, res) => {
             .populate('createdBy', 'username profilePic isAdmin')
             .sort({ createdAt: -1 });
         
-        // Optional auth check to see what the user has read
         let readMessageIds = [];
+        let hiddenMessageIds = [];
         const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
         if (token) {
             const jwt = require('jsonwebtoken');
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                const user = await User.findById(decoded.id).select('readSystemMessages');
+                const user = await User.findById(decoded.id).select('readSystemMessages hiddenSystemMessages');
                 if (user && user.readSystemMessages) {
                     readMessageIds = user.readSystemMessages;
+                }
+                if (user && user.hiddenSystemMessages) {
+                    hiddenMessageIds = user.hiddenSystemMessages.map(id => id.toString());
                 }
             } catch (e) {
                 // Ignore invalid tokens for fetching the general list
             }
         }
+        
+        // Filter out hidden messages for the current user
+        const filteredMessages = messages.filter(m => !hiddenMessageIds.includes(m._id.toString()));
 
         res.status(200).json({
-            messages,
+            messages: filteredMessages,
             readMessageIds
         });
     } catch (err) {
@@ -125,6 +131,31 @@ router.put('/:id/read', verifyToken, async (req, res) => {
     } catch (err) {
         console.error("System messages PUT read error:", err);
         res.status(500).json({ message: "Failed to mark as read." });
+    }
+});
+
+// Route: PUT /api/system-messages/:id/hide
+// Desc: Hide a system message for the current user
+router.put('/:id/hide', verifyToken, async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        if (!user.hiddenSystemMessages) user.hiddenSystemMessages = [];
+        
+        if (!user.hiddenSystemMessages.includes(messageId)) {
+            user.hiddenSystemMessages.push(messageId);
+            await user.save();
+        }
+
+        res.status(200).json({ message: "Message hidden.", hiddenMessageIds: user.hiddenSystemMessages });
+    } catch (err) {
+        console.error("System messages PUT hide error:", err);
+        res.status(500).json({ message: "Failed to hide message." });
     }
 });
 

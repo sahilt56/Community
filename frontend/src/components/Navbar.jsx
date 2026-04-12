@@ -470,28 +470,36 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
+    console.log('[Logout] Starting logout...');
     setMenuOpen(false);
     setMobileMenuOpen(false);
     
+    console.log('[Logout] Canceling pending requests');
     // 🛑 Cancel all pending API requests immediately
     cancelPendingRequests();
     
     try {
+      console.log('[Logout] Calling logout API');
       // ✅ API call PEHLE, token localStorage mein abhi bhi hai
       // So backend HttpOnly cookies properly clear ho sakti hain
       await api.post('/api/auth/logout');
+      console.log('[Logout] API logout successful');
     } catch(e) {
-      console.error('Logout API error (ignoring):', e);
+      console.error('[Logout] API error (ignoring):', e);
     }
     
     // ✅ BAAD mein localStorage clear karo
+    console.log('[Logout] Removing token and user from localStorage');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('loginTime');
+    console.log('[Logout] localStorage cleared');
     
     // ✅ Dispatch auth-change event to update SocketContext immediately
+    console.log('[Logout] 📢 Dispatching auth-change event');
     window.dispatchEvent(new Event('auth-change'));
     
+    console.log('[Logout] Redirecting to login page');
     // ✅ Login page pe directly bhejo, home page avoid karo
     // (Home pe API calls hoti hain jo 401 race condition banati hain)
     window.location.replace('/login');

@@ -123,24 +123,31 @@ const Login = () => {
     
     try {
       console.log("[Login] Sending request to", endpoint);
+      const startTime = Date.now();
       const res = await api.post(endpoint, payload);
+      const responseTime = Date.now() - startTime;
       
-      console.log("[Login] Response received successfully");
+      console.log("[Login] ✅ Response received in " + responseTime + "ms");
       toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
-      console.log("[Login] Setting localStorage...");
+      console.log("[Login] Setting localStorage with new token");
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
+      localStorage.setItem('loginTime', Date.now().toString());
+      console.log('[Login] Token in localStorage:', !!localStorage.getItem('token'));
       
-      console.log("[Login] Dispatching auth-change event");
+      console.log("[Login] 📢 Dispatching auth-change event");
       // Dispatch auth-change event to update SocketContext immediately
       window.dispatchEvent(new Event('auth-change'));
       
-      console.log("[Login] Redirecting to home...");
-      // Full clean reload
-      window.location.href = '/';
+      console.log("[Login] Waiting 500ms before redirect to ensure event fires");
+      setTimeout(() => {
+        console.log("[Login] Redirecting to home...");
+        // Full clean reload
+        window.location.href = '/';
+      }, 500);
     } catch (err) {
+      console.error("[Login] Error:", err);
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
     }
   };

@@ -35,6 +35,7 @@ function App() {
       if (localStorage.getItem('token') || document.cookie.includes('token')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('loginTime');
         try {
           // Attempt to wipe HttpOnly cookies on the backend
           await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/logout`, { method: 'POST' });

@@ -484,6 +484,7 @@ const Navbar = () => {
     // ✅ BAAD mein localStorage clear karo
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('loginTime');
     
     // ✅ Login page pe directly bhejo, home page avoid karo
     // (Home pe API calls hoti hain jo 401 race condition banati hain)

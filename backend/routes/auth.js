@@ -34,6 +34,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours (frontend will handle 2h inactivity logout)
   });
   if (refreshToken) {
@@ -41,6 +42,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (match refresh token expiry)
     });
   }
@@ -578,7 +580,7 @@ router.post('/refresh-token', async (req, res) => {
       // Naya access aur refresh token issue karo
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
       setTokenCookies(res, newAccessToken, newRefreshToken);
-      res.status(200).json({ message: "Token refreshed successfully" });
+      res.status(200).json({ message: "Token refreshed successfully", token: newAccessToken });
     });
   } catch (err) {
     res.status(500).json({ message: "Server error during token refresh." });

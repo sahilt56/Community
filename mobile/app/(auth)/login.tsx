@@ -35,9 +35,11 @@ export default function LoginScreen() {
       if (Platform.OS === 'web') {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('loginTime', Date.now().toString());
       } else {
         await SecureStore.setItemAsync('token', token);
         await SecureStore.setItemAsync('user', JSON.stringify(user));
+        await SecureStore.setItemAsync('loginTime', Date.now().toString());
       }
       router.replace('/(tabs)');
     } catch (err: any) {

@@ -52,10 +52,16 @@ api.interceptors.response.use(
       try {
         // Background mein naya token mangwao (Cookies use karke)
         // 🛡️ Added CSRF header for refresh request
-        await axios.post(`${apiUrl}/api/auth/refresh-token`, {}, { 
+        const refreshRes = await axios.post(`${apiUrl}/api/auth/refresh-token`, {}, { 
           withCredentials: true,
           headers: { 'X-CSRF-Protection': '1' }
         });
+
+        // Save new token to localStorage so subsequent requests use the fresh token
+        if (refreshRes.data?.token) {
+          localStorage.setItem('token', refreshRes.data.token);
+          originalRequest.headers.Authorization = `Bearer ${refreshRes.data.token}`;
+        }
         
         // Token refresh success ho gaya! Ab fail hui request ko wapas attempt karo
         return api(originalRequest);

@@ -34,6 +34,8 @@ const Login = () => {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null); // { available: true/false, message: '' }
   
+  // Page initialization delay to prevent race conditions after logout
+  const [isPageReady, setIsPageReady] = useState(false);
 
   const googleLogin = useGoogleLogin({
     onSuccess: (tokenResponse) => {
@@ -43,6 +45,16 @@ const Login = () => {
       toast.error("Google Login Failed");
     }
   });
+  
+  useEffect(() => {
+    console.log("[Login] 🚀 Login page mounted, setting up initialization delay");
+    const readyTimer = setTimeout(() => {
+      console.log("[Login] ✅ Page ready for form submission");
+      setIsPageReady(true);
+    }, 300);
+    
+    return () => clearTimeout(readyTimer);
+  }, []);
   
   useEffect(() => {
     if (location.state?.isSignUp) {
@@ -111,6 +123,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
+    if (!isPageReady) {
+      console.log("[Login] ⏳ Page not ready yet, ignoring submission");
+      toast.error("Please wait a moment while the page loads...");
+      return;
+    }
+
     console.log("[Login] Form submitted, isLogin:", isLogin);
 
     if (!isLogin && usernameStatus && !usernameStatus.available) {
@@ -140,12 +158,12 @@ const Login = () => {
       // Dispatch auth-change event to update SocketContext immediately
       window.dispatchEvent(new Event('auth-change'));
       
-      console.log("[Login] Waiting 500ms before redirect to ensure event fires");
+      console.log("[Login] Waiting 1000ms before redirect to ensure event fires and socket connects");
       setTimeout(() => {
         console.log("[Login] Redirecting to home...");
         // Full clean reload
         window.location.href = '/';
-      }, 500);
+      }, 1000);
     } catch (err) {
       console.error("[Login] Error:", err);
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));

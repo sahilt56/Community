@@ -499,10 +499,13 @@ const Navbar = () => {
     console.log('[Logout] 📢 Dispatching auth-change event');
     window.dispatchEvent(new Event('auth-change'));
     
-    console.log('[Logout] Redirecting to login page');
-    // ✅ Login page pe directly bhejo, home page avoid karo
-    // (Home pe API calls hoti hain jo 401 race condition banati hain)
-    window.location.replace('/login');
+    console.log('[Logout] Waiting 500ms to ensure auth-change event settles');
+    setTimeout(() => {
+      console.log('[Logout] Redirecting to login page');
+      // ✅ Login page pe directly bhejo, home page avoid karo
+      // (Home pe API calls hoti hain jo 401 race condition banati hain)
+      window.location.replace('/login');
+    }, 500);
   };
 
   const getAvatarUrl = (pic, fallbackToUser = false) => {

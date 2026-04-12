@@ -470,15 +470,24 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setMenuOpen(false);
+    setMobileMenuOpen(false);
     
     try {
+      // ✅ API call PEHLE, token localStorage mein abhi bhi hai
+      // So backend HttpOnly cookies properly clear ho sakti hain
       await api.post('/api/auth/logout');
-    } catch(e) {}
+    } catch(e) {
+      console.error('Logout API error (ignoring):', e);
+    }
     
-    window.location.replace('/?logout=true');
+    // ✅ BAAD mein localStorage clear karo
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // ✅ Login page pe directly bhejo, home page avoid karo
+    // (Home pe API calls hoti hain jo 401 race condition banati hain)
+    window.location.replace('/login');
   };
 
   const getAvatarUrl = (pic, fallbackToUser = false) => {

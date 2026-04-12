@@ -125,8 +125,9 @@ const Login = () => {
       toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user)); 
-      window.location.replace('/'); 
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
+      window.location.href = '/'; // Full clean reload
     } catch (err) {
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
     }
@@ -191,7 +192,8 @@ const Login = () => {
         toast.success("Login Successful! 🎉");
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user)); 
-        window.location.replace('/'); 
+        localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
+        window.location.href = '/'; // Full clean reload
       }
     } catch (err) {
       toast.error(err.response?.data?.error || "Google Auth Failed");

@@ -63,9 +63,17 @@ api.interceptors.response.use(
         // Agar refresh token bhi expire ho gaya (jaise 7 din pure ho gaye)
         console.error("Session expired. Please log in again.");
         
+        // 🛡️ Guard: Agar user abhi abhi login kiya hai (< 5 seconds ago),
+        // toh purani in-flight 401 request ka redirect ignore karo
+        const loginTime = localStorage.getItem('loginTime');
+        if (loginTime && Date.now() - parseInt(loginTime) < 5000) {
+          return Promise.reject(refreshError);
+        }
+        
         // 🧹 Clean EVERYTHING from localStorage to prevent infinite loop
         localStorage.removeItem('user'); 
         localStorage.removeItem('token'); 
+        localStorage.removeItem('loginTime');
 
         // 🛑 Prevent infinite refresh loop if already on /login
         if (window.location.pathname !== '/login') {

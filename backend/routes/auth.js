@@ -517,12 +517,13 @@ router.post('/login', async (req, res) => {
     console.log('[Auth] Checking user in DB...');
     const user = await User.findOne({ email });
     if (!user) {
-      console.log('[Auth] User not found:', email);
+      console.log(`[Auth] Login failed: User not found for email ${email}`);
       return res.status(404).json({ message: "User not found!" });
     }
 
     // 1.5. Check if user is banned
     if (user.isBanned) {
+      console.log(`[Auth] Login failed: User ${email} is banned`);
       if (user.banExpiresAt && new Date() > user.banExpiresAt) {
         // Ban expired, unban them
         user.isBanned = false;
@@ -537,10 +538,10 @@ router.post('/login', async (req, res) => {
     }
 
     // 2. Password verify karo (Bcrypt use karke)
-    console.log('[Auth] Verifying password...');
+    console.log('[Auth] Verifying password for', email);
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log('[Auth] Password invalid for user:', email);
+      console.log(`[Auth] Login failed: Incorrect password for ${email}`);
       return res.status(400).json({ message: "Wrong password!" });
     }
 

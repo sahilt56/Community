@@ -32,10 +32,17 @@ const [currentTime] = useState(() => Date.now());
         api.get(`/api/users/${updatedUser.username}`)
           .then(res => setProfileStats(res.data))
           .catch(err => console.error(err));
+      } else {
+        // User logged out — clear profile stats immediately
+        setProfileStats(null);
       }
     };
     window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
+    window.addEventListener('auth-change', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('auth-change', sync);
+    };
   }, []);
 
   // Helper function to fetch popular communities

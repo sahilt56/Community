@@ -417,7 +417,11 @@ const Navbar = () => {
       setUser(s ? JSON.parse(s) : null);
     };
     window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
+    window.addEventListener('auth-change', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('auth-change', sync);
+    };
   }, []);
 
   useEffect(() => {
@@ -499,13 +503,13 @@ const Navbar = () => {
     console.log('[Logout] 📢 Dispatching auth-change event');
     window.dispatchEvent(new Event('auth-change'));
     
-    console.log('[Logout] Waiting 500ms to ensure auth-change event settles');
+    console.log('[Logout] Waiting 200ms to ensure auth-change event settles');
     setTimeout(() => {
       console.log('[Logout] Redirecting to login page');
       // ✅ Login page pe directly bhejo, home page avoid karo
       // (Home pe API calls hoti hain jo 401 race condition banati hain)
       window.location.replace('/login');
-    }, 500);
+    }, 200);
   };
 
   const getAvatarUrl = (pic, fallbackToUser = false) => {

@@ -52,11 +52,15 @@ api.interceptors.response.use(
 
     // Clear session and redirect on invalid token
     if (
-      (error.response?.status === 401 && error.response.data?.code === 'TOKEN_INVALID')
+      (error.response?.status === 401 && (error.response.data?.code === 'TOKEN_INVALID' || error.response.data?.code === 'TOKEN_BLACKLISTED'))
     ) {
-      console.error("[API] Session invalid. Clearing session...");
+      console.error("[API] Session invalid or blacklisted. Clearing session...");
       localStorage.removeItem('user'); 
       localStorage.removeItem('token'); 
+      localStorage.removeItem('loginTime');
+      // Dispatch event to notify other components immediately
+      window.dispatchEvent(new Event('auth-change'));
+      
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'; 
       }

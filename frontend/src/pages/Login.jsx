@@ -51,7 +51,7 @@ const Login = () => {
     const readyTimer = setTimeout(() => {
       console.log("[Login] ✅ Page ready for form submission");
       setIsPageReady(true);
-    }, 300);
+    }, 50);
     
     return () => clearTimeout(readyTimer);
   }, []);
@@ -158,12 +158,12 @@ const Login = () => {
       // Dispatch auth-change event to update SocketContext immediately
       window.dispatchEvent(new Event('auth-change'));
       
-      console.log("[Login] Waiting 1000ms before redirect to ensure event fires and socket connects");
+      console.log("[Login] Waiting 600ms before redirect to ensure socket connects");
       setTimeout(() => {
         console.log("[Login] Redirecting to home...");
         // Full clean reload
         window.location.href = '/';
-      }, 1000);
+      }, 600);
     } catch (err) {
       console.error("[Login] Error:", err);
       toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
@@ -230,7 +230,14 @@ const Login = () => {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user)); 
         localStorage.setItem('loginTime', Date.now().toString()); // Guard for interceptor
-        window.location.href = '/'; // Full clean reload
+        
+        // 📢 Dispatch auth-change event to update SocketContext and Navbar immediately
+        window.dispatchEvent(new Event('auth-change'));
+        
+        // Delay redirect slightly to ensure state is processed
+        setTimeout(() => {
+          window.location.href = '/'; // Full clean reload
+        }, 300);
       }
     } catch (err) {
       toast.error(err.response?.data?.error || "Google Auth Failed");

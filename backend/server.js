@@ -44,12 +44,15 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5175',
   'http://localhost:8081',
+  'http://127.0.0.1:5173', // 👈 Added common local IP
   'http://192.168.1.42:8081',
   'https://vartalap.live',
   'https://www.vartalap.live',
-  'https://api.vartalap.live' // API origin ko bhi safety ke liye add kar do
-];
+  'https://api.vartalap.live',
+  process.env.FRONTEND_URL // 👈 Dynamically add from .env
+].filter(Boolean); // Filter out undefined if FRONTEND_URL is not set
 
 app.use(cors({
   origin: function (origin, callback) {

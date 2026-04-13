@@ -22,7 +22,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import ChatRooms from './pages/ChatRooms';
 import ChatRoom from './pages/ChatRoom';
 import { cancelPendingRequests } from './api';
-import DebugConsole from './components/DebugConsole';
 
 function App() {
   const navigate = useNavigate();
@@ -50,7 +49,15 @@ function App() {
         window.dispatchEvent(new Event('auth-change'));
         
         toast.error('Session expired due to inactivity. Please log in again.', { duration: 5000 });
-        navigate('/login');
+        
+        // Dispatch storage event so same-tab listeners (Navbar, RightSidebar) can react
+        window.dispatchEvent(new Event('storage'));
+        
+        // Use full page reload instead of navigate() to ensure ALL components
+        // re-initialize with clean state (no stale user data in Navbar/RightSidebar)
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 200);
       }
     };
 
@@ -130,7 +137,7 @@ function App() {
         </div>
         
         <MobileBottomNav />
-        <DebugConsole />
+        
       </div>
       </SocketProvider>
     </ThemeProvider>

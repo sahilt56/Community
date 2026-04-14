@@ -43,7 +43,9 @@ function App() {
         try {
           // Attempt to wipe HttpOnly cookies on the backend
           await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/logout`, { method: 'POST' });
-        } catch(e) {}
+        } catch(err) {
+            console.error('[Logout] API error (ignoring):', err);
+        }
         
         // Dispatch auth-change event to update SocketContext immediately
         window.dispatchEvent(new Event('auth-change'));

@@ -59,12 +59,11 @@ const [currentTime] = useState(() => Date.now());
   }, []);
 
   // Helper function to fetch profile stats (Refactored for reuse)
-  const fetchProfile = async (isBackground = false) => {
+  const fetchProfile = useCallback(async (isBackground = false) => {
     if (!user?.username) return;
     if (!isBackground) setLoadingProfile(true);
     try {
       const res = await api.get(`/api/users/${user.username}`);
-      // console.log("Fetched right sidebar profileStats:", res.data); // ADDED FOR DEBUGGING
       setProfileStats(res.data);
     } catch (err) {
       console.error("Error fetching right sidebar profile", err);
@@ -77,14 +76,14 @@ const [currentTime] = useState(() => Date.now());
     } finally {
       if (!isBackground) setLoadingProfile(false);
     }
-  };
+  }, [user?.username]);
 
   useEffect(() => {
     fetchPopular();
     if (token && user) {
       fetchProfile();
     }
-  }, [token, user, fetchPopular]);
+  }, [token, user, fetchPopular, fetchProfile]);
 
   // Real-time Anubhav Updates
   useEffect(() => {
@@ -104,7 +103,7 @@ const [currentTime] = useState(() => Date.now());
       socket.off('post_interaction', handleInteraction);
       socket.off('community_updated', handleCommunityUpdate);
     };
-  }, [socket, user, fetchPopular]);
+  }, [socket, user, fetchPopular, fetchProfile]);
 
   let accountAgeText = "Ready to dive in?";
   const joinedDate = profileStats?.profile?.createdAt || user?.createdAt;

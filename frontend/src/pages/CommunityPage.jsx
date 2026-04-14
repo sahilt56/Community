@@ -865,9 +865,9 @@ const CommunityPage = () => {
               <div className="text-center text-gray-500 mt-10">No posts in this community yet. Be the first to post!</div>
             ) : (
               posts.map((post, index) => {
-                const upvotes = post.upvotes?.length || 0;
-                const downvotes = post.downvotes?.length || 0;
-                const netVotes = upvotes - downvotes;
+                // const upvotes = post.upvotes?.length || 0;
+                // const downvotes = post.downvotes?.length || 0;
+                // const netVotes = upvotes - downvotes;
                 const curUserId = currentUser?.id || currentUser?._id;
                 const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
                 const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
@@ -878,14 +878,14 @@ const CommunityPage = () => {
                   <div 
                     key={`${post._id}-${index}`} 
                     ref={isLast ? lastPostElementRef : null}
-                    className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm transition-colors overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
+                    className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm transition-colors overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-100' : 'z-10 hover:z-60'}`}
                   >
                     <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                       Posted by 
                       <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
                         u/{post.author?.username || 'user'}
                         {post.authorHasVartalapBadge && (
-                          <Award size={12} className="text-blue-500 flex-shrink-0" />
+                          <Award size={12} className="text-blue-500 shrink-0" />
                         )}
                       </Link>
                     </p>
@@ -916,7 +916,7 @@ const CommunityPage = () => {
                           href={post.link.startsWith('http') ? post.link : `https://${post.link}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5 flex-shrink-0"
+                          className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5 shrink-0"
                         >
                           Open
                         </a>
@@ -953,7 +953,7 @@ const CommunityPage = () => {
                         ))}
                       </div>
                     )}
-                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none break-words">
+                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none wrap-break-word">
                       <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
                         {post.content || ''}
                       </ReactMarkdown>
@@ -973,7 +973,7 @@ const CommunityPage = () => {
                             <span className="text-xs font-bold pt-0.5">{post.upvotes?.length || 0}</span>
                         </div>
                         
-                        <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+                        <div className="w-px h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
                         <div 
                           onClick={() => handleDownvote(post._id)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { SocketContext } from '../context/SocketContext';
@@ -20,7 +20,7 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
   const token = localStorage.getItem('token');
   const curUserId = currentUser?.id || currentUser?._id;
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       const res = await api.get(`/api/voice/community/${communityId}`);
       setRooms(res.data);
@@ -29,11 +29,11 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [communityId]);
 
   useEffect(() => {
     fetchRooms();
-  }, [communityId]);
+  }, [fetchRooms]);
 
   // WebRTC Configuration
   const rtcConfig = {
@@ -232,7 +232,8 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
       if (activeRoomId === roomId) {
         leaveRoom();
       }
-    } catch (err) {
+    } catch (error) {
+      console.error("Delete room error:", error);
       toast.error("Failed to end room");
     }
   };
@@ -353,7 +354,7 @@ const VoicePartyTab = ({ communityId, currentUser, isMod, isCreator }) => {
           </div>
 
           {/* Participants Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 relative z-10 mb-4 min-h-[200px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 relative z-10 mb-4 min-h-50">
             {participants.map((p, idx) => (
               <div key={idx} className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-[#272729] rounded-xl border border-gray-200 dark:border-[#343536]">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mb-2 shadow-inner relative ${

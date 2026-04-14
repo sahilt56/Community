@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -38,7 +38,7 @@ const PostPage = () => {
   
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  const fetchSinglePost = async () => {
+  const fetchSinglePost = useCallback(async () => {
     try {
       const res = await api.get(`/api/posts/${id}`);
       setPost(res.data);
@@ -49,22 +49,24 @@ const PostPage = () => {
         navigate('/'); // Redirect user back to feed
       }
     }
-  };
+  }, [id, navigate]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const res = await api.get(`/api/comments/post/${id}`);
       setComments(res.data);
     } catch (err) {
       console.error("Error fetching comments", err);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchSinglePost();
-    fetchComments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    const loadData = async () => {
+      await fetchSinglePost();
+      await fetchComments();
+    };
+    loadData();
+  }, [fetchSinglePost, fetchComments]);
 
   // Real-time updates: Listen for likes/comments/edits
   useEffect(() => {
@@ -82,7 +84,7 @@ const PostPage = () => {
     return () => {
       socket.off('post_interaction', handlePostUpdate);
     };
-  }, [socket, id]);
+  }, [socket, id, fetchSinglePost, fetchComments]);
 
   const handleCommentSubmit = async (parentId = null, text = commentText) => {
     if (!text.trim()) return;
@@ -330,7 +332,7 @@ const PostPage = () => {
 
   if (!post) return <div className="mt-10"><SkeletonLoader /></div>;
 
-  const netVotes = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
+  // const netVotes = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
   const curUserId = currentUser?.id || currentUser?._id;
   const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
   const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
@@ -405,7 +407,7 @@ const PostPage = () => {
             <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
               u/{post.author?.username || 'user'}
               {post.authorHasVartalapBadge && (
-                <Award size={12} className="text-blue-500 flex-shrink-0" />
+                <Award size={12} className="text-blue-500 shrink-0" />
               )}
             </Link>
             {post.author?.accountType === 'bot' && (
@@ -428,14 +430,14 @@ const PostPage = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{post.title}</h1>
       {/* ⚖️ Debate Badge */}
       {post.postType === 'debate' && (
-        <div className="mb-4 inline-flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-red-500 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm">
+        <div className="mb-4 inline-flex items-center gap-1.5 bg-linear-to-r from-green-500 to-red-500 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm">
           <Scale size={14} /> Live Debate
         </div>
       )}
       
       {/* 🏆 Bounty Badge */}
       {post.bountyAmount > 0 && (
-        <div className={`mb-4 ml-2 inline-flex items-center gap-1.5 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm ${post.bountyResolved ? 'bg-gray-500' : 'bg-gradient-to-r from-yellow-500 to-orange-500'}`}>
+        <div className={`mb-4 ml-2 inline-flex items-center gap-1.5 text-white text-[11px] uppercase tracking-wider font-extrabold px-3 py-1 rounded shadow-sm ${post.bountyResolved ? 'bg-gray-500' : 'bg-linear-to-r from-yellow-500 to-orange-500'}`}>
           <Trophy size={14} /> {post.bountyAmount} Anubhav Bounty {post.bountyResolved ? '(Resolved)' : ''}
         </div>
       )}
@@ -490,7 +492,7 @@ const PostPage = () => {
             ))}
           </div>
         )}
-        <div className="text-gray-800 dark:text-gray-200 text-sm md:text-base leading-relaxed mb-6 prose prose-sm md:prose-base dark:prose-invert max-w-none break-words">
+        <div className="text-gray-800 dark:text-gray-200 text-sm md:text-base leading-relaxed mb-6 prose prose-sm md:prose-base dark:prose-invert max-w-none wrap-break-word">
           <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
             {post.content || ''}
           </ReactMarkdown>
@@ -511,7 +513,7 @@ const PostPage = () => {
                  <span className="text-xs font-bold pt-0.5">{post.upvotes?.length || 0}</span>
               </div>
               
-              <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+              <div className="w-px h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
               {/* ⬇️ Downvote Button */}
               <div 
@@ -589,7 +591,7 @@ const PostPage = () => {
           </div>
         )}
           <div className="mb-3">
-            <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[6rem] sm:min-h-[8rem] h-auto resize-none sm:resize-y flex flex-col">
+            <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-24 sm:min-h-32 h-auto resize-none sm:resize-y flex flex-col">
               <TipTapEditor
                 value={commentText}
                 onChange={setCommentText}
@@ -615,7 +617,7 @@ const PostPage = () => {
       {post.postType === 'debate' ? (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Agree Column */}
-          <div className="border-t-[4px] border-green-500 pt-4 bg-gradient-to-b from-green-50 to-transparent dark:from-green-900/10 rounded-b-lg">
+          <div className="border-t-4 border-green-500 pt-4 bg-linear-to-b from-green-50 to-transparent dark:from-green-900/10 rounded-b-lg">
             <h3 className="text-green-600 dark:text-green-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsUp size={18} strokeWidth={2.5} /> For / Agree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'agree').map((rootComment) => (
@@ -625,7 +627,7 @@ const PostPage = () => {
             </div>
           </div>
           {/* Disagree Column */}
-          <div className="border-t-[4px] border-red-500 pt-4 bg-gradient-to-b from-red-50 to-transparent dark:from-red-900/10 rounded-b-lg">
+          <div className="border-t-4 border-red-500 pt-4 bg-linear-to-b from-red-50 to-transparent dark:from-red-900/10 rounded-b-lg">
             <h3 className="text-red-600 dark:text-red-400 font-extrabold mb-4 flex justify-center items-center gap-2 tracking-wide"><ThumbsDown size={18} strokeWidth={2.5} /> Against / Disagree</h3>
             <div className="flex flex-col gap-2 px-1">
               {rootComments.filter(c => c.stance === 'disagree').map((rootComment) => (

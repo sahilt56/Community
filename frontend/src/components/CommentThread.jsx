@@ -54,7 +54,7 @@ const CommentThread = ({
           finalContent = finalContent.split(item.url).join(realUrl);
         }
         toast.success('Media embedded successfully! 🎉', { id: loadingId });
-      } catch (err) {
+      } catch {
         toast.error("Failed to upload media. ❌", { id: loadingId });
         return;
       }
@@ -82,7 +82,7 @@ const CommentThread = ({
           finalContent = finalContent.split(item.url).join(realUrl);
         }
         toast.success('Media embedded successfully! 🎉', { id: loadingId });
-      } catch (err) {
+      } catch {
         toast.error("Failed to upload media. ❌", { id: loadingId });
         return;
       }
@@ -163,7 +163,7 @@ const CommentThread = ({
                   <Link to={`/u/${comment.user?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-gray-300 font-bold flex items-center gap-1">
                     u/{comment.user?.username || 'user'}
                     {comment.user?.hasVartalapBadge && (
-                      <Award size={12} className="text-blue-500 flex-shrink-0" />
+                      <Award size={12} className="text-blue-500 shrink-0" />
                     )}
                   </Link>
                 </div>
@@ -175,7 +175,7 @@ const CommentThread = ({
         {/* Comment Text / Edit Form */}
         {isEditing ? (
           <div className="mt-2">
-            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[8rem] h-auto resize-y mb-2">
+            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-32 h-auto resize-y mb-2">
                <TipTapEditor
                  value={editText}
                  onChange={setEditText}
@@ -277,7 +277,7 @@ const CommentThread = ({
         {/* Inline Reply Form */}
         {showReplyForm && (
           <div className="mt-3">
-            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[8rem] h-auto resize-y mb-2">
+            <div className="border border-gray-300 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-32 h-auto resize-y mb-2">
                <TipTapEditor
                  value={replyText}
                  onChange={setReplyText}

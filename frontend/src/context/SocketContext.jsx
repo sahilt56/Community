@@ -53,7 +53,8 @@ export const SocketProvider = ({ children }) => {
             if (socket) {
                 console.log('[Socket] ❌ Disconnecting socket due to token removal');
                 socket.disconnect();
-                setSocket(null);
+                // Defer state update to avoid cascading render warning
+                setTimeout(() => setSocket(null), 0);
             }
             console.log('[Socket] ⏸️ No authToken, socket remains null');
             return;
@@ -114,6 +115,7 @@ export const SocketProvider = ({ children }) => {
             console.log('[Socket] Cleaning up socket connection');
             newSocket.close();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authToken]);
 
     // Effect to join personal room when socket and user ID are available

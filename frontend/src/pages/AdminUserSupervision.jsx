@@ -43,6 +43,7 @@ const AdminUserSupervision = () => {
                 setUser(res.data.profile);
                 fetchUsers();
             } catch (err) {
+                console.error("Admin init failed:", err);
                 toast.error('Authentication Error');
                 navigate('/');
             }
@@ -233,11 +234,12 @@ const AdminUserSupervision = () => {
             toast.success(res.data.message);
             fetchUsers();
         } catch (err) {
+            console.error("Vartalap badge update failed:", err);
             toast.error("Failed to update Vartalap Badge.");
         }
     };
 
-    const handleToggleBetaTester = async (userId, currentState) => {
+    const handleToggleBetaTester = async (userId) => {
         try {
             const res = await api.put(`/api/admin/users/${userId}/beta-tester`);
             toast.success(res.data.message);
@@ -261,6 +263,7 @@ const AdminUserSupervision = () => {
                 disabledFeatures: res.data.disabledFeatures || [] 
             });
         } catch (err) {
+            console.error("Failed to load features:", err);
             toast.error("Failed to load feature settings.");
         }
     };
@@ -297,6 +300,7 @@ const AdminUserSupervision = () => {
                 enabledBetaFeatures: res.data.enabledBetaFeatures || [] 
             });
         } catch (err) {
+            console.error("Failed to load beta features:", err);
             toast.error("Failed to load beta features.");
         }
     };
@@ -341,6 +345,7 @@ const AdminUserSupervision = () => {
                 }
                 toast.success('Media embedded successfully!', { id: loadingId });
             } catch (err) {
+                console.error("Media upload failed:", err);
                 toast.error("Failed to upload media.", { id: loadingId });
                 return;
             }
@@ -374,7 +379,7 @@ const AdminUserSupervision = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1a1a1b] rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] p-4 sm:p-6 min-h-[500px]">
+                <div className="bg-white dark:bg-[#1a1a1b] rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] p-4 sm:p-6 min-h-125">
                     {loading ? (
                         <div className="flex justify-center items-center h-64">
                             <span className="w-8 h-8 rounded-full border-4 border-orange-500 border-t-transparent animate-spin"></span>
@@ -387,7 +392,7 @@ const AdminUserSupervision = () => {
                                     <div className="flex items-start gap-4 mb-4">
                                         <img 
                                             src={u.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username}`} 
-                                            className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-[#343536] flex-shrink-0 object-cover shadow-md cursor-pointer hover:scale-105 transition-transform" 
+                                            className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-[#343536] shrink-0 object-cover shadow-md cursor-pointer hover:scale-105 transition-transform" 
                                             alt="" 
                                             onClick={() => handleUserClick(u.username)}
                                         />
@@ -399,10 +404,10 @@ const AdminUserSupervision = () => {
                                                 >
                                                     u/{u.username}
                                                 </h3>
-                                                {u.canUseGifBanner && <ImagePlay className="w-5 h-5 text-pink-500 flex-shrink-0" title="GIF Banner Enabled"/>}
-                                                {u.hasVartalapBadge && <Award className="w-5 h-5 text-blue-500 flex-shrink-0" title="Vartalap Badge"/>}
-                                                {u.isBetaTester && <Beaker className="w-5 h-5 text-teal-500 flex-shrink-0" title="Beta Tester"/>}
-                                                {u.isAdmin && <Shield className="w-5 h-5 text-orange-500 flex-shrink-0" title="Admin"/>}
+                                                {u.canUseGifBanner && <ImagePlay className="w-5 h-5 text-pink-500 shrink-0" title="GIF Banner Enabled"/>}
+                                                {u.hasVartalapBadge && <Award className="w-5 h-5 text-blue-500 shrink-0" title="Vartalap Badge"/>}
+                                                {u.isBetaTester && <Beaker className="w-5 h-5 text-teal-500 shrink-0" title="Beta Tester"/>}
+                                                {u.isAdmin && <Shield className="w-5 h-5 text-orange-500 shrink-0" title="Admin"/>}
                                             </div>
                                             {u.email && <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{u.email}</p>}
                                             
@@ -419,12 +424,12 @@ const AdminUserSupervision = () => {
                                                 </span>
                                                 {u.banCount > 0 && (
                                                     <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 text-xs rounded-lg font-bold flex items-center gap-1.5 shadow-sm">
-                                                        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Banned {u.banCount}x
+                                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Banned {u.banCount}x
                                                     </span>
                                                 )}
                                                 {isUserBanned(u) && (
                                                     <span className="px-3 py-1 bg-red-50 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold flex items-center gap-1.5 shadow-sm">
-                                                        <Ban className="w-3.5 h-3.5 flex-shrink-0" /> {getRemainingTime(u.banExpiresAt, now)}
+                                                        <Ban className="w-3.5 h-3.5 shrink-0" /> {getRemainingTime(u.banExpiresAt, now)}
                                                     </span>
                                                 )}
                                             </div>
@@ -557,7 +562,7 @@ const AdminUserSupervision = () => {
                                 <div className="p-2 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#1a1a1b]">
                                     <span className="text-xs font-bold text-gray-500 px-2 uppercase tracking-wider">Message Content</span>
                                 </div>
-                                <div className="flex-1 min-h-[300px] cursor-text">
+                                <div className="flex-1 min-h-75 cursor-text">
                                     <TipTapEditor 
                                         content={messageModal.content} 
                                         onChange={(html) => setMessageModal(prev => ({...prev, content: html}))} 

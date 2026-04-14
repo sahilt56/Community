@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -14,17 +14,15 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [user, setUser] = useState(null);
   
-  const [users, setUsers] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [posts, setPosts] = useState([]);
   const [reports, setReports] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(false);
   const [messageModal, setMessageModal] = useState({ isOpen: false, userId: null, username: '', content: '' });
   const [pendingEditorFiles, setPendingEditorFiles] = useState([]);
-  const [now, setNow] = useState(Date.now());
+  const now = Date.now(); // Used for calculating remaining ban times
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [globalSettings, setGlobalSettings] = useState({ disablePost: false, disableCommunity: false, disableComment: false, disableReply: false, disablePoll: false, disableVoice: false, disableEvent: false, autoCleanup: false });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -33,10 +31,69 @@ const AdminDashboard = () => {
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'overview') {
+        const res = await api.get('/api/admin/stats');
+        setStats(res.data);
+      } else if (activeTab === 'communities') {
+        const res = await api.get('/api/admin/communities');
+        setCommunities(res.data);
+      } else if (activeTab === 'posts') {
+        const res = await api.get('/api/admin/posts');
+        setPosts(res.data);
+      } else if (activeTab === 'reports') {
+        const res = await api.get('/api/admin/reports');
+        setReports(res.data);
+      } else if (activeTab === 'settings') {
+        try {
+          const res = await api.get('/api/admin/settings/welcome_message');
+          setWelcomeMessage(res.data.value || '');
+        } catch (err) {
+          if (err.response && err.response.status === 404) {
+             setWelcomeMessage('Welcome to Vartalap! 🎉 Dive into communities and start exploring today.');
+          }
+        }
+        try {
+          const [resPost, resComm, resComment, resReply, resPoll, resVoice, resEvent] = await Promise.all([
+            api.get('/api/admin/settings/global_disable_post'),
+            api.get('/api/admin/settings/global_disable_community'),
+            api.get('/api/admin/settings/global_disable_comment'),
+            api.get('/api/admin/settings/global_disable_reply'),
+            api.get('/api/admin/settings/global_disable_poll'),
+            api.get('/api/admin/settings/global_disable_voice'),
+            api.get('/api/admin/settings/global_disable_event')
+          ]);
+
+          let resCleanup = { data: { value: 'false' } };
+          try { 
+            resCleanup = await api.get('/api/admin/settings/auto_cleanup_enabled'); 
+          } catch(err){
+            console.error("Cleanup settings fetch failed", err);
+          }
+
+          setGlobalSettings({
+              disablePost: resPost.data.value === 'true',
+              disableCommunity: resComm.data.value === 'true',
+              disableComment: resComment.data.value === 'true',
+              disableReply: resReply.data.value === 'true',
+              disablePoll: resPoll.data.value === 'true',
+              disableVoice: resVoice.data.value === 'true',
+              disableEvent: resEvent.data.value === 'true',
+              autoCleanup: resCleanup.data.value === true || resCleanup.data.value === 'true'
+          });
+        } catch (err) {
+            console.error("Settings fetch failed", err);
+        }
+      }
+    } catch (err) {
+      toast.error("Failed to load admin data.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const initAdmin = async () => {
@@ -49,7 +106,6 @@ const AdminDashboard = () => {
         
         try {
             const parsedUser = JSON.parse(storedUser);
-            // Fetch fresh user data to truly verify isAdmin flag securely
             const res = await api.get(`/api/users/${parsedUser.username}`);
             
             if (!res.data.profile || !res.data.profile.isAdmin) {
@@ -61,89 +117,24 @@ const AdminDashboard = () => {
             setUser(res.data.profile);
             fetchData();
         } catch (err) {
+            console.error("Auth error:", err);
             toast.error('Authentication Error');
             navigate('/');
         }
     };
 
     initAdmin();
-  }, [activeTab]);
+  }, [navigate, fetchData]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      if (activeTab === 'overview') {
-        const res = await api.get('/api/admin/stats');
-        setStats(res.data);
-      } else if (activeTab === 'users') {
-        const res = await api.get('/api/admin/users');
-        setUsers(res.data);
-      } else if (activeTab === 'communities') {
-        const res = await api.get('/api/admin/communities');
-        setCommunities(res.data);
-      } else if (activeTab === 'posts') {
-        const res = await api.get('/api/admin/posts');
-        setPosts(res.data);
-      } else if (activeTab === 'reports') {
-        const res = await api.get('/api/admin/reports');
-        setReports(res.data);
-        } else if (activeTab === 'settings') {
-        try {
-          const res = await api.get('/api/admin/settings/welcome_message');
-          setWelcomeMessage(res.data.value || '');
-        } catch (e) {
-          if (e.response && e.response.status === 404) {
-             setWelcomeMessage('Welcome to Vartalap! 🎉 Dive into communities and start exploring today.');
-          }
-        }
-        try {
-          const resPost = await api.get('/api/admin/settings/global_disable_post');
-          const resComm = await api.get('/api/admin/settings/global_disable_community');
-          const resComment = await api.get('/api/admin/settings/global_disable_comment');
-          const resReply = await api.get('/api/admin/settings/global_disable_reply');
-          const resPoll = await api.get('/api/admin/settings/global_disable_poll');
-          const resVoice = await api.get('/api/admin/settings/global_disable_voice');
-          const resEvent = await api.get('/api/admin/settings/global_disable_event');
-          let resCleanup = { data: { value: 'false' } };
-          try { resCleanup = await api.get('/api/admin/settings/auto_cleanup_enabled'); } catch(e){}
-
-          setGlobalSettings({
-              disablePost: resPost.data.value === 'true',
-              disableCommunity: resComm.data.value === 'true',
-              disableComment: resComment.data.value === 'true',
-              disableReply: resReply.data.value === 'true',
-              disablePoll: resPoll.data.value === 'true',
-              disableVoice: resVoice.data.value === 'true',
-              disableEvent: resEvent.data.value === 'true',
-              autoCleanup: resCleanup.data.value === true || resCleanup.data.value === 'true'
-          });
-        } catch (e) {
-            // Ignored if they don't exist yet
-        }
-      }
-    } catch (err) {
-      toast.error("Failed to load admin data.");
-      console.error(err);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (user && user.isAdmin) {
+        fetchData();
     }
-  };
+  }, [activeTab, user, fetchData]);
 
-  const handleDeleteUser = (userId) => {
-    toast((t) => (
-      <div className="flex flex-col gap-3 p-1">
-        <p className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-          <AlertTriangle size={18} className="text-red-500 shrink-0" />
-          WARNING: Permanently delete this user and ALL their posts/communities?
-        </p>
-        <div className="flex gap-2 justify-end mt-1">
-          <button onClick={() => { toast.remove(t.id); executeDeleteUser(userId); }} className="bg-red-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-red-600">Delete User</button>
-          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
-        </div>
-      </div>
-    ), { id: `delete-user-${userId}`, duration: Infinity, position: 'top-center' });
-  };
 
+
+  /* 
   const executeDeleteUser = async (userId) => {
     try {
         await api.delete(`/api/admin/users/${userId}`);
@@ -153,6 +144,7 @@ const AdminDashboard = () => {
         toast.error(err.response?.data?.message || "Failed to delete user.");
     }
   };
+  */
 
   const handleBanUser = (id) => {
     let days = 7;
@@ -252,46 +244,9 @@ const AdminDashboard = () => {
       }
   };
 
-  const handleAddAnubhav = (id, username, currentAnubhav) => {
-    let amount = 10;
-    toast((t) => (
-      <div className="flex flex-col gap-3 p-1">
-        <p className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-          <Activity size={18} className="text-green-500 shrink-0" />
-          Add Anubhav to u/{username}?
-        </p>
-        <p className="text-xs text-gray-500 flex items-center justify-between">
-            <span>Enter amount to grant:</span>
-            <span className="font-bold text-gray-900 dark:text-gray-300">Balance: {currentAnubhav}</span>
-        </p>
-        <input
-          type="number"
-          defaultValue={amount}
-          min="1"
-          onChange={(e) => {
-            let val = parseInt(e.target.value);
-            if (isNaN(val)) val = '';
-            else if (val < 1) val = 1;
-            amount = val;
-            e.target.value = val;
-          }}
-          className="bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] rounded px-3 py-1.5 text-sm outline-none focus:border-green-500 text-gray-900 dark:text-white"
-          autoFocus
-        />
-        <div className="flex gap-2 justify-end mt-1">
-          <button onClick={() => { 
-            const parsedAmount = parseInt(amount);
-            if (isNaN(parsedAmount) || parsedAmount <= 0) {
-              toast.error("Amount must be greater than 0.");
-              return;
-            }
-            toast.remove(t.id); executeAddAnubhav(id, parsedAmount); }} className="bg-green-500 text-white px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-green-600">Add XP</button>
-          <button onClick={() => toast.remove(t.id)} className="bg-gray-200 dark:bg-[#343536] text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-gray-300 dark:hover:bg-[#272729]">Cancel</button>
-        </div>
-      </div>
-    ), { id: `add-anubhav-${id}`, duration: Infinity, position: 'top-center' });
-  };
 
+
+  /*
   const executeAddAnubhav = async (id, amount) => {
       try {
           const res = await api.put(`/api/admin/users/${id}/add-anubhav`, { amount });
@@ -312,6 +267,7 @@ const AdminDashboard = () => {
           toast.error(err.response?.data?.error || "Error adding anubhav.");
       }
   };
+  */
 
   const executeBanUser = async (id, days) => {
       try {
@@ -355,6 +311,7 @@ const AdminDashboard = () => {
           toast.success("Community permanently deleted.");
           fetchData();
       } catch (err) {
+          console.error("Error deleting community:", err);
           toast.error("Error deleting community.");
       }
   };
@@ -466,6 +423,7 @@ const AdminDashboard = () => {
               }
               toast.success('Media embedded successfully!', { id: loadingId });
           } catch (err) {
+              console.error("Media upload error:", err);
               toast.error("Failed to upload media.", { id: loadingId });
               return;
           }
@@ -477,6 +435,7 @@ const AdminDashboard = () => {
           setMessageModal({ isOpen: false, userId: null, username: '', content: '' });
           setPendingEditorFiles([]);
       } catch (err) {
+          console.error("Error sending admin message:", err);
           toast.error(err.response?.data?.error || "Error sending message.");
       }
   };
@@ -502,6 +461,7 @@ const AdminDashboard = () => {
           toast.success("Post deleted.");
           fetchData();
       } catch (err) {
+          console.error("Error deleting post:", err);
           toast.error("Error deleting post.");
       }
   };
@@ -530,6 +490,7 @@ const AdminDashboard = () => {
           }));
           fetchData(); 
       } catch (err) {
+          console.error("Error updating user features:", err);
           toast.error("Failed to update user features.");
       }
   };
@@ -568,6 +529,7 @@ const AdminDashboard = () => {
           }));
           fetchData(); 
       } catch (err) {
+          console.error("Error updating vartalap badge:", err);
           toast.error("Failed to update Vartalap Badge.");
       }
   };
@@ -578,25 +540,12 @@ const AdminDashboard = () => {
           toast.success(`Report resolved: ${action}`);
           fetchData();
       } catch (err) {
+          console.error("Error resolving report:", err);
           toast.error("Error resolving report.");
       }
   };
 
-  const handleUserClick = async (username) => {
-      setLoadingUser(true);
-      try {
-          const res = await api.get(`/api/users/${username}`);
-          setSelectedUser(res.data);
-      } catch (err) {
-          if (err.response?.status === 404) {
-              toast.error(err.response.data?.message || "User not found.");
-          } else {
-              toast.error("Failed to fetch user details.");
-          }
-      } finally {
-          setLoadingUser(false);
-      }
-  };
+
 
   const handleChangePassword = async (e) => {
       e.preventDefault();
@@ -637,6 +586,7 @@ const AdminDashboard = () => {
           });
           toast.success("Welcome message updated successfully!");
       } catch (err) {
+          console.error("Error saving welcome message:", err);
           toast.error("Failed to update welcome message.");
       } finally {
           setIsSavingSettings(false);
@@ -674,6 +624,7 @@ const AdminDashboard = () => {
               return prev;
           });
       } catch (err) {
+          console.error("Toggle global setting error:", err);
           toast.error("Failed to update setting.");
       }
   };
@@ -722,7 +673,7 @@ const AdminDashboard = () => {
     <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)] md:h-[calc(100vh-64px)] max-w-7xl mx-auto pt-4 md:pt-6 px-3 sm:px-4 gap-4 md:gap-6 pb-24 md:pb-4">
       
       {/* Sidebar Navigation */}
-      <div className="w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 bg-white dark:bg-[#1a1a1b] p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] overflow-x-auto no-scrollbar md:overflow-visible h-fit md:sticky md:top-[80px] z-10">
+      <div className="w-full md:w-64 shrink-0 flex md:flex-col gap-2 bg-white dark:bg-[#1a1a1b] p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] overflow-x-auto no-scrollbar md:overflow-visible h-fit md:sticky md:top-20 z-10">
         <div className="hidden md:flex items-center gap-2 mb-4 px-2">
             <Shield className="text-orange-500 w-6 h-6" />
             <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Admin Panel</h2>
@@ -733,7 +684,7 @@ const AdminDashboard = () => {
             <Activity className="w-4 h-4 md:w-5 md:h-5" /> <span className="text-sm md:text-base">Overview</span>
         </button>
         <button onClick={() => setActiveTab('reports')} className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${activeTab === 'reports' ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}>
-            <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" /> <span className="text-sm md:text-base">Reports</span> 
+            <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-sm md:text-base">Reports</span> 
             {stats?.pendingReports > 0 && <span className="ml-1 md:ml-auto bg-red-500 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full">{stats.pendingReports}</span>}
         </button>
         <button onClick={() => navigate('/admin/users')} className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors whitespace-nowrap text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729]`}>
@@ -754,7 +705,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-white dark:bg-[#1a1a1b] rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] overflow-hidden flex flex-col h-full min-h-[500px] mb-4 md:mb-0">
+      <div className="flex-1 bg-white dark:bg-[#1a1a1b] rounded-xl shadow-sm border border-gray-200 dark:border-[#343536] overflow-hidden flex flex-col h-full min-h-125 mb-4 md:mb-0">
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-gray-200 dark:border-[#343536]">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white capitalize">{activeTab} Supervision</h1>
@@ -1145,7 +1096,7 @@ const AdminDashboard = () => {
 
       {/* User Details Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#1a1a1b] w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200 dark:border-[#343536] overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1277,7 +1228,7 @@ const AdminDashboard = () => {
 
       {/* Message Modal */}
       {messageModal.isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#1a1a1b] w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200 dark:border-[#343536] overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-orange-50 dark:bg-orange-900/10">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1289,7 +1240,7 @@ const AdminDashboard = () => {
                     </button>
                 </div>
                 <form onSubmit={executeSendMessage} className="p-4 flex flex-col gap-4 overflow-y-auto">
-                    <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 bg-white dark:bg-[#1a1a1b] min-h-[12rem] flex flex-col">
+                    <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 bg-white dark:bg-[#1a1a1b] min-h-48 flex flex-col">
                         <TipTapEditor
                             value={messageModal.content}
                             onChange={(val) => setMessageModal(prev => ({ ...prev, content: val }))}
@@ -1321,7 +1272,7 @@ const AdminDashboard = () => {
       )}
       {/* STORAGE MANAGEMENT MODAL */}
       {storageModal && (
-          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 z-100 flex items-center justify-center p-4">
               <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
                   <div className="p-4 md:p-5 border-b border-gray-200 dark:border-[#343536] flex justify-between items-center bg-gray-50 dark:bg-[#272729]">
                       <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">

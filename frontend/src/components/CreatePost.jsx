@@ -55,7 +55,7 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
       }
     };
     fetchCommunities();
-  }, []);
+  }, [preselectedCommunityId]);
 
   const handleFileChange = async (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -231,7 +231,7 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
       
       {/* 🛑 Empty State if no communities joined */}
       {communities.length === 0 ? (
-        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+        <div className="p-8 text-center flex flex-col items-center justify-center min-h-75">
           <Home size={48} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500 mb-4" />
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You haven't joined any communities yet!</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
@@ -339,7 +339,7 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
           </div>
 
           {postType === 'text' && (
-            <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-[12rem] sm:min-h-[16rem] h-auto resize-none sm:resize-y flex flex-col">
+            <div className="border border-gray-200 dark:border-[#343536] rounded-xl overflow-hidden shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white dark:bg-[#1a1a1b] min-h-48 sm:min-h-64 h-auto resize-none sm:resize-y flex flex-col">
               <TipTapEditor
                 value={content}
                 onChange={setContent}
@@ -453,7 +453,6 @@ const CreatePost = ({ onPostCreated, preselectedCommunityId, initialType }) => {
               {previews.length > 0 && (
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-3 w-full mt-4 relative z-20">
                   {previews.map((prev, index) => {
-                    const isVideo = isVideoFile(prev);
                     return (
                       <div key={index} className="relative rounded-md overflow-hidden border border-gray-300 dark:border-[#343536] bg-black/10 dark:bg-black/40 group" style={{ aspectRatio: isVideoFile(prev) ? '16/9' : '1/1' }}>
                         {isVideoFile(prev) ? (

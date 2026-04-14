@@ -20,7 +20,7 @@ const CommunityMenu = ({ onReport, onEdit, onDelete, onHide, canEdit, isCreator,
   }, []);
 
   return (
-    <div className={`relative shrink-0 ${isOpen ? 'z-[100]' : ''}`} ref={menuRef}>
+    <div className={`relative shrink-0 ${isOpen ? 'z-100' : ''}`} ref={menuRef}>
       <button 
         onClick={(e) => {
           e.stopPropagation();
@@ -32,7 +32,7 @@ const CommunityMenu = ({ onReport, onEdit, onDelete, onHide, canEdit, isCreator,
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-2xl py-1 z-[101] flex flex-col min-w-[140px] transition-colors overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-2xl py-1 z-101 flex flex-col min-w-35 transition-colors overflow-hidden animate-fade-in">
           {/* Report Action */}
           <div 
             onClick={(e) => { e.stopPropagation(); onReport(); setIsOpen(false); }}

@@ -250,8 +250,8 @@ const Login = () => {
       {/* LEFT SIDE: Premium Branding Panel (Hidden on smaller screens) */}
       <div className="hidden lg:flex w-1/2 bg-linear-to-br from-orange-500 via-orange-600 to-red-600 p-16 flex-col justify-between relative overflow-hidden">
         {/* Abstract Background Shapes */}
-        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-red-900/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-[-10%] right-[-5%] w-125 h-125 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-100 h-100 bg-red-900/30 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute top-[20%] left-[20%] w-32 h-32 bg-white/5 rounded-full backdrop-blur-sm border border-white/10 pointer-events-none animate-pulse"></div>
         <div className="absolute bottom-[30%] right-[20%] w-48 h-48 bg-black/5 rounded-full backdrop-blur-sm border border-white/10 pointer-events-none"></div>
 
@@ -278,7 +278,7 @@ const Login = () => {
           <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-orange-500/10 rounded-full blur-[100px]"></div>
         </div>
 
-        <div className="w-full max-w-[420px] bg-white dark:bg-[#151516] p-8 sm:p-10 lg:p-12 rounded-[2.5rem] border border-gray-100 dark:border-[#262627] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.08)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4)] relative z-10 animate-fade-up scale-[0.95]">
+        <div className="w-full max-w-105 bg-white dark:bg-[#151516] p-8 sm:p-10 lg:p-12 rounded-[2.5rem] border border-gray-100 dark:border-[#262627] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.08)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4)] relative z-10 animate-fade-up scale-[0.95]">
           
           {/* Logo & Heading */}
           <div className="text-center mb-6">
@@ -334,7 +334,7 @@ const Login = () => {
             <button
               onClick={() => handleGoogleSubmit(username)}
               disabled={!usernameStatus?.available || isCheckingUsername}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-200 disabled:to-gray-200 dark:disabled:from-[#262627] dark:disabled:to-[#262627] disabled:text-gray-400 text-white font-bold p-4 rounded-2xl transition-all shadow-[0_8px_20px_-6px_rgba(249,115,22,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(249,115,22,0.5)] disabled:shadow-none active:scale-[0.98] text-sm tracking-wide"
+              className="w-full bg-linear-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-200 disabled:to-gray-200 dark:disabled:from-[#262627] dark:disabled:to-[#262627] disabled:text-gray-400 text-white font-bold p-4 rounded-2xl transition-all shadow-[0_8px_20px_-6px_rgba(249,115,22,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(249,115,22,0.5)] disabled:shadow-none active:scale-[0.98] text-sm tracking-wide"
             >
               Complete Registration
             </button>

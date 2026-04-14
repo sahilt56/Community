@@ -90,7 +90,7 @@ const Explore = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {filteredCommunities.map((c, i) => (
-            <div key={c._id} className={`relative group overflow-visible ${String(activeMenuId) === String(c._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}>
+            <div key={c._id} className={`relative group overflow-visible ${String(activeMenuId) === String(c._id) ? 'z-100' : 'z-10 hover:z-60'}`}>
               <Link
                 to={`/v/${c._id}`}
                 className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl p-5 flex flex-col gap-3 transition-all shadow-sm animate-fade-up w-full h-full`}
@@ -157,7 +157,7 @@ const Explore = () => {
                   return creatorId !== curId;
                 })()
               ) && (
-                <div className="absolute top-4 right-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-[60]">
+                <div className="absolute top-4 right-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-60">
                   <CommunityMenu 
                     onReport={() => handleReportCommunity(c._id, c.name)}
                     canEdit={currentUser && (

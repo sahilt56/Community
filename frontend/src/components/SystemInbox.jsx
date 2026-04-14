@@ -1,11 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Bell, ChevronDown, Clock, Megaphone, Plus, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../api';
 import CreateAnnouncementModal from './CreateAnnouncementModal';
 import toast from 'react-hot-toast';
 
-const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onMarkAllRead, refreshMessages }) => {
+const SystemInbox = ({ isOpen, user, messages, readIds, onMarkRead, onMarkAllRead, refreshMessages }) => {
     const [expandedMsgId, setExpandedMsgId] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     
@@ -26,8 +25,8 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
             try {
                 const res = await api.put(`/api/system-messages/${message._id}/read`);
                 onMarkRead(res.data.readMessageIds);
-            } catch (err) {
-                console.error("Failed to mark message as read", err);
+            } catch (error) {
+                console.error("Failed to mark message as read", error);
             }
         }
     };
@@ -43,7 +42,8 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
             await api.put(`/api/system-messages/${id}/hide`);
             toast.success("Removed from your inbox.");
             refreshMessages();
-        } catch (err) {
+        } catch (error) {
+            console.error("Hide message error:", error);
             toast.error("Failed to remove message.");
         }
     };
@@ -77,8 +77,8 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                                     await api.delete(`/api/system-messages/${id}`);
                                     toast.success("Announcement deleted successfully!");
                                     refreshMessages();
-                                } catch (err) {
-                                    toast.error(err.response?.data?.message || "Failed to delete announcement.");
+                                } catch (error) {
+                                    toast.error(error.response?.data?.message || "Failed to delete announcement.");
                                 }
                             }} 
                             className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-md transition"
@@ -124,7 +124,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
     if (!isOpen) return null;
 
     // Calculate unread count to show at the top
-    const unreadCount = messages.filter(m => !readIds.includes(m._id)).length;
+    // (Used by parent component via unreadCount logic)
 
     return (
         <div ref={inboxRef} className="fixed inset-x-2 top-16 md:absolute md:inset-auto md:right-0 md:top-full mt-0 md:mt-2 w-auto md:w-96 bg-white dark:bg-[#1a1a1b] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-gray-200 dark:border-[#343536] overflow-hidden z-50 flex flex-col max-h-[calc(100vh-80px)] md:max-h-[80vh] animate-fade-up md:origin-top-right">
@@ -160,7 +160,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
             </div>
 
             {/* List */}
-            <div className="overflow-y-auto flex-1 bg-white dark:bg-[#1a1a1b] min-h-[200px]">
+            <div className="overflow-y-auto flex-1 bg-white dark:bg-[#1a1a1b] min-h-50">
                 {!messages ? (
                     <div className="p-8 flex justify-center items-center">
                         <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -189,7 +189,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                                     
                                     <div className="flex gap-3">
                                         {/* Avatar */}
-                                        <div className="shrink-0 w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm p-0.5">
+                                        <div className="shrink-0 w-10 h-10 bg-linear-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm p-0.5">
                                              <div className="w-full h-full bg-white dark:bg-[#1a1a1b] rounded-full flex items-center justify-center overflow-hidden">
                                                 {msg.createdBy?.profilePic ? (
                                                     <img src={msg.createdBy.profilePic.startsWith('http') ? msg.createdBy.profilePic : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${msg.createdBy.profilePic}`} alt="" className="w-full h-full object-cover" />
@@ -222,7 +222,7 @@ const SystemInbox = ({ isOpen, onClose, user, messages, readIds, onMarkRead, onM
                                             </div>
                                             
                                             <div 
-                                                className={`text-sm text-gray-600 dark:text-gray-400 overflow-hidden transition-all break-words pr-6 ${isExpanded ? 'line-clamp-none mt-2 whitespace-pre-wrap' : 'line-clamp-2'}`}
+                                                className={`text-sm text-gray-600 dark:text-gray-400 overflow-hidden transition-all wrap-break-word pr-6 ${isExpanded ? 'line-clamp-none mt-2 whitespace-pre-wrap' : 'line-clamp-2'}`}
                                                 dangerouslySetInnerHTML={{ __html: msg.content }}
                                             />
                                             

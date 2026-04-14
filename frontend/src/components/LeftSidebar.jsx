@@ -120,16 +120,19 @@ const LeftSidebar = () => {
               { icon: Info, label: 'About Vartalap', to: '/about' },
               { icon: Shield, label: 'Help / Rules', to: '#' },
               { icon: Megaphone, label: 'Advertise', to: '#' },
-            ].map(({ icon: Icon, label, to }) => (
-              <Link 
-                key={label} 
-                to={to}
-                className="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#272729] transition-all text-gray-700 dark:text-gray-300 group"
-              >
-                <Icon size={18} strokeWidth={2} className="text-gray-500 group-hover:text-orange-500 transition-colors" />
-                <span className="font-semibold text-sm">{label}</span>
-              </Link>
-            ))}
+            ].map((item) => {
+              const IconComp = item.icon;
+              return (
+                <Link 
+                  key={item.label} 
+                  to={item.to}
+                  className="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#272729] transition-all text-gray-700 dark:text-gray-300 group"
+                >
+                  <IconComp size={18} strokeWidth={2} className="text-gray-500 group-hover:text-orange-500 transition-colors" />
+                  <span className="font-semibold text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
 

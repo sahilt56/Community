@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Markdown } from 'tiptap-markdown';
-import api from '../api';
 import toast from 'react-hot-toast';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -68,11 +67,11 @@ const CustomVideo = Node.create({
   renderHTML({ HTMLAttributes }) {
     if (HTMLAttributes.caption) {
       return ['figure', { class: 'video-figure my-4' },
-        ['video', mergeAttributes({ controls: true, class: 'w-full max-h-[500px] rounded-t-md object-contain bg-black' }, { src: HTMLAttributes.src })],
+        ['video', mergeAttributes({ controls: true, class: 'w-full max-h-125 rounded-t-md object-contain bg-black' }, { src: HTMLAttributes.src })],
         ['figcaption', { class: 'text-center text-sm text-gray-500 mt-2 italic px-2' }, HTMLAttributes.caption]
       ];
     }
-    return ['video', mergeAttributes({ controls: true, class: 'max-h-[500px] w-full object-contain bg-black rounded-md mt-2' }, { src: HTMLAttributes.src })];
+    return ['video', mergeAttributes({ controls: true, class: 'max-h-125 w-full object-contain bg-black rounded-md mt-2' }, { src: HTMLAttributes.src })];
   },
 
   addNodeView() {
@@ -86,7 +85,7 @@ const CustomVideo = Node.create({
               e.stopPropagation();
               props.deleteNode();
             }}
-            className="absolute top-2 right-2 bg-black/60 text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center z-[100] cursor-pointer shadow-md backdrop-blur-sm transition-colors border border-white/20"
+            className="absolute top-2 right-2 bg-black/60 text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center z-100 cursor-pointer shadow-md backdrop-blur-sm transition-colors border border-white/20"
             title="Remove Video"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -94,7 +93,7 @@ const CustomVideo = Node.create({
           <video 
             controls 
             src={props.node.attrs.src} 
-            className="w-full h-auto max-h-[500px] object-contain"
+            className="w-full h-auto max-h-125 object-contain"
           />
           <div className="bg-white dark:bg-[#1a1a1b] border-t border-gray-200 dark:border-[#343536] px-3 py-2">
             <input 
@@ -115,13 +114,13 @@ const CustomVideo = Node.create({
       markdown: {
         serialize(state, node) {
           if (node.attrs.caption) {
-            state.write(`\n<figure class="video-figure my-4"><video controls src="${node.attrs.src}" class="w-full max-h-[500px] rounded-t-md object-contain bg-black"></video><figcaption class="text-center text-sm text-gray-500 mt-2 italic px-2">${node.attrs.caption}</figcaption></figure>\n`);
+            state.write(`\n<figure class="video-figure my-4"><video controls src="${node.attrs.src}" class="w-full max-h-125 rounded-t-md object-contain bg-black"></video><figcaption class="text-center text-sm text-gray-500 mt-2 italic px-2">${node.attrs.caption}</figcaption></figure>\n`);
           } else {
-            state.write(`\n<video controls src="${node.attrs.src}" class="max-h-[500px] w-full object-contain bg-black rounded-md mt-2"></video>\n`);
+            state.write(`\n<video controls src="${node.attrs.src}" class="max-h-125 w-full object-contain bg-black rounded-md mt-2"></video>\n`);
           }
         },
         parse: {
-          setup(markdownit) {}
+          setup() {}
         }
       }
     };
@@ -165,7 +164,7 @@ const MediaFloatingDelete = ({ editor }) => {
         e.stopPropagation();
         editor.chain().focus().deleteSelection().run();
       }}
-      className="absolute top-2 right-2 bg-black/60 text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center z-[100] cursor-pointer shadow-md backdrop-blur-sm transition-colors border border-white/20"
+      className="absolute top-2 right-2 bg-black/60 text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center z-100 cursor-pointer shadow-md backdrop-blur-sm transition-colors border border-white/20"
       title="Remove"
       onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
@@ -178,7 +177,7 @@ const MediaFloatingDelete = ({ editor }) => {
 const MenuBar = ({ editor, onPendingFile, variant }) => {
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading] = useState(false);
   
   // Custom Link Modal State
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -263,14 +262,14 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
           <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={toggleClass(editor.isActive('strike'))} title="Strikethrough">
             <Strikethrough size={18} />
           </button>
-          <div className="w-[1px] h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
+          <div className="w-px h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
           <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={toggleClass(editor.isActive('heading', { level: 1 }))} title="Heading 1">
             <Heading1 size={18} />
           </button>
           <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={toggleClass(editor.isActive('heading', { level: 2 }))} title="Heading 2">
             <Heading2 size={18} />
           </button>
-          <div className="w-[1px] h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
+          <div className="w-px h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
           <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={toggleClass(editor.isActive('bulletList'))} title="Bullet List">
             <List size={18} />
           </button>
@@ -280,7 +279,7 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
           <button type="button" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={toggleClass(editor.isActive('blockquote'))} title="Blockquote">
             <Quote size={18} />
           </button>
-          <div className="w-[1px] h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
+          <div className="w-px h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
         </>
       )}
       <button type="button" onClick={() => editor.chain().focus().toggleCode().run()} className={toggleClass(editor.isActive('code'))} title="Inline Code">
@@ -289,7 +288,7 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
       <button type="button" onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={toggleClass(editor.isActive('codeBlock'))} title="Code Block">
         <SquareTerminal size={18} />
       </button>
-      <div className="w-[1px] h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
+      <div className="w-px h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
       <div className="relative flex items-center">
         <button type="button" onClick={() => {
             const previousUrl = editor.getAttributes('link').href;
@@ -306,8 +305,8 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
         {/* Modern Link Modal */}
         {showLinkModal && (
           <>
-          <div className="fixed inset-0 bg-black/50 z-[90] sm:hidden" onClick={() => setShowLinkModal(false)} />
-          <div className="fixed z-[100] left-4 right-4 top-1/3 sm:absolute sm:top-full sm:mt-2 sm:left-0 sm:right-auto sm:bottom-auto p-3 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl shadow-2xl flex flex-col gap-2 min-w-[280px] animate-fade-in origin-top-left">
+          <div className="fixed inset-0 bg-black/50 z-90 sm:hidden" onClick={() => setShowLinkModal(false)} />
+          <div className="fixed z-100 left-4 right-4 top-1/3 sm:absolute sm:top-full sm:mt-2 sm:left-0 sm:right-auto sm:bottom-auto p-3 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl shadow-2xl flex flex-col gap-2 min-w-70 animate-fade-in origin-top-left">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Insert Link</span>
               <button type="button" onClick={() => setShowLinkModal(false)} className="text-gray-400 hover:text-red-500 transition-colors">✖</button>
@@ -413,7 +412,7 @@ const MenuBar = ({ editor, onPendingFile, variant }) => {
             className={toggleClass(editor.isActive('youtube'))} title="Add YouTube Video">
             <YoutubeIcon size={18} />
           </button>
-          <div className="w-[1px] h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
+          <div className="w-px h-6 bg-gray-300 dark:bg-[#343536] mx-1"></div>
           <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className={toggleClass(editor.isActive('table'))} title="Insert Table">
             <TableIcon size={18} />
           </button>
@@ -499,10 +498,10 @@ const TipTapEditor = ({ value, onChange, placeholder, minHeight = "150px", onPen
   }, [value, editor]);
 
   return (
-    <div className="flex flex-col w-full h-full text-gray-900 dark:text-gray-100 font-sans transition-all resize-none sm:resize-y overflow-auto min-h-[150px]" style={{ minHeight }}>
+    <div className="flex flex-col w-full h-full text-gray-900 dark:text-gray-100 font-sans transition-all resize-none sm:resize-y overflow-auto min-h-37.5" style={{ minHeight }}>
       <MenuBar editor={editor} onPendingFile={onPendingFile} variant={variant} />
-      <div className="flex-1 flex flex-col cursor-text bg-white dark:bg-[#1a1a1b] rounded-b-lg pb-2 h-full min-h-[150px] relative">
-        <EditorContent editor={editor} className="flex-1 min-h-[150px] focus:outline-none flex flex-col [&>div]:flex-1" />
+      <div className="flex-1 flex flex-col cursor-text bg-white dark:bg-[#1a1a1b] rounded-b-lg pb-2 h-full min-h-37.5 relative">
+        <EditorContent editor={editor} className="flex-1 min-h-37.5 focus:outline-none flex flex-col [&>div]:flex-1" />
         <MediaFloatingDelete editor={editor} />
       </div>
     </div>

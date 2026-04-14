@@ -120,7 +120,7 @@ const ChatRoom = () => {
                 socket.off('room_settings_updated');
             }
         };
-    }, [socket, id, room]);
+    }, [socket, id, room, currentUser?.id, navigate]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -144,7 +144,7 @@ const ChatRoom = () => {
                 setCodeSnippet('');
                 setShowCodeModal(false);
                 setShowEmojiPicker(false);
-            } catch(err) {
+            } catch {
                 toast.error("Failed to edit message");
             }
             return;
@@ -172,7 +172,7 @@ const ChatRoom = () => {
         try {
             await api.delete(`/api/chat/${id}/messages/${msgId}`);
             // UI updates via socket
-        } catch(err) {
+        } catch {
             toast.error("Failed to delete message");
         }
     };
@@ -201,7 +201,7 @@ const ChatRoom = () => {
             const res = await api.put(`/api/chat/${id}/settings`);
             // UI updates via socket
             toast.success(res.data.membersCanInvite ? "Participants can now invite others!" : "Only you can invite others.");
-        } catch(err) {
+        } catch {
             toast.error("Failed to update settings");
         }
     };
@@ -233,7 +233,7 @@ const ChatRoom = () => {
                 }]
             });
             
-        } catch (err) {
+        } catch {
             toast.error("Media upload failed.");
         } finally {
             setIsUploading(false);
@@ -338,7 +338,7 @@ const ChatRoom = () => {
 
                 {/* Add Member Modal */}
                 {showAddModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+                    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
                         <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] w-full max-w-sm rounded-xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 pt-1"><UserPlus size={20} className="text-orange-500"/> Invite Member</h3>
@@ -360,7 +360,7 @@ const ChatRoom = () => {
                                 {isMemberSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-orange-500 border-t-transparent animate-spin rounded-full"></div>}
                             </div>
 
-                            <div className="flex-1 overflow-y-auto min-h-[100px] border border-gray-100 dark:border-[#343536] rounded-lg bg-gray-50/50 dark:bg-[#030303]/50">
+                            <div className="flex-1 overflow-y-auto min-h-25 border border-gray-100 dark:border-[#343536] rounded-lg bg-gray-50/50 dark:bg-[#030303]/50">
                                 {memberSearchTerm.trim() === '' ? (
                                     <div className="flex flex-col">
                                         <div className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-[#1a1a1b] border-b border-gray-200 dark:border-[#343536] sticky top-0 z-10">Current Participants ({room.participants?.length || 0})</div>
@@ -457,7 +457,7 @@ const ChatRoom = () => {
 
                                         {/* Text Content */}
                                         {msg.text && (
-                                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed break-words">{msg.text}</p>
+                                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed wrap-break-word">{msg.text}</p>
                                         )}
 
                                         {/* Code Snippet */}
@@ -473,7 +473,7 @@ const ChatRoom = () => {
                                         {msg.media && msg.media.length > 0 && (
                                             <div className={`mt-2 flex flex-wrap gap-2 w-full ${msg.text || msg.codeSnippet ? 'pt-2' : ''}`}>
                                                 {msg.media.map((m, i) => (
-                                                    <div key={i} className="max-w-[280px] rounded-lg overflow-hidden border border-black/10">
+                                                    <div key={i} className="max-w-70 rounded-lg overflow-hidden border border-black/10">
                                                         {m.type === 'video' ? (
                                                             <video src={m.url} controls className="w-full h-auto max-h-64 object-cover" />
                                                         ) : (
@@ -591,7 +591,7 @@ const ChatRoom = () => {
                             disabled={(!textInput.trim() && !codeSnippet.trim()) || isUploading}
                             className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-full p-3 transition-colors flex shrink-0 shadow-md disabled:shadow-none mb-0.5"
                         >
-                            <Send size={18} className="translate-x-[1px]" />
+                            <Send size={18} className="translate-x-px" />
                         </button>
                     </form>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -43,7 +43,7 @@ const UserProfile = () => {
     const token = localStorage.getItem('token');
     const { socket } = useContext(SocketContext);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const res = await api.get(`/api/users/${username}`);
       setProfileData(res.data);
@@ -75,7 +75,7 @@ const UserProfile = () => {
         navigate('/'); // Redirect user back to feed
       }
     }
-  };
+  }, [username, currentUser, navigate]);
 
   // Sync description state when not editing (prevents socket updates from wiping typed text)
   useEffect(() => {
@@ -91,8 +91,7 @@ const UserProfile = () => {
 
   useEffect(() => {
     fetchUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username]);
+  }, [fetchUserProfile]);
 
   // Real-time Anubhav & Post Updates
   useEffect(() => {
@@ -113,7 +112,7 @@ const UserProfile = () => {
     return () => {
       socket.off('post_interaction', handleInteraction);
     };
-  }, [socket, allTabsData]); // Dependency ensures we check against latest data
+  }, [socket, allTabsData, fetchUserProfile]); // Dependency ensures we check against latest data
 
   // VOTING LOGIC for the feed
   const handleUpvote = async (postId) => {
@@ -558,7 +557,7 @@ const UserProfile = () => {
       
       {/* FOLLOWERS/FOLLOWING MODAL */}
       {followersModal.isOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm" onClick={(e) => { if(e.target === e.currentTarget) setFollowersModal({ isOpen: false, type: '', list: [] }); }}>
+        <div className="fixed inset-0 bg-black/80 z-110 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm" onClick={(e) => { if(e.target === e.currentTarget) setFollowersModal({ isOpen: false, type: '', list: [] }); }}>
             <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in flex flex-col max-h-[80vh]">
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]/50 shrink-0">
                     <h3 className="font-bold text-lg text-gray-900 dark:text-white capitalize">
@@ -596,7 +595,7 @@ const UserProfile = () => {
       
       {/* MODERN UPLOAD MODAL */}
       {uploadModal.isOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/80 z-110 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
           <div className="bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
             <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]/50">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white">
@@ -718,7 +717,7 @@ const UserProfile = () => {
                   )}
                   
                   {isOwner && (
-                    <div className="absolute inset-0 bg-black/30 md:bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 group-hover:opacity-100 opacity-0 transition-all duration-300">
+                    <div className="absolute inset-0 bg-black/30 md:bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 group-hover:opacity-100 align-bottom transition-all duration-300">
                       <label className="cursor-pointer p-2 bg-black/30 hover:bg-black/50 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
                         <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
                         <Camera size={20} strokeWidth={2.5} className="text-white w-4 h-4 md:w-auto md:h-auto" />
@@ -739,19 +738,19 @@ const UserProfile = () => {
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight break-all">u/{profileData.profile.username}</h1>
                     {profileData.profile.hasVartalapBadge && (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] border border-blue-400/50" title="Official Vartalap Badge">
+                      <div className="flex items-center gap-1 bg-linear-to-r from-blue-500 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] border border-blue-400/50" title="Official Vartalap Badge">
                         <Award size={16} strokeWidth={2.5} />
                         <span className="text-[10px] font-extrabold tracking-wider uppercase">Vartalap Badge</span>
                       </div>
                     )}
                     {profileData.profile.isBetaTester && (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-teal-400 to-emerald-500 text-white px-2 py-0.5 rounded-full shadow-sm border border-teal-300/50" title="Beta Tester">
+                      <div className="flex items-center gap-1 bg-linear-to-r from-teal-400 to-emerald-500 text-white px-2 py-0.5 rounded-full shadow-sm border border-teal-300/50" title="Beta Tester">
                         <Beaker size={16} strokeWidth={2.5} />
                         <span className="text-[10px] font-extrabold tracking-wider uppercase">Beta Tester</span>
                       </div>
                     )}
                     {(profileData.totalAnubhav || 0) >= 100 && (
-                      <div className="flex items-center gap-1 bg-gradient-to-r from-orange-400 to-yellow-500 text-white px-2 py-0.5 rounded-full shadow-sm" title="Vartalap Centurion (100+ Anubhav)">
+                      <div className="flex items-center gap-1 bg-linear-to-r from-orange-400 to-yellow-500 text-white px-2 py-0.5 rounded-full shadow-sm" title="Vartalap Centurion (100+ Anubhav)">
                         <BadgeCheck size={16} strokeWidth={2.5} />
                         <span className="text-[10px] font-extrabold tracking-wider uppercase">Centurion</span>
                       </div>
@@ -860,20 +859,18 @@ const UserProfile = () => {
             </div>
           ) : (
             posts.map((post) => {
-              const upvotes = post.upvotes?.length || 0;
-              const downvotes = post.downvotes?.length || 0;
               const curUserId = currentUser?.id || currentUser?._id;
               const hasUpvoted = currentUser && post.upvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
               const hasDownvoted = currentUser && post.downvotes?.some(id => (typeof id === 'object' ? id._id : id) === curUserId);
 
               return (
-                <div key={post._id} className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}>
+                <div key={post._id} className={`bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-md shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-100' : 'z-10 hover:z-60'}`}>
                   <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                     Posted in <span className="text-gray-900 dark:text-white font-bold hover:underline">c/{post.community?.name || 'general'}</span> • by 
                     <Link to={`/u/${post.author?.username}`} className="hover:underline hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
                       u/{post.author?.username || 'user'}
                       {post.authorHasVartalapBadge && (
-                        <Award size={12} className="text-blue-500 flex-shrink-0" />
+                        <Award size={12} className="text-blue-500 shrink-0" />
                       )}
                     </Link>
                   </p>
@@ -914,7 +911,7 @@ const UserProfile = () => {
                       ))}
                     </div>
                   )}
-                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none line-clamp-3 break-words">
+                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none line-clamp-3 wrap-break-word">
                     <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
                       {post.content || ''}
                     </ReactMarkdown>
@@ -934,7 +931,7 @@ const UserProfile = () => {
                           <span className="text-xs font-bold">{post.upvotes?.length || 0}</span>
                       </div>
                       
-                      <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+                      <div className="w-px h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
                       <div 
                         onClick={() => handleDownvote(post._id)}

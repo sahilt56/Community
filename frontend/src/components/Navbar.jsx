@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api, { cancelPendingRequests } from '../api';
 import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
@@ -91,7 +92,7 @@ const SearchDropdown = ({ searchResults, searchTerm, setShowResults, setSearchTe
               <span className="text-gray-900 dark:text-white text-sm font-medium flex items-center gap-1">
                 u/{u.username}
                 {u.hasVartalapBadge && (
-                    <Award size={12} className="text-blue-500 flex-shrink-0" />
+                    <Award size={12} className="text-blue-500 shrink-0" />
                 )}
               </span>
             </Link>
@@ -150,7 +151,6 @@ const Navbar = () => {
   // System Inbox State
   const [inboxOpen, setInboxOpen] = useState(false);
   const desktopInboxRef = useRef(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [viewingAdminMsg, setViewingAdminMsg] = useState(null);
 
   // Sound Preferences State
@@ -207,8 +207,8 @@ const Navbar = () => {
         setSysMessages(msgs);
         setSysReadIds(rIds);
         setSysUnreadCount(msgs.filter(m => !rIds.includes(m._id)).length);
-    } catch (err) {
-        console.error("Fetch system messages error:", err);
+    } catch (error) {
+        console.error("Fetch system messages error:", error);
     }
   }, [token]);
 
@@ -230,8 +230,10 @@ const Navbar = () => {
                 if (soundEnabledRef.current) {
                     try {
                         const audio = new Audio('/sounds/announcement.mp3');
-                        audio.play().catch(err => console.warn("Audio playback prevented by browser auto-play policy:", err));
-                    } catch (err) {}
+                        audio.play().catch(error => console.warn("Audio playback prevented by browser auto-play policy:", error));
+                    } catch {
+                        // Sound playback fail is common and can be ignored
+                    }
                 }
         };
 
@@ -253,8 +255,8 @@ const Navbar = () => {
 
     try {
         await api.put(`/api/system-messages/mark-all-read`, {});
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         fetchSysMessages();
     }
   };
@@ -266,8 +268,8 @@ const Navbar = () => {
       setNotifications(res.data);
       const unread = res.data.filter(n => !n.read).length;
       setUnreadCount(unread);
-    } catch (err) {
-      console.error("Fetch notifications error:", err);
+    } catch (error) {
+      console.error("Fetch notifications error:", error);
     }
   }, [token]);
 
@@ -285,8 +287,10 @@ const Navbar = () => {
         if (soundEnabledRef.current) {
             try {
                 const audio = new Audio('/sounds/notification.mp3');
-                audio.play().catch(err => console.warn("Audio playback prevented by browser auto-play policy:", err));
-            } catch (err) {}
+                audio.play().catch(error => console.warn("Audio playback prevented by browser auto-play policy:", error));
+            } catch {
+                // Expected: silent fail if audio cannot play
+            }
         }
       };
 
@@ -308,7 +312,7 @@ const Navbar = () => {
         setUser(res.data.user);
         window.dispatchEvent(new Event('storage'));
       }
-    } catch (err) {
+    } catch {
       // Silently fail if auth error, app router handles actual logouts
     }
   }, [token]);
@@ -332,8 +336,8 @@ const Navbar = () => {
 
     try {
       await api.put(`/api/notifications/${id}/read`, {});
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       fetchNotifications();
     }
   };
@@ -344,8 +348,8 @@ const Navbar = () => {
 
     try {
       await api.put(`/api/notifications/mark-all-read`, {});
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       fetchNotifications();
     }
   };
@@ -356,8 +360,8 @@ const Navbar = () => {
     setUnreadCount(0);
     try {
       await api.delete('/api/notifications/clear-all');
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       fetchNotifications(); // Agar error aaye toh wapas purani list le aao
     }
   };
@@ -373,8 +377,8 @@ const Navbar = () => {
 
     try {
         await api.delete(`/api/notifications/${notifId}`);
-    } catch (err) {
-        console.error("Failed to delete notification:", err);
+    } catch (error) {
+        console.error("Failed to delete notification:", error);
         fetchNotifications(); // Revert on failure
     }
   };
@@ -389,9 +393,9 @@ const Navbar = () => {
       await api.post(`/api/chat/invite/accept`, { notificationId: notifId });
       toast.success("Joined chat room!");
       navigate('/chat');
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to join room.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to join room.");
       // Note: If it fails, we typically don't revert the UI here to prevent the popup from reappearing confusingly
       // but we could call fetchNotifications() if strict consistency is needed.
     }
@@ -404,8 +408,8 @@ const Navbar = () => {
 
     try {
       await api.post(`/api/chat/invite/decline`, { notificationId: notifId });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       toast.error("Failed to decline.");
     }
   };
@@ -432,8 +436,8 @@ const Navbar = () => {
           const res = await api.get(`/api/search?q=${searchTerm}`);
           setSearchResults(res.data);
           setShowResults(true);
-        } catch (err) {
-          console.error("Search error:", err);
+        } catch (error) {
+          console.error("Search error:", error);
         } finally {
           setIsSearching(false);
         }
@@ -476,7 +480,6 @@ const Navbar = () => {
   const handleLogout = async () => {
     console.log('[Logout] Starting logout...');
     setMenuOpen(false);
-    setMobileMenuOpen(false);
     
     console.log('[Logout] Canceling pending requests');
     // 🛑 Cancel all pending API requests immediately
@@ -521,11 +524,11 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-white/200 dark:bg-[#1a1a1b]/70 backdrop-blur-xl border-b border-orange-200/40 dark:border-[#343536] shadow-sm px-4 py-2 flex items-center justify-between sticky top-0 z-[999] h-14 transition-all duration-300">
+      <nav className="bg-white/200 dark:bg-[#1a1a1b]/70 backdrop-blur-xl border-b border-orange-200/40 dark:border-[#343536] shadow-sm px-4 py-2 flex items-center justify-between sticky top-0 z-999 h-14 transition-all duration-300">
         
         {/* Search Overlay (Mobile Only) */}
         {mobileSearchOpen && (
-          <div className="absolute inset-x-0 inset-y-0 bg-white dark:bg-[#1a1a1b] z-[1000] flex items-center px-4 gap-2 animate-in fade-in duration-200">
+          <div className="absolute inset-x-0 inset-y-0 bg-white dark:bg-[#1a1a1b] z-1000 flex items-center px-4 gap-2 animate-in fade-in duration-200">
             <button 
               onClick={() => { setMobileSearchOpen(false); setSearchTerm(''); }}
               className="p-2 bg-gray-50 border border-gray-100 dark:bg-[#272729]/80 dark:border-[#343536] hover:bg-teal-50 hover:text-teal-600 hover:border-teal-100 dark:hover:bg-teal-900/20 rounded-full text-gray-500 dark:text-gray-400 transition-all shadow-xs"
@@ -780,7 +783,7 @@ const Navbar = () => {
                 >
                   <Megaphone size={18} strokeWidth={2.5} />
                   {sysUnreadCount > 0 && (
-                     <span className="absolute top-1 right-1 flex items-center justify-center min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
+                     <span className="absolute top-1 right-1 flex items-center justify-center min-w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
                        {sysUnreadCount}
                      </span>
                   )}
@@ -805,7 +808,7 @@ const Navbar = () => {
                 >
                   <Bell size={18} strokeWidth={2.5} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
+                    <span className="absolute top-1 right-1 flex items-center justify-center min-w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-[0_0_0_2px_#fff7ed] dark:shadow-[0_0_0_2px_#1a1a1b]">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -1005,7 +1008,7 @@ const Navbar = () => {
             if(e.target === e.currentTarget) setViewingAdminMsg(null);
         }}>
           <div className="bg-white dark:bg-[#1a1a1b] w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-[#343536] animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-            <div className="bg-gradient-to-r from-red-500 to-orange-500 p-4 shrink-0 relative">
+            <div className="bg-linear-to-r from-red-500 to-orange-500 p-4 shrink-0 relative">
                 <button 
                   onClick={() => setViewingAdminMsg(null)}
                   className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/10 hover:bg-black/20 rounded-full p-1 transition"
@@ -1025,7 +1028,7 @@ const Navbar = () => {
             
             <div className="p-6 overflow-y-auto custom-editor-content">
               <div 
-                className="prose prose-sm md:prose-base dark:prose-invert max-w-none break-words"
+                className="prose prose-sm md:prose-base dark:prose-invert max-w-none wrap-break-word"
                 dangerouslySetInnerHTML={{ __html: viewingAdminMsg.content }}
               />
             </div>

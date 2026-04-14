@@ -34,7 +34,7 @@ const CreateAnnouncementModal = ({ onClose, onSuccess }) => {
     };
 
     return createPortal(
-        <div id="announcement-modal-root" className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div id="announcement-modal-root" className="fixed inset-0 z-1000 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#1a1a1b] w-full max-w-lg rounded-xl shadow-2xl border border-gray-200 dark:border-[#343536] overflow-hidden flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-[#343536] bg-orange-50 dark:bg-orange-900/10">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -65,7 +65,7 @@ const CreateAnnouncementModal = ({ onClose, onSuccess }) => {
                         />
                     </div>
 
-                    <div className="flex flex-col flex-1 min-h-[250px] mb-4">
+                    <div className="flex flex-col flex-1 min-h-62.5 mb-4">
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Message Content</label>
                         <div className="flex-1 overflow-hidden flex flex-col announcement-quill-wrapper">
                             <ReactQuill 
@@ -73,7 +73,7 @@ const CreateAnnouncementModal = ({ onClose, onSuccess }) => {
                                 value={content} 
                                 onChange={setContent}
                                 placeholder="Type the full announcement details here... (You can use bold, italics, links, etc.)"
-                                className="h-[200px]"
+                                className="h-50"
                                 modules={{
                                     toolbar: [
                                         [{ 'header': [1, 2, 3, false] }],

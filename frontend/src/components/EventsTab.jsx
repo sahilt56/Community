@@ -125,7 +125,7 @@ const EventsTab = ({ communityId, currentUser, isMod, isCreator }) => {
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
-              <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-orange-500 min-h-[80px]" placeholder="What is this event about?" />
+              <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-orange-500 min-h-20" placeholder="What is this event about?" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

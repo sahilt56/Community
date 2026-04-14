@@ -247,7 +247,7 @@ const Home = () => {
         <meta name="description" content={`Explore the ${sortBy} posts and discussions on Vartalap. Join the conversation with students and professionals.`} />
       </Helmet>
 
-      <div className="bg-gray-50/80 dark:bg-[#1a1a1b] border border-gray-200/60 dark:border-[#343536] rounded-[24px] p-1.5 mb-5 inline-flex items-center gap-1 shadow-sm animate-fade-up">
+      <div className="bg-gray-50/80 dark:bg-[#1a1a1b] border border-gray-200/60 dark:border-[#343536] rounded-3xl p-1.5 mb-5 inline-flex items-center gap-1 shadow-sm animate-fade-up">
         {['hot', 'new', 'top'].map((sortType) => (
           <button
             key={sortType}
@@ -295,8 +295,8 @@ const Home = () => {
       <div className="flex flex-col gap-4">
         {posts.map((post, index) => {
           // Calculate net votes
-          const upvotes = post.upvotes?.length || 0;
-          const downvotes = post.downvotes?.length || 0;
+          // const upvotes = post.upvotes?.length || 0;
+          // const downvotes = post.downvotes?.length || 0;
          
           // Check if current user has voted
           const curUserId = currentUser?.id || currentUser?._id;
@@ -309,7 +309,7 @@ const Home = () => {
           <div
             key={`${post._id}-${index}`}
             ref={isLast ? lastPostElementRef : null}
-            className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-100 dark:border-[#343536] p-4 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-[100]' : 'z-10 hover:z-[60]'}`}
+            className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-100 dark:border-[#343536] p-4 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-100' : 'z-10 hover:z-60'}`}
             style={{ animationDelay: `${Math.min(index, 4) * 60}ms` }}
           >
             <div className="flex justify-between items-start mb-3">
@@ -319,9 +319,9 @@ const Home = () => {
                     {(post.community?.profilePic || post.author?.profilePic) ? (
                       <img 
                         src={getOptimizedUrl(
-                          (post.community?.profilePic || post.author?.profilePic).startsWith('http') 
+                          (post.community?.profilePic || post.author?.profilePic)?.startsWith('http') 
                             ? (post.community?.profilePic || post.author?.profilePic) 
-                            : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(post.community?.profilePic || post.author?.profilePic).replace(/\\/g, '/')}`,
+                            : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${(post.community?.profilePic || post.author?.profilePic)?.replace(/\\/g, '/')}`,
                           IMAGE_PRESETS.AVATAR
                         )}
                         alt="avatar" 
@@ -392,7 +392,7 @@ const Home = () => {
                   href={post.link.startsWith('http') ? post.link : `https://${post.link}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5 flex-shrink-0"
+                  className="bg-gray-200 dark:bg-[#343536] text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5 shrink-0"
                 >
                   Open ↗️
                 </a>
@@ -435,7 +435,7 @@ const Home = () => {
                 ))}
               </div>
             )}
-            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none break-words">
+            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none wrap-break-word">
               <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
                 {post.content || ''}
               </ReactMarkdown>
@@ -456,7 +456,7 @@ const Home = () => {
                     <span className="text-xs font-bold pt-0.5">{post.upvotes?.length || 0}</span>
                   </div>
                   
-                  <div className="w-[1px] h-4 bg-gray-300 dark:bg-[#343536]"></div>
+                  <div className="w-px h-4 bg-gray-300 dark:bg-[#343536]"></div>
 
                   <div
                     onClick={() => handleDownvote(post._id)}

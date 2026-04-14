@@ -73,7 +73,7 @@ const ChatRooms = () => {
                 socket.off('room_invite');
             }
         };
-    }, [socket]);
+    }, [socket, currentUser]);
 
     const handleCreateRoom = async (e) => {
         e.preventDefault();
@@ -114,7 +114,7 @@ const ChatRooms = () => {
                             value={newRoomName}
                             onChange={(e) => setNewRoomName(e.target.value)}
                             placeholder="Naam likhiye room ka (e.g. 'Midnight Debugging')..."
-                            className="flex-grow bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium"
+                            className="grow bg-gray-50 dark:bg-[#272729] border border-gray-300 dark:border-[#343536] text-gray-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all font-medium"
                             maxLength={50}
                             required
                         />

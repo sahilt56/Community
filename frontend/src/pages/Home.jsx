@@ -247,6 +247,15 @@ const Home = () => {
         <meta name="description" content={`Explore the ${sortBy} posts and discussions on Vartalap. Join the conversation with students and professionals.`} />
       </Helmet>
 
+      <div className="mb-8 animate-fade-up">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight">
+          Connect, Share, and Grow on <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-600">Vartalap</span>
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm md:text-base font-medium">
+          Duniya ke saath judiye, seekhiye aur badhiye. 🚀
+        </p>
+      </div>
+
       <div className="bg-gray-50/80 dark:bg-[#1a1a1b] border border-gray-200/60 dark:border-[#343536] rounded-3xl p-1.5 mb-5 inline-flex items-center gap-1 shadow-sm animate-fade-up">
         {['hot', 'new', 'top'].map((sortType) => (
           <button

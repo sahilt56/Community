@@ -70,7 +70,7 @@ const Explore = () => {
     <div className="mt-6 max-w-4xl mx-auto px-4 transition-colors">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 animate-fade-up">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">Explore Communities <Globe className="text-orange-500" size={28} /></h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">Explore Vartalap Communities <Globe className="text-orange-500" size={28} /></h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Find your next favorite community and join the conversation.</p>
         </div>
         <div className="relative w-full sm:w-80 md:w-96 shrink-0">

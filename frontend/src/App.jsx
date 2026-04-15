@@ -13,6 +13,7 @@ import UserProfile from './pages/UserProfile';
 import CreatePostPage from './pages/CreatePostPage';
 import Explore from './pages/Explore';
 import About from './pages/About';
+import Blog from './pages/Blog';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -97,7 +98,7 @@ function App() {
         <Helmet>
           <title>Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow</title>
           <meta name="description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
-          <meta name="keywords" content="community, students, professionals, networking, questions, answers, discussion forum, vartalap, reddit alternative, stackoverflow alternative, quora alternative, indian forum, coding help, ask questions" />
+          <meta name="keywords" content="vartalap.live, varta, reddit, community, students, professionals, networking, questions, answers, discussion forum, vartalap, Vartalap, Vartlap, Vartalp, VARTALAP, reddit alternative, stackoverflow alternative, quora alternative, indian forum, coding help, ask questions" />
           <meta property="og:title" content="Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow" />
           <meta property="og:description" content="Vartalap is a vibrant community platform and the best alternative to Reddit, Quora, and StackOverflow. Students and professionals come together to share ideas, ask coding questions, and build meaningful networks." />
           <meta name="twitter:title" content="Vartalap - Connect, Share, and Grow Together | The Indian Reddit & StackOverflow" />
@@ -127,6 +128,7 @@ function App() {
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/about" element={<About />} />
+              <Route path="/blog" element={<Blog />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/reports" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUserSupervision />} />

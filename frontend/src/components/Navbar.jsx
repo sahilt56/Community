@@ -5,7 +5,7 @@ import api, { cancelPendingRequests } from '../api';
 import { SocketContext } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import OnlineIndicator from './OnlineIndicator';
-import { Search, Menu, X, Sun, Moon, LogOut, User as UserIcon, Users, Pencil, Bell, ChevronDown, AlignLeft, Shield, MessageSquare, Megaphone, Flame, AlertTriangle, Sparkles, Volume2, VolumeX, Award, Info } from 'lucide-react';
+import { Search, Menu, X, Sun, Moon, LogOut, User as UserIcon, Users, Pencil, Bell, ChevronDown, AlignLeft, Shield, MessageSquare, Megaphone, Flame, AlertTriangle, Sparkles, Volume2, VolumeX, Award, Info, BookOpen } from 'lucide-react';
 import logo from '../assets/logo.png';
 import SystemInbox from './SystemInbox';
 
@@ -638,6 +638,15 @@ const Navbar = () => {
                     </Link>
 
                     <Link 
+                      to="/blog" 
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
+                    >
+                      <BookOpen size={20} strokeWidth={2} />
+                      Vartalap Blog
+                    </Link>
+
+                    <Link 
                       to="/about" 
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
@@ -681,6 +690,15 @@ const Navbar = () => {
                       <Link to="/login" onClick={() => setMenuOpen(false)} className="w-full text-center bg-gray-100 dark:bg-[#272729] text-gray-900 dark:text-white text-sm font-bold px-4 py-2 rounded-full transition-all">Log In</Link>
                       <Link to="/login" state={{ isSignUp: true }} onClick={() => setMenuOpen(false)} className="w-full text-center bg-linear-to-r from-teal-500 to-cyan-500 text-white text-sm font-bold px-4 py-2 rounded-full hover:opacity-90 transition-all shadow-md">Sign Up</Link>
                     </div>
+
+                    <Link 
+                      to="/blog" 
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-900 dark:hover:text-white transition-all text-sm"
+                    >
+                      <BookOpen size={20} strokeWidth={2} />
+                      Vartalap Blog
+                    </Link>
 
                     <Link 
                       to="/about" 

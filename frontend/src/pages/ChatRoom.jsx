@@ -289,10 +289,10 @@ const ChatRoom = () => {
                         {room.name.charAt(0)}
                     </div>
                     <div>
-                        <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
+                        <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
                             {room.name}
                             {room.status === 'closed' && <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Self-Destructing</span>}
-                        </h2>
+                        </h1>
                         <p className="text-xs text-gray-500">Created by u/{room.creator?.username}</p>
                     </div>
                 </div>

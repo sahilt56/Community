@@ -53,7 +53,7 @@ const CreateCommunity = () => {
         <div className="w-14 h-14 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-5 shadow-sm border border-orange-100 dark:border-orange-500/20">
           <Globe size={32} strokeWidth={2.5} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Create a Community</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Create Your Community on Vartalap</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Names cannot have spaces (e.g., "reactjs" or "learn-python").</p>
 
         {currentUser?.disabledFeatures?.includes('community') ? (

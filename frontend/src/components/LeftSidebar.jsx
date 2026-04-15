@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import SkeletonLoader from './SkeletonLoader';
 import { SocketContext } from '../context/SocketContext';
-import { Home, Compass, Plus, Info, Shield, Megaphone } from 'lucide-react';
+import { Home, Compass, Plus, Info, Shield, Megaphone, BookOpen } from 'lucide-react';
 
 const LeftSidebar = () => {
   const token = localStorage.getItem('token');
@@ -118,6 +118,7 @@ const LeftSidebar = () => {
           <div className="flex flex-col gap-0.5">
             {[
               { icon: Info, label: 'About Vartalap', to: '/about' },
+              { icon: BookOpen, label: 'Vartalap Blog', to: '/blog' },
               { icon: Shield, label: 'Help / Rules', to: '#' },
               { icon: Megaphone, label: 'Advertise', to: '#' },
             ].map((item) => {

@@ -286,7 +286,7 @@ const Login = () => {
               <img src={logo} alt="Vartalap" className="w-10 h-10 object-contain" />
             </div>
             <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
-              {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Create Account')}
+              {isForgotPassword ? 'Reset Your Vartalap Password' : (isLogin ? 'Login to Vartalap' : 'Join Vartalap Community')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
               {isForgotPassword 

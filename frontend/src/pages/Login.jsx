@@ -43,15 +43,35 @@ const Login = () => {
     },
     onError: () => {
       toast.error("Google Login Failed");
-    }
+    },
+    // 📱 Mobile/WebView compatibility: Use redirect instead of popup
+    ux_mode: (window.innerWidth < 1024 || /wv|FBAN|FBAV/i.test(navigator.userAgent)) ? 'redirect' : 'popup',
   });
   
   useEffect(() => {
 
     const readyTimer = setTimeout(() => {
-
       setIsPageReady(true);
     }, 50);
+
+    // 🛡️ Handle Google Redirect (For mobile/WebView compatibility)
+    const handleRedirect = () => {
+      // Access tokens are typically returned in the URL fragment (hash) for implicit flow
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      
+      if (accessToken) {
+        // Clean up the URL hash to prevent re-processing on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Use a small delay to ensure the UI is ready
+        setTimeout(() => {
+           handleGoogleSubmit(undefined, accessToken);
+        }, 100);
+      }
+    };
+
+    handleRedirect();
     
     return () => clearTimeout(readyTimer);
   }, []);

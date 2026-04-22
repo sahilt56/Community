@@ -28,14 +28,7 @@ const [currentTime] = useState(() => Date.now());
       const s = localStorage.getItem('user');
       const updatedUser = s ? JSON.parse(s) : null;
       setUser(updatedUser);
-      if (updatedUser?.username) {
-        api.get(`/api/users/${updatedUser.username}`)
-          .then(res => setProfileStats(res.data))
-          .catch(err => console.error(err));
-      } else {
-        // User logged out — clear profile stats immediately
-        setProfileStats(null);
-      }
+      // Removed direct API call here to prevent double-fetching with the main useEffect
     };
     window.addEventListener('storage', sync);
     window.addEventListener('auth-change', sync);

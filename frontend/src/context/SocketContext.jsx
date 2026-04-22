@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from 'react'; // FIX: Removed unused 'useContext'
+import React, { createContext, useEffect, useState, useMemo } from 'react'; // FIX: Added useMemo
 import { io } from 'socket.io-client';
 
 // FIX: Fast Refresh warning bypass. Exporting context is a standard pattern.
@@ -138,8 +138,10 @@ export const SocketProvider = ({ children }) => {
         }
     }, [socket]);
 
+    const value = useMemo(() => ({ socket, onlineUsers }), [socket, onlineUsers]);
+
     return (
-        <SocketContext.Provider value={{ socket, onlineUsers }}>
+        <SocketContext.Provider value={value}>
             {children}
         </SocketContext.Provider>
     );

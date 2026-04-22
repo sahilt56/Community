@@ -41,6 +41,7 @@ const UserProfile = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
+  const allTabsDataRef = useRef(allTabsData); // FIX: Ref to avoid dependency loop in socket effect
   const currentUser = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
     const { socket } = useContext(SocketContext);
@@ -50,15 +51,18 @@ const UserProfile = () => {
       const res = await api.get(`/api/users/${username}`);
       setProfileData(res.data);
       
-      // Store all data arrays so we can switch tabs without re-fetching
-      setAllTabsData({
+      const newData = {
         Posts: res.data.posts || [],
         Comments: res.data.commentedPosts || [],
         Saved: res.data.savedPosts || [],
         Hidden: res.data.hiddenPosts || [],
         Upvoted: res.data.upvotedPosts || [],
         Downvoted: res.data.downvotedPosts || []
-      });
+      };
+
+      // Store all data arrays so we can switch tabs without re-fetching
+      setAllTabsData(newData);
+      allTabsDataRef.current = newData; // Keep ref in sync
 
       // Default feed is Posts/Overview
       setPosts(res.data.posts || []);
@@ -101,7 +105,7 @@ const UserProfile = () => {
 
     const handleInteraction = (updatedPostId) => {
       // Agar koi post update hoti hai jo humare kisi bhi tab mein hai
-      const isRelevant = Object.values(allTabsData).flat().some(p => p._id === updatedPostId);
+      const isRelevant = Object.values(allTabsDataRef.current).flat().some(p => p._id === updatedPostId);
       
       // Toh hum profile dobara fetch karenge taaki Anubhav update ho jaye
       if (isRelevant) {
@@ -114,7 +118,7 @@ const UserProfile = () => {
     return () => {
       socket.off('post_interaction', handleInteraction);
     };
-  }, [socket, allTabsData, fetchUserProfile]); // Dependency ensures we check against latest data
+  }, [socket, fetchUserProfile]); // FIX: Removed allTabsData from dependencies
 
   // Handle click outside for profile menu
   useEffect(() => {

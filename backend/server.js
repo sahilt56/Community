@@ -131,7 +131,7 @@ const io = new Server(server, {
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 20, 
+  max: 100, // Increased for development
   message: { message: 'Too many requests, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -313,7 +313,7 @@ const systemMessageRoute = require('./routes/systemMessages');
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 300, 
+  max: 1000, // Increased for development
   message: { message: 'Too many requests from this IP.' },
   standardHeaders: true,
   legacyHeaders: false

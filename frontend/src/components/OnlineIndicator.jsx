@@ -4,7 +4,7 @@ import { SocketContext } from '../context/SocketContext';
 const OnlineIndicator = ({ userId, size = 'w-3 h-3', border = 'border-2 border-white dark:border-[#1a1a1b]' }) => {
     const context = useContext(SocketContext);
     const onlineUsers = context?.onlineUsers || new Set();
-    const isOnline = onlineUsers.has(userId);
+    const isOnline = userId && onlineUsers.has(String(userId));
 
     return (
         <div

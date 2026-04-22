@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useCallback } from 'react';
+import React, { useEffect, useState, useContext, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -39,6 +39,8 @@ const UserProfile = () => {
   const [uploadModal, setUploadModal] = useState({ isOpen: false, type: '', file: null, previewUrl: '' });
   const [followersModal, setFollowersModal] = useState({ isOpen: false, type: 'followers', list: [] });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
     const { socket } = useContext(SocketContext);
@@ -113,6 +115,17 @@ const UserProfile = () => {
       socket.off('post_interaction', handleInteraction);
     };
   }, [socket, allTabsData, fetchUserProfile]); // Dependency ensures we check against latest data
+
+  // Handle click outside for profile menu
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // VOTING LOGIC for the feed
   const handleUpvote = async (postId) => {
@@ -709,7 +722,7 @@ const UserProfile = () => {
                       src={getOptimizedUrl(getImageUrl(profileData.profile.profilePic), IMAGE_PRESETS.AVATAR)} 
                       alt="" 
                       loading="eager"
-                      fetchpriority="high"
+                      fetchPriority="high"
                       decoding="async"
                       className="absolute inset-0 w-full h-full object-cover" 
                       onError={(e) => { e.target.style.display = 'none'; }} 
@@ -717,19 +730,54 @@ const UserProfile = () => {
                   )}
                   
                   {isOwner && (
-                    <div className="absolute inset-0 bg-black/30 md:bg-black/40 flex items-center justify-center gap-3 cursor-pointer md:opacity-0 group-hover:opacity-100 align-bottom transition-all duration-300">
-                      <label className="cursor-pointer p-2 bg-black/30 hover:bg-black/50 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20" title="Edit Profile Picture">
-                        <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'profilePic')} />
-                        <Camera size={20} strokeWidth={2.5} className="text-white w-4 h-4 md:w-auto md:h-auto" />
-                      </label>
-                      {profileData.profile.profilePic && (
-                        <button onClick={() => handleImageDelete('profilePic')} className="p-2 bg-red-600/50 hover:bg-red-600 rounded-full transition-transform hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/20 text-white" title="Remove Profile Picture">
-                          <Trash2 size={20} strokeWidth={2.5} className="w-4 h-4 md:w-auto md:h-auto" />
-                        </button>
-                      )}
+                    <div className="absolute inset-0 bg-black/20 md:bg-black/40 flex items-center justify-center cursor-pointer md:opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+                       {/* Overlay indicator (optional, kept subtle) */}
                     </div>
                   )}
                 </div>
+                
+                {/* Pencil Edit Icon Bagal Me */}
+                {isOwner && (
+                  <div className="absolute -bottom-1 -right-1 z-30" ref={profileMenuRef}>
+                    <button 
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="w-8 h-8 md:w-10 md:h-10 bg-white dark:bg-[#1a1a1b] text-gray-700 dark:text-gray-200 rounded-full shadow-xl border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#272729] flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 btn-press"
+                      title="Edit Profile Picture"
+                    >
+                      <Pencil size={16} strokeWidth={2.5} className="md:w-5 md:h-5" />
+                    </button>
+
+                    {isProfileMenuOpen && (
+                      <div className="absolute left-0 md:left-auto md:right-0 top-full mt-2 w-48 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl shadow-2xl overflow-hidden animate-scale-in z-40">
+                        <label className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#272729] cursor-pointer transition-colors group">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                            <Camera size={16} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Change Photo</span>
+                          <input 
+                            type="file" 
+                            accept="image/jpeg, image/png, image/webp" 
+                            className="hidden" 
+                            onChange={(e) => { handleImageUpload(e, 'profilePic'); setIsProfileMenuOpen(false); }} 
+                          />
+                        </label>
+                        
+                        {profileData.profile.profilePic && (
+                          <button 
+                            onClick={() => { handleImageDelete('profilePic'); setIsProfileMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group border-t border-gray-100 dark:border-[#343536]"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
+                              <Trash2 size={16} strokeWidth={2.5} />
+                            </div>
+                            <span className="text-sm font-bold text-red-600 dark:text-red-400">Remove Photo</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <OnlineIndicator userId={profileData.profile._id} size="w-6 h-6 md:w-8 md:h-8" border="border-[3px] md:border-4 border-white dark:border-[#1a1a1b]" />
               </div>
               

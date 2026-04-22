@@ -96,17 +96,22 @@ export const SocketProvider = ({ children }) => {
         });
 
         newSocket.on('online_users_list', (users) => {
-            setOnlineUsers(new Set(users));
+            const normalizedUsers = (users || []).map(id => String(id));
+            setOnlineUsers(new Set(normalizedUsers));
         });
 
         newSocket.on('user_online', (userId) => {
-            setOnlineUsers((prev) => new Set([...prev, userId]));
+            if (!userId) return;
+            const normalizedId = String(userId);
+            setOnlineUsers((prev) => new Set([...prev, normalizedId]));
         });
 
         newSocket.on('user_offline', (userId) => {
+            if (!userId) return;
+            const normalizedId = String(userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
-                newSet.delete(userId);
+                newSet.delete(normalizedId);
                 return newSet;
             });
         });

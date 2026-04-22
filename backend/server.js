@@ -181,18 +181,22 @@ io.on('connection', (socket) => {
   const onlineUsers = app.get('onlineUsers');
 
   socket.on('join_personal_room', (userId) => {
-    if (socket.userId && socket.userId === userId) {
-      socket.join(userId);
-      onlineUsers.set(userId, socket.id);
-      io.emit('user_online', userId);
+    const normalizedUserId = String(userId);
+    if (socket.userId && String(socket.userId) === normalizedUserId) {
+      socket.join(normalizedUserId);
+      onlineUsers.set(normalizedUserId, socket.id);
+      io.emit('user_online', normalizedUserId);
       socket.emit('online_users_list', Array.from(onlineUsers.keys()));
     }
   });
 
   socket.on('disconnect', () => {
-    if (socket.userId && onlineUsers.get(socket.userId) === socket.id) {
-      onlineUsers.delete(socket.userId);
-      io.emit('user_offline', socket.userId);
+    if (socket.userId) {
+      const normalizedUserId = String(socket.userId);
+      if (onlineUsers.get(normalizedUserId) === socket.id) {
+        onlineUsers.delete(normalizedUserId);
+        io.emit('user_offline', normalizedUserId);
+      }
     }
   });
 

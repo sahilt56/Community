@@ -657,10 +657,10 @@ const UserProfile = () => {
       )}
 
       {/* 1. TOP HEADER SECTION */}
-      <div className="bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md overflow-hidden shadow-md transition-colors">
+      <div className="bg-green-50 dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-md shadow-md transition-colors relative">
         {/* Banner */}
         <div 
-          className="h-40 md:h-64 bg-gray-100 dark:bg-[#272729] relative group overflow-hidden transition-colors border-b border-gray-200 dark:border-[#343536]"
+          className="h-40 md:h-64 bg-gray-100 dark:bg-[#272729] relative group overflow-hidden transition-colors border-b border-gray-200 dark:border-[#343536] rounded-t-md"
         >
           {profileData.profile.bannerPic ? (
             <img 
@@ -748,7 +748,7 @@ const UserProfile = () => {
                     </button>
 
                     {isProfileMenuOpen && (
-                      <div className="absolute left-0 md:left-auto md:right-0 top-full mt-2 w-48 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl shadow-2xl overflow-hidden animate-scale-in z-40">
+                      <div className="absolute left-0 md:left-auto md:-right-2 top-full mt-2 w-48 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] rounded-xl shadow-2xl overflow-hidden animate-scale-in z-50">
                         <label className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#272729] cursor-pointer transition-colors group">
                           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                             <Camera size={16} strokeWidth={2.5} />

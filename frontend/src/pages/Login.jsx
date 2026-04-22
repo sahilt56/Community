@@ -139,35 +139,39 @@ const Login = () => {
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
     const payload = isLogin ? { email, password } : { username, email, password, otp, userType };
     
-    try {
-      console.log("[Login] Sending request to", endpoint);
-      const startTime = Date.now();
-      const res = await api.post(endpoint, payload);
-      const responseTime = Date.now() - startTime;
-      
-      console.log("[Login] ✅ Response received in " + responseTime + "ms");
-      toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
+    // ⏳ Added strategic delay for reliability (as requested)
+    const loadingId = toast.loading(isLogin ? "Securing connection... 🛡️" : "Generating account... 🚀");
+    
+    setTimeout(async () => {
+      try {
+        console.log("[Login] Sending request to", endpoint);
+        const startTime = Date.now();
+        const res = await api.post(endpoint, payload);
+        const responseTime = Date.now() - startTime;
+        
+        console.log("[Login] ✅ Response received in " + responseTime + "ms");
+        toast.dismiss(loadingId);
+        toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
-      console.log("[Login] Setting localStorage with new token");
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      localStorage.setItem('loginTime', Date.now().toString());
-      console.log('[Login] Token in localStorage:', !!localStorage.getItem('token'));
-      
-      console.log("[Login] 📢 Dispatching auth-change event");
-      // Dispatch auth-change event to update SocketContext immediately
-      window.dispatchEvent(new Event('auth-change'));
-      
-      console.log("[Login] Waiting 600ms before redirect to ensure socket connects");
-      setTimeout(() => {
+        console.log("[Login] Setting localStorage with new token");
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('loginTime', Date.now().toString());
+        console.log('[Login] Token in localStorage:', !!localStorage.getItem('token'));
+        
+        console.log("[Login] 📢 Dispatching auth-change event");
+        // Dispatch auth-change event to update SocketContext immediately
+        window.dispatchEvent(new Event('auth-change'));
+        
         console.log("[Login] Redirecting to home...");
         // Full clean reload
         window.location.href = '/';
-      }, 600);
-    } catch (err) {
-      console.error("[Login] Error:", err);
-      toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
-    }
+      } catch (err) {
+        toast.dismiss(loadingId);
+        console.error("[Login] Error:", err);
+        toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
+      }
+    }, 1500); // 1.5s delay
   };
 
   const handleForgotPasswordOtp = async (e) => {

@@ -298,3 +298,14 @@ body {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+/* Markdown ke andar aane wali images ko limit karne ke liye */
+.prose img {
+  max-height: 550px !important;
+  width: auto !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-radius: 8px !important;
+  background-color: #0b0b0c !important; /* dark background for padded areas */
+}

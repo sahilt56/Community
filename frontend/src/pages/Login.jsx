@@ -47,9 +47,9 @@ const Login = () => {
   });
   
   useEffect(() => {
-    console.log("[Login] 🚀 Login page mounted, setting up initialization delay");
+
     const readyTimer = setTimeout(() => {
-      console.log("[Login] ✅ Page ready for form submission");
+
       setIsPageReady(true);
     }, 50);
     
@@ -124,12 +124,12 @@ const Login = () => {
     if (e) e.preventDefault();
 
     if (!isPageReady) {
-      console.log("[Login] ⏳ Page not ready yet, ignoring submission");
+
       toast.error("Please wait a moment while the page loads...");
       return;
     }
 
-    console.log("[Login] Form submitted, isLogin:", isLogin);
+
 
     if (!isLogin && usernameStatus && !usernameStatus.available) {
       toast.error("Username is not available!");
@@ -144,31 +144,31 @@ const Login = () => {
     
     setTimeout(async () => {
       try {
-        console.log("[Login] Sending request to", endpoint);
+
         const startTime = Date.now();
         const res = await api.post(endpoint, payload);
         const responseTime = Date.now() - startTime;
         
-        console.log("[Login] ✅ Response received in " + responseTime + "ms");
+
         toast.dismiss(loadingId);
         toast.success(isLogin ? "Login Successful! 🎉" : "Account Created Successfully! 🎉");
 
-        console.log("[Login] Setting localStorage with new token");
+
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         localStorage.setItem('loginTime', Date.now().toString());
-        console.log('[Login] Token in localStorage:', !!localStorage.getItem('token'));
+
         
-        console.log("[Login] 📢 Dispatching auth-change event");
+
         // Dispatch auth-change event to update SocketContext immediately
         window.dispatchEvent(new Event('auth-change'));
         
-        console.log("[Login] Redirecting to home...");
+
         // Full clean reload
         window.location.href = '/';
       } catch (err) {
         toast.dismiss(loadingId);
-        console.error("[Login] Error:", err);
+
         toast.error(err.response?.data?.message || (isLogin ? "Login Failed" : "Registration Failed"));
       }
     }, 1500); // 1.5s delay

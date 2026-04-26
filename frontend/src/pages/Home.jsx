@@ -53,7 +53,7 @@ const Home = () => {
     if (sortBy === 'tech-news') return; // Skip fetching posts if we're on tech-news tab
     setLoading(true);
     try {
-      const res = await api.get(`/api/posts?sort=${sortBy}&page=${pageNum}&limit=5`);
+      const res = await api.get(`/api/posts?sort=${sortBy}&page=${pageNum}&limit=15`);
       setPosts(prev => reset ? res.data.posts : [...prev, ...res.data.posts]);
       setHasMore(res.data.hasMore);
     } catch (err) {
@@ -329,8 +329,8 @@ const Home = () => {
           <div
             key={`${post._id}-${index}`}
             ref={isLast ? lastPostElementRef : null}
-            className={`card-hover bg-white dark:bg-[#1a1a1b] border border-gray-100 dark:border-[#343536] p-4 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none transition-all animate-fade-up overflow-visible relative ${String(activeMenuId) === String(post._id) ? 'z-100' : 'z-10 hover:z-60'}`}
-            style={{ animationDelay: `${Math.min(index, 4) * 60}ms` }}
+            className={`post-card bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-[#343536] p-4 rounded-xl relative ${index < 5 ? 'animate-fade-up' : ''} ${String(activeMenuId) === String(post._id) ? 'z-50' : ''}`}
+            style={index < 5 ? { animationDelay: `${index * 60}ms` } : undefined}
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-2.5">
@@ -455,11 +455,11 @@ const Home = () => {
                 ))}
               </div>
             )}
-            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none wrap-break-word">
-              <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
-                {post.content || ''}
-              </ReactMarkdown>
-            </div>
+            {post.content && (
+              <div className="post-content-preview text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                {post.content}
+              </div>
+            )}
             
             {/* Post Actions */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400 font-bold text-sm mt-3">

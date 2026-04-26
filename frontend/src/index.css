@@ -319,3 +319,28 @@ body {
   border-radius: 8px !important;
   background-color: #0b0b0c !important; /* dark background for padded areas */
 }
+
+/* ===================== Feed Performance ===================== */
+
+/* Browser skips rendering off-screen post cards — huge scroll perf win */
+.post-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+/* Content preview in feed — truncate to 3 lines */
+.post-content-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 4.5em;
+}
+
+/* Remove heavy prose styling from feed previews */
+.post-content-preview * {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}

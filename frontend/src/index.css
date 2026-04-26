@@ -249,6 +249,16 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #5a5a5b; }
 
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
+
 /* Premium Solid Nav (formerly glass-nav) */
 .glass-nav {
   background: #ffffff !important;

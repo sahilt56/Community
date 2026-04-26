@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import SkeletonLoader from './SkeletonLoader';
 import { SocketContext } from '../context/SocketContext';
-import { Home, Compass, Plus, Info, Shield, Megaphone, BookOpen } from 'lucide-react';
+import { Home, Compass, Plus, Info, Shield, Megaphone, BookOpen, Newspaper } from 'lucide-react';
 
 const LeftSidebar = () => {
   const token = localStorage.getItem('token');
@@ -61,6 +61,10 @@ const LeftSidebar = () => {
           <Link to="/explore" className="sidebar-link flex items-center gap-3 px-3 py-2.5 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg transition-all group">
             <Compass size={20} className="text-gray-400 group-hover:text-orange-500 transition-colors duration-200" />
             <span className="font-semibold text-sm">Explore</span>
+          </Link>
+          <Link to="/tech-news" className="sidebar-link flex items-center gap-3 px-3 py-2.5 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg transition-all group">
+            <Newspaper size={20} className="text-gray-400 group-hover:text-orange-500 transition-colors duration-200" />
+            <span className="font-semibold text-sm">Tech News</span>
           </Link>
         </div>
 

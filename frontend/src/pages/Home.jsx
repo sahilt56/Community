@@ -6,12 +6,13 @@ import toast from 'react-hot-toast';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PostMenu from '../components/PostMenu';
 import PollView from '../components/PollView';
-import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangle, CheckCircle, Award } from 'lucide-react';
+import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
+import TechNewsFeed from '../components/TechNewsFeed';
+import { Flame, Sparkles, ArrowUp, ArrowDown, MessageCircle, Share, AlertTriangle, CheckCircle, Award, Newspaper } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { Helmet } from 'react-helmet-async';
-import { getOptimizedUrl, IMAGE_PRESETS } from '../utils/cloudinaryHelper';
 
 const sanitizeOptions = {
   ...defaultSchema,
@@ -49,6 +50,7 @@ const Home = () => {
 
   // FIX: Wrapped fetchPosts in useCallback
   const fetchPosts = useCallback(async (pageNum = 1, reset = false) => {
+    if (sortBy === 'tech-news') return; // Skip fetching posts if we're on tech-news tab
     setLoading(true);
     try {
       const res = await api.get(`/api/posts?sort=${sortBy}&page=${pageNum}&limit=5`);
@@ -256,21 +258,27 @@ const Home = () => {
         </p>
       </div>
 
-      <div className="bg-gray-50/80 dark:bg-[#1a1a1b] border border-gray-200/60 dark:border-[#343536] rounded-3xl p-1.5 mb-5 inline-flex items-center gap-1 shadow-sm animate-fade-up">
-        {['hot', 'new', 'top'].map((sortType) => (
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar max-w-full pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 scroll-smooth">
+        {['hot', 'new', 'top', 'tech-news'].map((sortType) => (
           <button
             key={sortType}
-            onClick={() => setSortBy(sortType)}
-            className={`btn-press flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap ${
+            onClick={(e) => {
+              setSortBy(sortType);
+              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap active:scale-95 ${
               sortBy === sortType
                 ? 'bg-rose-500 text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-[#272729] hover:text-gray-800 dark:hover:text-gray-200'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-[#272729] dark:hover:text-white'
             }`}
           >
             <span className="flex items-center justify-center">
-              {sortType === 'hot' ? <Flame size={18} strokeWidth={sortBy === 'hot' ? 2.5 : 2} fill={sortBy === 'hot' ? 'transparent' : 'none'} /> : sortType === 'new' ? <Sparkles size={18} strokeWidth={2} /> : <ArrowUp size={18} strokeWidth={2} />}
+              {sortType === 'hot' ? <Flame size={18} strokeWidth={sortBy === 'hot' ? 2.5 : 2} /> : 
+               sortType === 'new' ? <Sparkles size={18} strokeWidth={2} /> : 
+               sortType === 'top' ? <ArrowUp size={18} strokeWidth={2} /> :
+               <Newspaper size={18} strokeWidth={2} />}
             </span>
-            <span className="capitalize">{sortType}</span>
+            <span className="capitalize">{sortType.replace('-', ' ')}</span>
           </button>
         ))}
       </div>
@@ -301,7 +309,10 @@ const Home = () => {
         </div>
       </div>
       
-      <div className="flex flex-col gap-4">
+      {sortBy === 'tech-news' ? (
+        <TechNewsFeed />
+      ) : (
+        <div className="flex flex-col gap-4">
         {posts.map((post, index) => {
           // Calculate net votes
           // const upvotes = post.upvotes?.length || 0;
@@ -512,6 +523,7 @@ const Home = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

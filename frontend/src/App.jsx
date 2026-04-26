@@ -14,6 +14,7 @@ import CreatePostPage from './pages/CreatePostPage';
 import Explore from './pages/Explore';
 import About from './pages/About';
 import Blog from './pages/Blog';
+import TechNewsPage from './pages/TechNewsPage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -129,6 +130,7 @@ function App() {
               <Route path="/explore" element={<Explore />} />
               <Route path="/about" element={<About />} />
               <Route path="/blog" element={<Blog />} />
+              <Route path="/tech-news" element={<TechNewsPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/reports" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUserSupervision />} />

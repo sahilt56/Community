@@ -310,6 +310,7 @@ const chatRoute = require('./routes/chat');
 const eventRoute = require('./routes/event');
 const voiceRoute = require('./routes/voice');
 const systemMessageRoute = require('./routes/systemMessages');
+const techNewsRoute = require('./routes/techNews');
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
@@ -334,6 +335,7 @@ app.use('/api/chat', chatRoute);
 app.use('/api/events', eventRoute);
 app.use('/api/voice', voiceRoute);
 app.use('/api/system-messages', systemMessageRoute);
+app.use('/api/tech-news', techNewsRoute);
 
 app.get('/', (req, res) => {
     res.send('Vartalap API is running!');

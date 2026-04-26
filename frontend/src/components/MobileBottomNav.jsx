@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Compass, Plus, User, Users } from 'lucide-react';
+import { Home, Compass, Plus, User, Users, Newspaper } from 'lucide-react';
 
 const NavItem = (props) => {
   const { to, exact = true, icon: Icon, label, hiddenOnMobile = false, hiddenOnTablet = false, location } = props;
@@ -49,6 +49,7 @@ const MobileBottomNav = () => {
          </>
        )}
        
+       <NavItem to="/tech-news" exact={false} icon={Newspaper} label="News" location={location} />
        <NavItem to={currentUser ? `/u/${currentUser.username}` : "/login"} exact={false} icon={User} label="Profile" location={location} />
     </div>
   );

@@ -328,14 +328,28 @@ body {
   contain-intrinsic-size: auto 320px;
 }
 
-/* Content preview in feed — truncate text but allow some height for media/markdown */
+/* Content preview in feed — truncate text but allow more height for images */
 .post-content-preview {
-  display: -webkit-box;
-  -webkit-line-clamp: 8;
-  line-clamp: 8; /* Standard property for compatibility */
-  -webkit-box-orient: vertical;
+  display: block; /* Removed flex-box/line-clamp to allow full image width/height up to max */
   overflow: hidden;
-  max-height: 250px; /* Allow up to 250px height in feed preview */
+  max-height: 600px; /* Increased from 250px to 600px for long screenshots */
+  position: relative;
+}
+
+/* Fade effect for very long posts in feed */
+.post-content-preview::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, white);
+  pointer-events: none;
+}
+
+.dark .post-content-preview::after {
+  background: linear-gradient(to bottom, transparent, #1a1a1b);
 }
 
 /* Remove heavy prose styling from feed previews */

@@ -470,12 +470,12 @@ const PostPage = () => {
         {post.media && post.media.length > 0 && (
           <div className={`grid gap-4 mb-6 ${post.media.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
             {post.media.map((item, idx) => (
-              <div key={idx} className="relative rounded-md overflow-hidden border border-gray-200 dark:border-[#343536] bg-black/5 dark:bg-black/20 flex items-center justify-center">
+              <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]">
                 {item.mimetype?.startsWith('video/') ? (
                   <video 
                     src={item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`} 
                     controls 
-                    className="max-h-125 w-full"
+                    className="max-h-[800px] w-full object-contain"
                   />
                 ) : (
                   <img 
@@ -486,7 +486,7 @@ const PostPage = () => {
                     alt={`Attachment ${idx}`} 
                     loading="lazy"
                     decoding="async"
-                    className="max-h-150 w-full object-contain"
+                    className="w-full h-auto max-h-[800px] object-contain"
                   />
                 )}
               </div>

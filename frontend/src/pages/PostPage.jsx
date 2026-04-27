@@ -21,9 +21,10 @@ const sanitizeOptions = {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
     iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
-    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline'],
+    img: ['src', 'alt', 'loading', 'width', 'height', 'decoding']
   },
-  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption', 'img'],
 };
 
 const PostPage = () => {

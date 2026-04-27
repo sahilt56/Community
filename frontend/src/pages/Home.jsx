@@ -20,9 +20,10 @@ const sanitizeOptions = {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] || []), 'style', 'className', 'class'],
     iframe: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder'],
-    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline']
+    video: ['src', 'controls', 'class', 'className', 'poster', 'loop', 'muted', 'playsinline'],
+    img: ['src', 'alt', 'loading', 'width', 'height', 'decoding']
   },
-  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption'],
+  tagNames: [...(defaultSchema.tagNames || []), 'mark', 'iframe', 'video', 'source', 'span', 'figure', 'figcaption', 'img'],
 };
 
 const Home = () => {
@@ -456,8 +457,10 @@ const Home = () => {
               </div>
             )}
             {post.content && (
-              <div className="post-content-preview text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4">
-                {post.content}
+              <div className="post-content-preview text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none wrap-break-word">
+                <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeOptions]]}>
+                  {post.content}
+                </ReactMarkdown>
               </div>
             )}
             

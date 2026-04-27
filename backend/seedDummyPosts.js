@@ -45,31 +45,27 @@ const images = [
     "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?w=800"
 ];
 
-// All 50 posts are completely unique — no repeats
+// All 10 posts are completely unique — no repeats
 const allPosts = [
     // ---- Desi Developers (community index 0) ----
     { ci: 0, title: "Meri pehli open source PR merge ho gayi!", content: "6 mahine se try kar raha tha. Aaj finally React Router ke docs mein ek typo fix ki PR merge hui. Chhoti si cheez hai par feeling bohot achhi hai. Sabko recommend karunga — first PR ke liye docs repos best hain.", hasImage: true },
+    { ci: 0, title: "Node.js vs Deno vs Bun — kaunsa seekhein 2026 mein?", content: "Bun ka hype bohot hai par Node.js ka ecosystem mature hai. Deno bhi achha hai par jobs mein Node hi maangta hai. Meri advice — pehle Node solid karo, baaki explore karte raho.", hasImage: false },
 
     // ---- AI & ML India (community index 1) ----
     { ci: 1, title: "Gemini 3.5 ka coding ability dekh ke maza aa gaya", content: "Aaj ek pura REST API Gemini se banwaya — models, routes, middleware sab. 30 min ka kaam 5 min mein ho gaya. Par haan, production mein blindly use mat karna, review zaroor karo.", hasImage: true },
     { ci: 1, title: "Hugging Face pe apna pehla model deploy kiya!", content: "Ek simple sentiment analysis model banaya tha college project ke liye. Hugging Face Spaces pe Gradio app bana ke deploy kar diya. Link share karunga, feedback dena.", hasImage: true },
-    { ci: 1, title: "Machine Learning ke liye laptop mein GPU zaroori hai kya?", content: "Mera budget limited hai. Kya Google Colab se kaam chal jayega ya GPU wala laptop lena hi padega ML seekhne ke liye?", hasImage: false },
-   
 
     // ---- Frontend Fanatics (community index 2) ----
     { ci: 2, title: "Framer Motion ke animations dekh ke client khush ho gaya", content: "Ek landing page banaya tha freelance mein. Framer Motion se scroll animations aur page transitions daale. Client ne extra payment di kyunki itna smooth tha. Worth learning hai ye library.", hasImage: true },
     { ci: 2, title: "CSS mein center karna ab bhi mushkil lagta hai kya?", content: "display: grid; place-items: center; — bas ye ek line yaad rakh lo aur zindagi aasan ho jayegi. Flexbox wala method bhi theek hai par grid shortest hai.", hasImage: false },
-    
 
     // ---- Startup India Tech (community index 3) ----
     { ci: 3, title: "Apna SaaS launch kiya — pehle din 0 signups 😅", content: "6 mahine lagaaye building mein. Launch kiya Product Hunt pe. Pehle din koi signup nahi hua. Par haar nahi maanunga — marketing seekhna padega ab.", hasImage: true },
     { ci: 3, title: "Bangalore mein co-working spaces bohot mehnge ho gaye", content: "WeWork mein ek seat ₹15,000/month maang rahe hain. Koi sasta par achha co-working space suggest karo Bangalore mein. HSR Layout ya Koramangala preferred.", hasImage: false },
-   
+
     // ---- Career & Jobs (community index 4) ----
     { ci: 4, title: "TCS se resign kiya, ab kya karun?", content: "2 saal TCS mein kaam kiya. Kuch naya nahi seekh raha tha. Notice period mein hoon. Kya direct product companies mein apply karun ya pehle kuch projects banaaun?", hasImage: false },
     { ci: 4, title: "LinkedIn profile optimize karne ke tips", content: "Recruiter ne bola tera profile weak hai. Headline mein 'looking for opportunities' mat likho. Achhe se skills mention karo, projects ka link daalo, aur recommendations lo.", hasImage: true },
-    { ci: 4, title: "Interview mein 'Tell me about yourself' ka perfect answer", content: "Ye sawal har interview mein aata hai. 2 min ka answer rakho — background, current role, why this company. Ratta mat maaro, naturally bolo. Practice karo mirror ke saamne.", hasImage: false },
-
 ];
 
 async function seedData() {
@@ -114,8 +110,8 @@ async function seedData() {
             dbCommunities.push(community);
         }
 
-        // 3. Insert all 50 unique posts
-        console.log("Generating 50 unique posts...");
+        // 3. Insert all 10 unique posts
+        console.log("Generating 10 unique posts...");
         const postsToInsert = allPosts.map((post, index) => {
             const date = new Date();
             date.setDate(date.getDate() - Math.floor(Math.random() * 20));

@@ -936,18 +936,18 @@ const CommunityPage = () => {
                     {post.media && post.media.length > 0 && (
                       <div className={`grid gap-2 mb-4 ${post.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {post.media.map((item, idx) => (
-                          <div key={idx} className="relative rounded-md overflow-hidden border border-[#343536] bg-black/20 flex items-center justify-center">
+                          <div key={idx} className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729]">
                             {item.mimetype?.startsWith('video/') ? (
                               <video 
                                 src={item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`} 
                                 controls 
-                                className="max-h-96 w-full object-cover"
+                                className="max-h-[600px] w-full object-contain"
                               />
                             ) : (
                               <img 
                                 src={item.url.startsWith('http') ? item.url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.url}`} 
                                 alt={`Attachment ${idx}`} 
-                                className="max-h-96 w-full object-contain"
+                                className="w-full h-auto max-h-[600px] object-contain"
                               />
                             )}
                           </div>

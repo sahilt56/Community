@@ -328,13 +328,14 @@ body {
   contain-intrinsic-size: auto 320px;
 }
 
-/* Content preview in feed — truncate to 3 lines */
+/* Content preview in feed — truncate text but allow some height for media/markdown */
 .post-content-preview {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 8;
+  line-clamp: 8; /* Standard property for compatibility */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-height: 4.5em;
+  max-height: 250px; /* Allow up to 250px height in feed preview */
 }
 
 /* Remove heavy prose styling from feed previews */

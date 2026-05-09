@@ -15,6 +15,9 @@ import Explore from './pages/Explore';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import TechNewsPage from './pages/TechNewsPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import ContactUs from './pages/ContactUs';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -131,6 +134,9 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/tech-news" element={<TechNewsPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsConditions />} />
+              <Route path="/contact" element={<ContactUs />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/reports" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUserSupervision />} />

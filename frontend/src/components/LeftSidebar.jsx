@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import SkeletonLoader from './SkeletonLoader';
 import { SocketContext } from '../context/SocketContext';
-import { Home, Compass, Plus, Info, Shield, Megaphone, BookOpen, Newspaper } from 'lucide-react';
+import { Home, Compass, Plus, Info, Shield, Megaphone, BookOpen, Newspaper, FileText, Mail } from 'lucide-react';
 
 const LeftSidebar = () => {
   const token = localStorage.getItem('token');
@@ -123,8 +123,9 @@ const LeftSidebar = () => {
             {[
               { icon: Info, label: 'About Vartalap', to: '/about' },
               { icon: BookOpen, label: 'Vartalap Blog', to: '/blog' },
-              { icon: Shield, label: 'Help / Rules', to: '#' },
-              { icon: Megaphone, label: 'Advertise', to: '#' },
+              { icon: FileText, label: 'Privacy Policy', to: '/privacy-policy' },
+              { icon: Shield, label: 'Terms & Conditions', to: '/terms' },
+              { icon: Mail, label: 'Contact Us', to: '/contact' },
             ].map((item) => {
               const IconComp = item.icon;
               return (
@@ -148,9 +149,9 @@ const LeftSidebar = () => {
              <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
                 Contact developer for any concern:
              </p>
-             <a href="mailto:vartalapsupport@gmail.com" className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1.5">
-                <Megaphone size={12} /> vartalapsupport@gmail.com
-             </a>
+             <Link to="/contact" className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1.5 mt-1">
+                <Mail size={12} /> Contact Support
+             </Link>
           </div>
         </div>
 

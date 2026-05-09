@@ -322,10 +322,10 @@ body {
 
 /* ===================== Feed Performance ===================== */
 
-/* Browser skips rendering off-screen post cards — huge scroll perf win */
+/* Removed content-visibility: auto; because it was causing severe scroll lag and blank spaces on variable-height posts on mobile browsers */
 .post-card {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  /* Adding a simple transform can sometimes hardware-accelerate rendering without the layout breakage of content-visibility */
+  transform: translateZ(0);
 }
 
 /* Content preview in feed — allow more height for images */
